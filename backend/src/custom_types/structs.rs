@@ -20,3 +20,11 @@ pub struct User {
     pub id: u64,
     pub username: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub sub: String,        // subject (user id)
+    pub exp: usize,         // expiration time (as UTC timestamp)
+    pub role: String,       // user role
+    pub token_type: String, // type of token (access or refresh)
+}
