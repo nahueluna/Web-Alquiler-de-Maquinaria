@@ -3,6 +3,8 @@ use argon2::{
     Argon2,
 };
 use axum::{http::StatusCode, Json};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use serde_json::json;
 
 use crate::custom_types::structs::*;
@@ -26,6 +28,32 @@ pub async fn create_user(
     // this will be converted into a JSON response
     // with a status code of `201 Created`
     (StatusCode::CREATED, Json(user))
+}
+
+pub fn generate_token(
+    user_id: &str,
+    role: &str,
+    token_type: &str,
+    expires_in_minutes: usize,
+    secret_key: &str,
+) -> Result<String, jsonwebtoken::errors::Error> {
+    let expiration = Utc::now()
+        .checked_add_signed(Duration::minutes(expires_in_minutes as i64))
+        .expect("date out of range")
+        .timestamp();
+
+    let claims = Claims {
+        sub: user_id.to_string(),
+        exp: expiration as usize,
+        role: role.to_string(),
+        token_type: token_type.to_string(),
+    };
+
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret_key.as_bytes()),
+    )
 }
 
 // Checks if a password with salt is correct
