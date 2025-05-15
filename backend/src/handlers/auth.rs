@@ -6,6 +6,7 @@ use axum::{http::StatusCode, Json};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use serde_json::json;
+use tokio_postgres::{NoTls, Error};
 
 use crate::custom_types::structs::*;
 
@@ -19,6 +20,28 @@ pub async fn create_user(
     // as JSON into a `CreateUser` type
     Json(payload): Json<CreateUser>,
 ) -> (StatusCode, Json<User>) {
+    let email = "newuser@example.com";
+    let password = "plaintext123";
+    let role: i16 = 1;
+
+    // Connect to the database.
+    let (client, connection) =
+        tokio_postgres::connect("host=localhost dbname=saga user=postgres", NoTls).await.unwrap();
+
+    // The connection object performs the actual communication with the database,
+    // so spawn it off to run on its own.
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            eprintln!("connection error: {}", e);
+        }
+    });
+
+    // Now we can execute a simple statement that just returns its parameter.
+    let rows = client
+        .query("INSERT INTO users (email, name, password, role) VALUES ($1, $2, $3, $4)",
+        &[&email, &payload.username, &password, &role])
+        .await.unwrap();
+
     // insert your application logic here
     let user = User {
         id: 1337,
