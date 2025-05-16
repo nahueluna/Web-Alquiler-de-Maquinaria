@@ -38,6 +38,7 @@ export default function LoginPage() {
       alert(JSON.stringify(values, null, 2));
     },
   });
+
   return (
     <Sheet
       variant="outlined"
@@ -54,39 +55,50 @@ export default function LoginPage() {
 
       <form onSubmit={formik.handleSubmit}>
         <Stack spacing={2}>
-          <div>
-            <FormLabel>Email</FormLabel>
-            <Input
-              name="email"
-              type="email"
-              value={formik.values.email}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.email && Boolean(formik.errors.email)}
-            />
-            {formik.touched.email && formik.errors.email && (
-              <FormHelperText color="danger">
-                {formik.errors.email}
-              </FormHelperText>
-            )}
-          </div>
+          <FormControl error={formik.errors.email}>
+            <div>
+              <FormLabel>Email</FormLabel>
+              <Input
+                name="email"
+                type="email"
+                value={formik.values.email}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                error={formik.touched.email && Boolean(formik.errors.email)}
+              />
+              {formik.touched.email && formik.errors.email && (
+                <FormHelperText>{formik.errors.email}</FormHelperText>
+              )}
+            </div>
+          </FormControl>
 
-          <div>
-            <FormLabel>Contraseña</FormLabel>
-            <Input
-              name="password"
-              type="password"
-              value={formik.values.password}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.password && Boolean(formik.errors.password)}
-            />
-            {formik.touched.password && formik.errors.password && (
-              <FormHelperText color="danger">
-                {formik.errors.password}
-              </FormHelperText>
-            )}
-          </div>
+          <FormControl error={formik.errors.password}>
+            <div>
+              <FormLabel>Contraseña</FormLabel>
+              <Input
+                name="password"
+                type="password"
+                value={formik.values.password}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                error={
+                  formik.touched.password && Boolean(formik.errors.password)
+                }
+              />
+              {formik.touched.password && formik.errors.password && (
+                <FormHelperText>{formik.errors.password}</FormHelperText>
+              )}
+            </div>
+          </FormControl>
+
+          <Link
+            component={RouterLink}
+            to={"/recover-password"}
+            level="body-sm"
+            underline="always"
+          >
+            Olvide mi contraseña
+          </Link>
 
           <Button type="submit" variant="solid" color="primary">
             Ingresar
