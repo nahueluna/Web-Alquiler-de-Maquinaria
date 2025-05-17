@@ -1,14 +1,17 @@
+import MailIcon from "@mui/icons-material/Mail";
 import {
   Button,
   Checkbox,
   Divider,
   FormControl,
+  FormHelperText,
   Input,
   Link,
   Sheet,
   Stack,
   Typography,
 } from "@mui/joy";
+import React from "react";
 import { Link as RouterLink } from "react-router-dom";
 
 const RegisterPage = () => {
@@ -62,9 +65,41 @@ const RegisterPage = () => {
             </FormControl>
           </Stack>
           <FormControl>
-            <Input type="email" placeholder="Correo electronico" />
+            <Input
+              startDecorator={<MailIcon />}
+              type="email"
+              placeholder="Correo electronico"
+            />
           </FormControl>
-          <Checkbox label="Acepto los terminos y condiciones" />
+          <FormControl>
+            <Input
+              type="tel"
+              placeholder="Numero de celular (opcional)"
+              name="telefono"
+            />
+          </FormControl>
+          <FormControl size="sm" sx={{ width: 400 }}>
+            <Checkbox
+              label={
+                <React.Fragment>
+                  He leido y acepto los{" "}
+                  <Typography sx={{ fontWeight: "md" }}>
+                    terminos y condiciones
+                  </Typography>
+                  .
+                </React.Fragment>
+              }
+            />
+            <FormHelperText>
+              <Typography level="body-sm">
+                Lea nuestros{" "}
+                <Link component={RouterLink} to={"/terms"} level="body-sm">
+                  terminos y condiciones
+                </Link>
+                .
+              </Typography>
+            </FormHelperText>
+          </FormControl>
           <Divider></Divider>
           <Stack spacing={2} sx={{ alignItems: "center" }}>
             <Button
@@ -75,12 +110,7 @@ const RegisterPage = () => {
             >
               Registrarse
             </Button>
-            <Link
-              component={RouterLink}
-              to={"/login"}
-              level="body-sm"
-              underline="always"
-            >
+            <Link component={RouterLink} to={"/login"} level="body-sm">
               Ya tengo una cuenta
             </Link>
           </Stack>
