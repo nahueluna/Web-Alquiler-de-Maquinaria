@@ -1,7 +1,9 @@
 import { Button, Input, Link, Sheet } from "@mui/joy";
+import { useNavigate } from "react-router-dom";
 import SoloLogo from "../assets/SoloLogo.png";
 
 const Navbar = () => {
+  const navigate = useNavigate();
   return (
     <div>
       <Sheet
@@ -26,7 +28,7 @@ const Navbar = () => {
         <Input variant="outlined" placeholder="Buscar maquinaria..."></Input>
         <Button
           color="danger"
-          onClick={function () {}}
+          onClick={() => navigate("/register")}
           size="sm"
           variant="outlined"
         >
