@@ -103,6 +103,12 @@ export default function LoginPage() {
           <Button type="submit" variant="solid" color="primary">
             Ingresar
           </Button>
+          <Typography level="body-xs" sx={{ textAlign: "center" }}>
+            No tenes una cuenta?{" "}
+            <Link component={RouterLink} to={"/register"} underline="always">
+              Registrarse
+            </Link>
+          </Typography>
         </Stack>
       </form>
     </Sheet>
