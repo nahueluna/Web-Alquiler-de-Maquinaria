@@ -3,8 +3,13 @@ use serde::{Deserialize, Serialize};
 
 // the input to our `create_user` handler
 #[derive(Deserialize)]
-pub struct CreateUser {
-    pub username: String,
+pub struct CreateRegularUser {
+    pub email: String,
+    pub name: String,
+    pub surname: String,
+    pub birth_date: String,
+    pub id_card: String,
+    pub phone: Option<String>,
 }
 
 // the input to our `client_login` handler
@@ -12,13 +17,6 @@ pub struct CreateUser {
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
-}
-
-// the output to our `create_user` handler
-#[derive(Serialize)]
-pub struct User {
-    pub id: u64,
-    pub username: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -3,7 +3,8 @@ use axum::{
     Router,
 };
 
-use handlers::auth::{client_login, create_user, root};
+use handlers::auth::{client_login, client_sign_up, root};
+use lettre::transport::smtp::client;
 
 mod custom_types;
 mod handlers;
@@ -18,8 +19,8 @@ async fn main() {
     let app = Router::new()
         // `GET /` goes to `root`
         .route("/", get(root))
-        // `POST /users` goes to `create_user`
-        .route("/users", post(create_user))
+        // `POST /register` goes to `client_sign_up`
+        .route("/register", post(client_sign_up))
         // `POST /login` goes to `client_login`
         .route("/login", post(client_login));
 
