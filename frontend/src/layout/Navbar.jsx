@@ -14,7 +14,7 @@ const Navbar = () => {
           justifyContent: "space-between",
           height: "50px",
           alignItems: "center",
-          boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+          boxShadow: "0px 1px 0px rgba(0, 0, 0, 0.1)",
           position: "sticky",
           top: 0,
           left: 0,
