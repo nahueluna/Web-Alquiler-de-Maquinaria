@@ -1,4 +1,4 @@
-import { Button, Input, Link, Sheet } from "@mui/joy";
+import { Button, FormControl, Input, Link, Sheet } from "@mui/joy";
 import { useNavigate } from "react-router-dom";
 import SoloLogo from "../assets/SoloLogo.png";
 
@@ -25,7 +25,17 @@ const Navbar = () => {
         <Link href="/">
           <img width={"50px"} src={SoloLogo} alt="" />
         </Link>
-        <Input variant="outlined" placeholder="Buscar maquinaria..."></Input>
+        <FormControl>
+          <Input variant="outlined" placeholder="Buscar maquinaria..."></Input>
+        </FormControl>
+        <Button
+          color="danger"
+          onClick={() => navigate("/explore")}
+          size="sm"
+          variant="solid"
+        >
+          Catalogo
+        </Button>
         <Button
           color="danger"
           onClick={() => navigate("/register")}
