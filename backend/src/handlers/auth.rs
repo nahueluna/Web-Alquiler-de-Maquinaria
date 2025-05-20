@@ -1,9 +1,10 @@
+use axum::body;
 use axum::{http::StatusCode, Json};
 use chrono::{Datelike, Duration, NaiveDate, Utc};
 use dotenvy::dotenv;
 use hex;
 use jsonwebtoken::{encode, EncodingKey, Header};
-use lettre::message::Mailbox;
+use lettre::message::{Mailbox, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 use rand::distr::Alphanumeric;
@@ -122,6 +123,13 @@ pub async fn client_sign_up(
                 )
                 .await
             {
+                let subject = "Contraseña generada para sistema de Bob el Alquilador";
+                let body = format!(
+                    "Hola, {}. Tu contraseña es: {}. \nSi desea, puede cambiarla luego de iniciar sesión.",
+                    payload.name, password
+                );
+                send_mail(&payload.email, subject, &body);
+
                 return (
                     StatusCode::CREATED,
                     Json(json!({"message": "Client user successfully registered"})),
@@ -216,7 +224,7 @@ pub async fn client_login(
     )
 }
 
-pub fn send_mail() {
+pub fn send_mail(addressee: &str, subject: &str, body: &str) {
     // Load variables from .env
     dotenv().ok();
 
@@ -229,9 +237,9 @@ pub fn send_mail() {
             email_address.parse().unwrap(),
         ))
         .reply_to(email_address.parse().unwrap())
-        .to("recipient@example.com".parse().unwrap())
-        .subject("Hello from Rust!")
-        .body("This email was sent securely using dotenv.".to_string())
+        .to(addressee.parse().unwrap())
+        .subject(subject)
+        .singlepart(SinglePart::plain(body.to_string()))
         .unwrap();
 
     let creds = Credentials::new(email_address.clone(), app_password);
