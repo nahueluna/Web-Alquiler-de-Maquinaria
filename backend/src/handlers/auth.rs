@@ -4,14 +4,14 @@ use argon2::{
 };
 use axum::{http::StatusCode, Json};
 use chrono::{Duration, Utc};
+use dotenvy::dotenv;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
-use serde_json::json;
-use tokio_postgres::{NoTls, Error};
 use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
-use dotenvy::dotenv;
+use serde_json::json;
 use std::env;
+use tokio_postgres::{Error, NoTls};
 
 use crate::custom_types::structs::*;
 
@@ -20,18 +20,10 @@ pub async fn root() -> &'static str {
     "Hello, World!"
 }
 
-pub async fn create_user(
-    // this argument tells axum to parse the request body
-    // as JSON into a `CreateUser` type
-    Json(payload): Json<CreateUser>,
-) -> (StatusCode, Json<User>) {
-    let email = "newuser@example.com";
-    let password = "plaintext123";
-    let role: i16 = 1;
-
+pub async fn connect_db() -> Result<tokio_postgres::Client, Error> {
     // Connect to the database.
     let (client, connection) =
-        tokio_postgres::connect("host=localhost dbname=saga user=postgres", NoTls).await.unwrap();
+        tokio_postgres::connect("host=localhost dbname=saga user=postgres", NoTls).await?;
 
     // The connection object performs the actual communication with the database,
     // so spawn it off to run on its own.
@@ -41,21 +33,47 @@ pub async fn create_user(
         }
     });
 
-    // Now we can execute a simple statement that just returns its parameter.
-    let rows = client
-        .query("INSERT INTO users (email, name, password, role) VALUES ($1, $2, $3, $4)",
-        &[&email, &payload.username, &password, &role])
-        .await.unwrap();
+    Ok(client)
+}
 
-    // insert your application logic here
-    let user = User {
-        id: 1337,
-        username: payload.username,
-    };
+pub async fn create_user(
+    // this argument tells axum to parse the request body
+    // as JSON into a `CreateUser` type
+    Json(payload): Json<CreateRegularUser>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let email = "newuser@example.com";
+    let password = "plaintext123";
+    let role: i16 = 1;
 
-    // this will be converted into a JSON response
-    // with a status code of `201 Created`
-    (StatusCode::CREATED, Json(user))
+    if let Ok(client) = connect_db().await {
+        let birth_date = chrono::NaiveDate::parse_from_str(&payload.birth_date, "%Y-%m-%d")
+            .expect("Invalid date format");
+
+        client
+            .query(
+                "INSERT INTO users (email, name, surname, birthdate, id_card, password, role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                &[&payload.email, &payload.name, &payload.surname, &birth_date, &payload.dni, &payload.phone, &password, &role],
+            )
+            .await
+            .unwrap();
+
+        // insert your application logic here
+        let user = User {
+            id: 1337,
+            username: payload.username,
+        };
+
+        // this will be converted into a JSON response
+        // with a status code of `201 Created`
+        (StatusCode::CREATED, Json(json!({"user": user})))
+    } else {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "message": "Error connecting to database",
+            })),
+        )
+    }
 }
 
 pub fn generate_token(
@@ -162,15 +180,20 @@ pub fn send_mail() {
     let app_password = env::var("APP_PASSWORD").unwrap();
 
     let email = Message::builder()
-        .from(Mailbox::new(Some("Rust Bot".into()), email_address.parse().unwrap()))
+        .from(Mailbox::new(
+            Some("Rust Bot".into()),
+            email_address.parse().unwrap(),
+        ))
         .reply_to(email_address.parse().unwrap())
         .to("recipient@example.com".parse().unwrap())
         .subject("Hello from Rust!")
-        .body("This email was sent securely using dotenv.".to_string()).unwrap();
+        .body("This email was sent securely using dotenv.".to_string())
+        .unwrap();
 
     let creds = Credentials::new(email_address.clone(), app_password);
 
-    let mailer = SmtpTransport::relay("smtp.gmail.com").unwrap()
+    let mailer = SmtpTransport::relay("smtp.gmail.com")
+        .unwrap()
         .credentials(creds)
         .build();
 
@@ -178,5 +201,4 @@ pub fn send_mail() {
         Ok(_) => println!("Email sent successfully!"),
         Err(e) => eprintln!("Failed to send email: {e}"),
     }
-
 }
