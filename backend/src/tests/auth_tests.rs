@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use reqwest::Client;
+    use crate::handlers::auth::send_mail;
 
     #[tokio::test]
     async fn test_create_user() {
@@ -59,5 +60,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.status(), 401);
+    }
+
+    #[tokio::test]
+    async fn test_send_email() {
+        send_mail();
     }
 }

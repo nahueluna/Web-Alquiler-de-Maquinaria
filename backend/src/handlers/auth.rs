@@ -7,6 +7,11 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use serde_json::json;
 use tokio_postgres::{NoTls, Error};
+use lettre::message::Mailbox;
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{Message, SmtpTransport, Transport};
+use dotenvy::dotenv;
+use std::env;
 
 use crate::custom_types::structs::*;
 
@@ -147,4 +152,31 @@ pub async fn client_login(
             "message": "Invalid email",
         })),
     )
+}
+
+pub fn send_mail() {
+    // Load variables from .env
+    dotenv().ok();
+
+    let email_address = env::var("EMAIL").unwrap();
+    let app_password = env::var("APP_PASSWORD").unwrap();
+
+    let email = Message::builder()
+        .from(Mailbox::new(Some("Rust Bot".into()), email_address.parse().unwrap()))
+        .reply_to(email_address.parse().unwrap())
+        .to("recipient@example.com".parse().unwrap())
+        .subject("Hello from Rust!")
+        .body("This email was sent securely using dotenv.".to_string()).unwrap();
+
+    let creds = Credentials::new(email_address.clone(), app_password);
+
+    let mailer = SmtpTransport::relay("smtp.gmail.com").unwrap()
+        .credentials(creds)
+        .build();
+
+    match mailer.send(&email) {
+        Ok(_) => println!("Email sent successfully!"),
+        Err(e) => eprintln!("Failed to send email: {e}"),
+    }
+
 }

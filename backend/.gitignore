@@ -4,3 +4,5 @@ debug/
 target/
 
 populate_rows.sql
+
+.env
