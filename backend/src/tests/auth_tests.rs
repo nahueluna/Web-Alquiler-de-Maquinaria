@@ -97,6 +97,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_email() {
-        send_mail();
+        send_mail(
+            "recipient@example.com",
+            "Hello from Rust!",
+            "This email was sent securely using dotenv.",
+        );
     }
 }
