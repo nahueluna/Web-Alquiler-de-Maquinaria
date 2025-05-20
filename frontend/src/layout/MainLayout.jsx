@@ -1,8 +1,7 @@
-import React from "react";
+import { Box } from "@mui/joy";
 import { Outlet } from "react-router-dom";
 import Footer from "./Footer";
 import Navbar from "./Navbar";
-import { Box } from "@mui/joy";
 
 const MainLayout = () => (
   <>
@@ -18,6 +17,7 @@ const MainLayout = () => (
         sx={{
           display: "grid",
           placeItems: "center",
+          backgroundColor: "#FAFAFA",
         }}
       >
         <Outlet />

@@ -1,21 +1,20 @@
-import { Sheet } from "@mui/joy";
-import Results from "./Results";
+import { Sheet, Stack } from "@mui/joy";
 
 const ExplorePage = () => {
   return (
     <Sheet
       sx={{
-        backgroundColor: "blue",
         width: "80%",
-        minHeight: "50%",
+        minHeight: "100%",
         display: "flex",
         flexDirection: "column",
+        boxShadow: "md",
       }}
     >
-      <Sheet>Filtros</Sheet>
-      <Sheet>
-        <Results />
-      </Sheet>
+      <Stack direction="row" spacing={2} sx={{ p: 2 }}>
+        <div>Filtro</div>
+        <div>Orden</div>
+      </Stack>
     </Sheet>
   );
 };

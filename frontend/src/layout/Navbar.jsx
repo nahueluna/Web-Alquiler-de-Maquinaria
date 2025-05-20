@@ -15,7 +15,7 @@ const Navbar = () => {
           height: "50px",
           alignItems: "center",
           boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
-          position: "fixed",
+          position: "sticky",
           top: 0,
           left: 0,
           right: 0,
