@@ -1,19 +1,30 @@
-use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, Salt, SaltString},
-    Argon2,
-};
 use axum::{http::StatusCode, Json};
-use chrono::{Duration, Utc};
+use chrono::{Datelike, Duration, NaiveDate, Utc};
 use dotenvy::dotenv;
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use hex;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
+use rand::distr::Alphanumeric;
+use rand::{rng, Rng};
+use sha2::{Digest, Sha256};
+
 use serde_json::json;
 use std::env;
 use tokio_postgres::{Error, NoTls};
 
 use crate::custom_types::structs::*;
+
+fn generate_random_string(lenght: usize) -> String {
+    let random_string: String = rng()
+        .sample_iter(&Alphanumeric)
+        .take(lenght)
+        .map(char::from)
+        .collect();
+
+    random_string
+}
 
 // basic handler that responds with a static string
 pub async fn root() -> &'static str {
@@ -21,9 +32,11 @@ pub async fn root() -> &'static str {
 }
 
 pub async fn connect_db() -> Result<tokio_postgres::Client, Error> {
+    dotenv().ok();
+
+    let data_base_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
     // Connect to the database.
-    let (client, connection) =
-        tokio_postgres::connect("host=localhost dbname=saga user=postgres", NoTls).await?;
+    let (client, connection) = tokio_postgres::connect(&data_base_url, NoTls).await?;
 
     // The connection object performs the actual communication with the database,
     // so spawn it off to run on its own.
@@ -36,47 +49,96 @@ pub async fn connect_db() -> Result<tokio_postgres::Client, Error> {
     Ok(client)
 }
 
-pub async fn create_user(
-    // this argument tells axum to parse the request body
-    // as JSON into a `CreateUser` type
-    Json(payload): Json<CreateRegularUser>,
-) -> (StatusCode, Json<serde_json::Value>) {
-    let email = "newuser@example.com";
-    let password = "plaintext123";
-    let role: i16 = 1;
+fn is_adult(birth_date: NaiveDate) -> bool {
+    let today = Utc::now().naive_utc().date();
 
-    if let Ok(client) = connect_db().await {
-        let birth_date = chrono::NaiveDate::parse_from_str(&payload.birth_date, "%Y-%m-%d")
-            .expect("Invalid date format");
+    let mut age = today.year() - birth_date.year();
 
-        client
-            .query(
-                "INSERT INTO users (email, name, surname, birthdate, id_card, password, role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-                &[&payload.email, &payload.name, &payload.surname, &birth_date, &payload.dni, &payload.phone, &password, &role],
-            )
-            .await
-            .unwrap();
-
-        // insert your application logic here
-        let user = User {
-            id: 1337,
-            username: payload.username,
-        };
-
-        // this will be converted into a JSON response
-        // with a status code of `201 Created`
-        (StatusCode::CREATED, Json(json!({"user": user})))
-    } else {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({
-                "message": "Error connecting to database",
-            })),
-        )
+    if today.ordinal() < birth_date.ordinal() {
+        age -= 1;
     }
+
+    age >= 18
 }
 
-pub fn generate_token(
+fn encode_password(password: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(password.as_bytes());
+    let result = hasher.finalize();
+    hex::encode(result)
+}
+
+pub async fn client_sign_up(
+    // this argument tells axum to parse the request body
+    // as JSON into a `CreateRegularUser` type
+    Json(payload): Json<CreateRegularUser>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Ok(client) = connect_db().await {
+        if let Ok(rows) = client
+            .query("SELECT * FROM users WHERE email = $1;", &[&payload.email])
+            .await
+        {
+            if !rows.is_empty() {
+                return (
+                    StatusCode::CONFLICT,
+                    Json(json!({
+                        "message": "Email is already registered",
+                    })),
+                );
+            }
+
+            let birth_date = chrono::NaiveDate::parse_from_str(&payload.birth_date, "%d-%m-%Y")
+                .expect("Invalid date format");
+
+            if !is_adult(birth_date) {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(json!({
+                        "message": "User age is less than 18",
+                    })),
+                );
+            }
+
+            let password = generate_random_string(8);
+            let salt = generate_random_string(16);
+            let hashed_password = encode_password(&format!("{}{}", salt, password));
+
+            let role: i16 = 2; // 2 = client user role
+
+            if let Ok(_) = client
+                .query(
+                    "INSERT INTO users (email, name, surname, birthdate, id_card, phone, password, role)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8);",
+                    &[
+                        &payload.email,
+                        &payload.name,
+                        &payload.surname,
+                        &birth_date,
+                        &payload.id_card,
+                        &payload.phone,
+                        &hashed_password,
+                        &role,
+                    ],
+                )
+                .await
+            {
+                return (
+                    StatusCode::CREATED,
+                    Json(json!({"message": "Client user successfully registered"})),
+                );
+            }
+        }
+    }
+
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({
+            "message": "Error connecting to database",
+        })),
+    )
+}
+
+fn generate_token(
     user_id: &str,
     role: &str,
     token_type: &str,
@@ -103,16 +165,8 @@ pub fn generate_token(
 }
 
 // Checks if a password with salt is correct
-pub fn check_password(
-    password_from_input: &str,
-    stored_password_hash: &str,
-) -> Result<bool, argon2::password_hash::Error> {
-    let parsed_hash = PasswordHash::new(&stored_password_hash)?;
-
-    match Argon2::default().verify_password(password_from_input.as_bytes(), &parsed_hash) {
-        Ok(_) => Ok(true),
-        Err(_) => Ok(false),
-    }
+fn check_password(password_from_input: &str, stored_password_hash: &str) -> bool {
+    return encode_password(password_from_input) == stored_password_hash;
 }
 
 // Gets an user's password hash from the database
@@ -134,12 +188,9 @@ pub async fn client_login(
         let salt = "randomsalt";
 
         let password_with_salt = format!("{}{}", payload.password, salt);
-
-        if let Ok(is_valid) = check_password(
-            &password_with_salt,
-            get_password_hash_from_db(&email).await.as_str(),
-        ) {
-            if is_valid {
+        let stored_password_hash = get_password_hash_from_db(&payload.email).await;
+        {
+            if check_password(&password_with_salt, &stored_password_hash) {
                 return (
                     StatusCode::OK,
                     Json(json!({
@@ -155,13 +206,6 @@ pub async fn client_login(
                 })),
             );
         }
-
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({
-                "message": "Error checking password",
-            })),
-        );
     }
 
     (
