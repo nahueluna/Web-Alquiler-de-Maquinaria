@@ -8,7 +8,7 @@ import Typography from "@mui/joy/Typography";
 import React from "react";
 
 export default function MachineCard({ imageUrl, model, category, price }) {
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
 
   return (
     <Card
@@ -22,12 +22,28 @@ export default function MachineCard({ imageUrl, model, category, price }) {
       <CardOverflow>
         <AspectRatio ratio="4/3">
           <Skeleton loading={loading}>
-            <img src={imageUrl} loading="lazy" alt="" />
+            <img
+              src={imageUrl}
+              loading="lazy"
+              alt=""
+              onLoad={() => setLoading(false)}
+            />
           </Skeleton>
         </AspectRatio>
       </CardOverflow>
       <CardContent>
-        <Typography level="title-md">
+        <Typography
+          level="title-md"
+          sx={{
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            minHeight: "3em",
+            lineHeight: 1.5,
+          }}
+        >
           <Skeleton loading={loading}>{model}</Skeleton>
         </Typography>
         <Typography level="body-sm">
