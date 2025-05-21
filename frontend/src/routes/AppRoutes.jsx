@@ -6,6 +6,7 @@ import NotFoundPage from "../features/NotFoundPage";
 import RegisterPage from "../features/Register/RegisterPage";
 import TwoFactor from "../features/TwoFactorAuth/TwoFactor";
 import MainLayout from "../layout/MainLayout";
+import Product from "../features/Product/Product";
 
 export default function AppRoutes() {
   return (
@@ -15,6 +16,7 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/explore" element={<ExplorePage />} />
+        <Route path="/maquina/:id" element={<Product />} />
       </Route>
       <Route path="/two-factor" element={<TwoFactor />} />
 
