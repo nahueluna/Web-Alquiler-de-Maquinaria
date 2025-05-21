@@ -20,7 +20,7 @@ async fn main() {
         // `GET /` goes to `root`
         .route("/", get(root))
         // `POST /register` goes to `client_sign_up`
-        .route("/register", post(client_sign_up))
+        .route("/signup", post(client_sign_up))
         // `POST /login` goes to `client_login`
         .route("/login", post(client_login));
 
