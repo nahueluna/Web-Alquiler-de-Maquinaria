@@ -96,8 +96,9 @@ export default function LoginPage() {
             to={"/recover-password"}
             level="body-sm"
             underline="always"
+            sx={{ alignSelf: "flex-end", fontWeight: "500" }}
           >
-            Olvide mi contraseña
+            ¿Olvidaste tu contraseña?
           </Link>
 
           <Button type="submit" variant="solid" color="primary">
