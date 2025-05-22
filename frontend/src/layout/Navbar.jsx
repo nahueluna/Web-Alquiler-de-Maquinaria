@@ -1,4 +1,5 @@
-import { Button, FormControl, Input, Link, Sheet } from "@mui/joy";
+import SearchIcon from "@mui/icons-material/Search";
+import { Button, FormControl, IconButton, Input, Link, Sheet } from "@mui/joy";
 import { useNavigate } from "react-router-dom";
 import SoloLogo from "../assets/SoloLogo.png";
 
@@ -25,8 +26,32 @@ const Navbar = () => {
         <Link href="/">
           <img width={"50px"} src={SoloLogo} alt="" />
         </Link>
-        <FormControl>
-          <Input variant="outlined" placeholder="Buscar maquinaria..."></Input>
+        <FormControl sx={{ width: "100%", maxWidth: 400 }}>
+          <Input
+            type="text"
+            variant="outlined"
+            placeholder="Buscar maquinaria..."
+            endDecorator={
+              <IconButton
+                color="neutral"
+                variant="soft"
+                size="sm"
+                sx={{
+                  borderRadius: "50%",
+                  width: 32,
+                  height: 32,
+                  minWidth: 32,
+                  minHeight: 32,
+                  p: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <SearchIcon />
+              </IconButton>
+            }
+          ></Input>
         </FormControl>
         <Button
           color="danger"
@@ -46,7 +71,7 @@ const Navbar = () => {
         </Button>
         <Button
           color="danger"
-          onClick={function () {}}
+          onClick={() => navigate("/login")}
           size="sm"
           variant="outlined"
         >
