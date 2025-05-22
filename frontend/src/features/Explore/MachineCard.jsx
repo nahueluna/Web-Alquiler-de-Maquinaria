@@ -7,16 +7,27 @@ import Divider from "@mui/joy/Divider";
 import Typography from "@mui/joy/Typography";
 import React from "react";
 
-export default function MachineCard({ imageUrl, model, category, price }) {
+export default function MachineCard({
+  imageUrl,
+  model,
+  category,
+  price,
+  onClick,
+}) {
   const [loading, setLoading] = React.useState(true);
 
   return (
     <Card
-      variant="outlined"
+      variant={"outlined"}
+      onClick={onClick}
       sx={{
-        width: "100%",
-        maxWidth: 320,
-        minWidth: 120,
+        cursor: "pointer",
+        transition: "transform 0.2s, box-shadow 0.2s",
+        transform: "scale(1)",
+        "&:hover": {
+          transform: "scale(1.04)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+        },
       }}
     >
       <CardOverflow>

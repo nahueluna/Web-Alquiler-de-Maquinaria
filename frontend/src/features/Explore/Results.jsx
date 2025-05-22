@@ -79,6 +79,7 @@ const Results = () => {
             model={machine.model}
             category={machine.category}
             price={machine.price}
+            onClick={console.log(machine.model)}
           />
         </Grid>
       ))}

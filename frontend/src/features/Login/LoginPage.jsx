@@ -1,16 +1,16 @@
 import {
   Button,
+  FormControl,
   FormHelperText,
   FormLabel,
   Input,
+  Link,
   Sheet,
   Stack,
   Typography,
-  Link,
-  FormControl,
 } from "@mui/joy";
-import { Link as RouterLink } from "react-router-dom";
 import { useFormik } from "formik";
+import { Link as RouterLink } from "react-router-dom";
 import * as yup from "yup";
 
 export default function LoginPage() {
@@ -95,8 +95,7 @@ export default function LoginPage() {
             component={RouterLink}
             to={"/recover-password"}
             level="body-sm"
-            underline="always"
-            sx={{ alignSelf: "flex-end", fontWeight: "500" }}
+            sx={{ alignSelf: "center", fontWeight: "500" }}
           >
             ¿Olvidaste tu contraseña?
           </Link>
@@ -106,7 +105,7 @@ export default function LoginPage() {
           </Button>
           <Typography level="body-xs" sx={{ textAlign: "center" }}>
             No tenes una cuenta?{" "}
-            <Link component={RouterLink} to={"/register"} underline="always">
+            <Link component={RouterLink} to={"/register"}>
               Registrarse
             </Link>
           </Typography>

@@ -1,8 +1,9 @@
 import { KeyboardArrowRight } from "@mui/icons-material";
 import { Divider, Typography } from "@mui/joy";
-import Button from "@mui/joy/Button";
+import IconButton from "@mui/joy/Button";
 import FormControl from "@mui/joy/FormControl";
 import Input from "@mui/joy/Input";
+import Link from "@mui/joy/Link";
 import Sheet from "@mui/joy/Sheet";
 
 const categorias = [
@@ -19,16 +20,16 @@ const categorias = [
 const Filters = () => {
   return (
     <Sheet sx={{ p: 2 }}>
-      <Typography level="body-md" sx={{ fontWeight: "lg" }}>
+      <Typography level="body-lg" sx={{ fontWeight: "lg" }}>
         Categorias
       </Typography>
       {categorias.map((categoria) => (
-        <Typography key={categoria} level="body-xs">
-          {categoria}
+        <Typography key={categoria} level="body-md" color="">
+          <Link color="neutral">{categoria}</Link>
         </Typography>
       ))}
       <Divider sx={{ my: 2 }} />
-      <Typography level="body-md" sx={{ fontWeight: "lg" }}>
+      <Typography level="body-lg" sx={{ fontWeight: "lg" }}>
         Precio
       </Typography>
       <form
@@ -40,15 +41,32 @@ const Filters = () => {
           marginTop: 8,
         }}
       >
-        <FormControl sx={{ minWidth: 40, maxWidth: 80, width: "100%" }}>
+        <FormControl sx={{ minWidth: 40, maxWidth: 100, width: "100%" }}>
           <Input placeholder="Minimo" size="sm" />
         </FormControl>
-        <FormControl sx={{ minWidth: 40, maxWidth: 80, width: "100%" }}>
+        -
+        <FormControl sx={{ minWidth: 40, maxWidth: 100, width: "100%" }}>
           <Input placeholder="Maximo" size="sm" />
         </FormControl>
-        <Button type="submit" variant="solid" color="danger" size="sm">
+        <IconButton
+          type="submit"
+          variant="solid"
+          color="danger"
+          size="sm"
+          sx={{
+            borderRadius: "50%",
+            width: 32,
+            height: 32,
+            minWidth: 32,
+            minHeight: 32,
+            p: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <KeyboardArrowRight />
-        </Button>
+        </IconButton>
       </form>
     </Sheet>
   );
