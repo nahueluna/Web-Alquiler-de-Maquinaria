@@ -13,6 +13,9 @@ function Product() {
       sx={{
         display: "flex",
         flexDirection: "column",
+        alignItems: "center",
+        width: "100%",
+        padding: 1,
       }}
     >
       {/* TODO: add modal */}
@@ -22,7 +25,7 @@ function Product() {
         sx={{
           display: "flex",
           flexDirection: {
-            sm: "column",
+            xs: "column",
             lg: "row",
           },
           alignItems: "center",
@@ -32,7 +35,14 @@ function Product() {
       >
         {/* TODO: multiple images */}
         <Sheet>
-          <img width={500} src={Img} alt="" />
+          <img
+            style={{
+              width: "100%",
+              maxWidth: 500,
+            }}
+            src={Img}
+            alt=""
+          />
         </Sheet>
 
         <Sheet>
