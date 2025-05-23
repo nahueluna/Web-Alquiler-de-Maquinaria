@@ -16,6 +16,7 @@
     "@mui/icons-material": "^7.1.0",
     "@mui/joy": "^5.0.0-beta.52",
     "@mui/material": "^7.1.0",
+    "axios": "^1.9.0",
     "formik": "^2.4.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
