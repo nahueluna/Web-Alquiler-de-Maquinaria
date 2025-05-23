@@ -18,3 +18,4 @@ dotenvy = "0.15.7"
 rand = "0.9.1"
 hex = "0.4.3"
 sha2 = "0.10.9"
+validator = { version = "0.20.0", features = ["derive"] }
