@@ -1,13 +1,17 @@
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
-// the input to our `create_user` handler
-#[derive(Deserialize)]
+#[derive(Deserialize, Validate)]
 pub struct CreateRegularUser {
+    #[validate(email)]
     pub email: String,
+    #[validate(length(min = 1))]
     pub name: String,
+    #[validate(length(min = 1))]
     pub surname: String,
     pub birth_date: String,
+    #[validate(length(min = 1))]
     pub id_card: String,
     pub phone: Option<String>,
 }
