@@ -13,7 +13,7 @@ mod tests {
         // Successful client user creation
         let client = Client::new();
         let res = client
-            .post("http://localhost:8000/register")
+            .post("http://localhost:8000/signup")
             .json(&serde_json::json!({"email": "user@example.com",
             "name": "alice",
             "surname": "wonderland",

@@ -10,6 +10,7 @@ use lettre::{Message, SmtpTransport, Transport};
 use rand::distr::Alphanumeric;
 use rand::{rng, Rng};
 use sha2::{Digest, Sha256};
+use validator::Validate;
 
 use serde_json::json;
 use std::env;
@@ -72,8 +73,31 @@ fn encode_password(password: &str) -> String {
 pub async fn client_sign_up(
     // this argument tells axum to parse the request body
     // as JSON into a `CreateRegularUser` type
-    Json(payload): Json<CreateRegularUser>,
+    payload_result: Result<Json<CreateRegularUser>, axum::extract::rejection::JsonRejection>,
 ) -> (StatusCode, Json<serde_json::Value>) {
+    let payload = match payload_result {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("Deserialization error: {:?}", e);
+            return (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(json!({
+                    "message": "Invalid JSON format",
+                })),
+            );
+        }
+    };
+
+    if let Err(e) = payload.validate() {
+        eprintln!("Validation error: {:?}", e);
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "message": "Invalid input data",
+            })),
+        );
+    }
+
     if let Ok(client) = connect_db().await {
         if let Ok(rows) = client
             .query("SELECT * FROM users WHERE email = $1;", &[&payload.email])
