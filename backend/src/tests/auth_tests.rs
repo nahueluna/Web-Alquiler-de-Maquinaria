@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::custom_types::enums::RunningEnv;
-    use crate::handlers::auth::{create_pool, send_mail};
+    use crate::helpers::auth::{create_pool, send_mail};
     use crate::tests::helpers::setup;
     use chrono::Datelike;
     use reqwest::Client;

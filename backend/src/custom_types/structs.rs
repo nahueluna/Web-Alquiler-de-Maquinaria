@@ -1,4 +1,3 @@
-use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 use deadpool_postgres::Pool;

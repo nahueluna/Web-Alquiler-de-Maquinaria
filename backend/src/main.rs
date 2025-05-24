@@ -2,16 +2,16 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use tower_http::cors::{Any, CorsLayer};
-
-use handlers::auth::{client_login, client_sign_up, root, create_pool};
-use lettre::transport::smtp::client;
+use tower_http::cors::CorsLayer;
+use handlers::auth::*;
+use helpers::auth::create_pool;
 use std::{env, sync::Arc};
 use custom_types::{structs::AppState,
                    enums::RunningEnv};
 
 mod custom_types;
 mod handlers;
+mod helpers;
 mod tests;
 
 #[tokio::main]
