@@ -20,3 +20,4 @@ hex = "0.4.3"
 sha2 = "0.10.9"
 validator = { version = "0.20.0", features = ["derive"] }
 tower-http = { version = "0.6.4", features = ["cors"] }
+deadpool-postgres = "0.14.1"

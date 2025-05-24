@@ -1,11 +1,26 @@
 #[cfg(test)]
 mod tests {
-    use crate::handlers::auth::{connect_db, send_mail};
+    use crate::handlers::auth::{create_pool, send_mail};
+    use crate::custom_types::enums::RunningEnv;
     use reqwest::Client;
 
     #[tokio::test]
+    async fn test_pool() {
+        // Successful client user creation
+        let client = Client::new();
+        let res = client
+            .get("http://localhost:8000/")
+            .send()
+            .await
+            .unwrap();
+        println!("{:?}", res);
+
+    }
+
+    #[tokio::test]
     async fn test_create_client() {
-        let db_client = match connect_db().await {
+        let pool = create_pool(RunningEnv::Testing);
+        let db_client = match pool.await.get().await {
             Ok(c) => c,
             Err(e) => panic!("Failed to connect to the database: {}", e),
         };

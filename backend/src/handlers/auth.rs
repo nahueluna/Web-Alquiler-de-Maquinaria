@@ -1,5 +1,5 @@
 use axum::body;
-use axum::{http::StatusCode, Json};
+use axum::{http::StatusCode, Json, extract::State};
 use chrono::{Datelike, Duration, NaiveDate, Utc};
 use dotenvy::dotenv;
 use hex;
@@ -11,12 +11,12 @@ use rand::distr::Alphanumeric;
 use rand::{rng, Rng};
 use sha2::{Digest, Sha256};
 use validator::Validate;
-
 use serde_json::json;
 use std::env;
 use tokio_postgres::{Error, NoTls};
+use deadpool_postgres::{Config, Pool, Manager, ManagerConfig, RecyclingMethod};
 
-use crate::custom_types::structs::*;
+use crate::custom_types::{structs::*, enums::RunningEnv};
 
 fn generate_random_string(lenght: usize) -> String {
     let random_string: String = rng()
@@ -29,14 +29,44 @@ fn generate_random_string(lenght: usize) -> String {
 }
 
 // basic handler that responds with a static string
-pub async fn root() -> &'static str {
+pub async fn root(State(state): State<AppState>) -> &'static str {
+    if let Ok(client) = state.pool.get().await {
+        let rows = client.query("SELECT * FROM users WHERE id = 1;", &[]).await.unwrap();
+        let email: String = rows.get(0).unwrap().get("email");
+        println!("success: {:?}", email);
+    } else {
+        println!("error");
+    }
     "Hello, World!"
 }
 
-pub async fn connect_db() -> Result<tokio_postgres::Client, Error> {
+
+pub async fn create_pool(running_env: RunningEnv) -> Pool {
     dotenv().ok();
 
-    let data_base_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
+    let database_url = match running_env {
+        RunningEnv::Production => env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file"),
+        RunningEnv::Testing => env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set in .env file"),
+    };
+
+    let pg_config: tokio_postgres::Config = database_url.parse().expect("Invalid database URL");
+    let mgr = Manager::new(pg_config, NoTls);
+
+    Pool::builder(mgr)
+        .max_size(10)
+        .build()
+        .expect("Failed to create pool")
+
+}
+
+pub async fn connect_db(test:bool) -> Result<tokio_postgres::Client, Error> {
+    dotenv().ok();
+
+    let data_base_url = match test {
+        false => env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file"),
+        true => env::var("TEST_DATABASE_URL").expect("TEST_DATABASE_URL must be set in .env file"),
+    };
+
     // Connect to the database.
     let (client, connection) = tokio_postgres::connect(&data_base_url, NoTls).await?;
 
@@ -73,6 +103,7 @@ fn encode_password(password: &str) -> String {
 pub async fn client_sign_up(
     // this argument tells axum to parse the request body
     // as JSON into a `CreateRegularUser` type
+    State(state): State<AppState>,
     payload_result: Result<Json<CreateRegularUser>, axum::extract::rejection::JsonRejection>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     let payload = match payload_result {
@@ -98,7 +129,7 @@ pub async fn client_sign_up(
         );
     }
 
-    if let Ok(client) = connect_db().await {
+    if let Ok(client) = state.pool.get().await {
         if let Ok(rows) = client
             .query("SELECT * FROM users WHERE email = $1;", &[&payload.email])
             .await

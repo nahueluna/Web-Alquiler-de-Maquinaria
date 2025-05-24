@@ -1,6 +1,8 @@
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
+use deadpool_postgres::Pool;
+use std::sync::Arc;
 
 #[derive(Deserialize, Validate)]
 pub struct CreateRegularUser {
@@ -29,4 +31,9 @@ pub struct Claims {
     pub exp: usize,         // expiration time (as UTC timestamp)
     pub role: String,       // user role
     pub token_type: String, // type of token (access or refresh)
+}
+
+#[derive(Clone)]
+pub struct AppState {
+    pub pool: Arc<Pool>,
 }

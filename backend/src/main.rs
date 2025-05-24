@@ -4,15 +4,33 @@ use axum::{
 };
 use tower_http::cors::{Any, CorsLayer};
 
-use handlers::auth::{client_login, client_sign_up, root};
+use handlers::auth::{client_login, client_sign_up, root, create_pool};
 use lettre::transport::smtp::client;
+use std::{env, sync::Arc};
+use custom_types::{structs::AppState,
+                   enums::RunningEnv};
 
 mod custom_types;
 mod handlers;
 mod tests;
 
 #[tokio::main]
-async fn main() {
+async fn main() {    // Get the first CLI argument (after the executable name)
+    let db_env = env::args().nth(1).expect("Missing environment parameter: Usage cargo run -- <prod|test>");
+
+    // Create the pool
+    let pool = match db_env.as_str() {
+        "test" => create_pool(RunningEnv::Testing).await,
+        "prod" => create_pool(RunningEnv::Production).await,
+        other => {
+            panic!("Invalid environment parameter '{}': Usage cargo run -- <prod|test>", other);
+        }
+    };
+
+    let shared_state = AppState {
+        pool: Arc::new(pool),
+    };
+
     // initialize tracing
     tracing_subscriber::fmt::init();
 
@@ -26,10 +44,10 @@ async fn main() {
         .route("/login", post(client_login))
         .layer(
             CorsLayer::new()
-                .allow_origin(vec!["http://localhost:5173".parse().unwrap()]) // Allow all origins; restrict in production!
+                .allow_origin(vec!["http://localhost:5173".parse().unwrap()])
                 .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
-                .allow_headers([axum::http::header::CONTENT_TYPE]),
-        );
+                .allow_headers([axum::http::header::CONTENT_TYPE]))
+        .with_state(shared_state);
 
     // run our app with hyper, listening globally on port 8000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
