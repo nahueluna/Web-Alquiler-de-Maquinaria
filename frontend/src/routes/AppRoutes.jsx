@@ -9,6 +9,7 @@ import Terms from "../features/Terms/TermsPage";
 import TwoFactor from "../features/TwoFactorAuth/TwoFactor";
 import MainLayout from "../layout/MainLayout";
 import RecoverPassword from "../features/RecoverPassword/RecoverPassword"
+import Profile from "../features/Profile/Profile";
 
 
 export default function AppRoutes() {
@@ -22,6 +23,7 @@ export default function AppRoutes() {
         <Route path="/maquina/:id" element={<Product />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/recover-password" element={<RecoverPassword />} />
+        <Route path="/profile" element={<Profile />} />
       </Route>
       <Route path="/two-factor" element={<TwoFactor />} />
 

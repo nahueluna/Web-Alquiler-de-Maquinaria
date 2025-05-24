@@ -41,6 +41,7 @@ const Navbar = () => {
   });
 
   return (
+    <>
     <Box
       sx={{
         position: "sticky",
@@ -141,6 +142,7 @@ const Navbar = () => {
         </Box>
       </Sheet>
     </Box>
+    </>
   );
 };
 
