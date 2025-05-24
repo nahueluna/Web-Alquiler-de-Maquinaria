@@ -1,12 +1,15 @@
 import { Box, Button, Input, Link, Sheet } from "@mui/joy";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import SoloLogo from "../../assets/SoloLogo.png";
 import { useEffect, useState } from "react";
 import Nav from "./Nav";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 import UserDrop from "./UserDrop";
 
 const Navbar = () => {
   const [hideNav, setHideNav] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     function scrollNavbar() {
@@ -20,6 +23,22 @@ const Navbar = () => {
 
     return () => window.removeEventListener("scroll", scrollNavbar);
   }, []);
+
+  // Configuración de Formik y Yup para el buscador
+  const formik = useFormik({
+    initialValues: { search: "" },
+    validationSchema: Yup.object({
+      search: Yup.string().required("Por favor ingresa un término de búsqueda"),
+    }),
+    onSubmit: (values) => {
+      const termino = values.search.trim();
+      if (termino) {
+        navigate(`/explore?q=${encodeURIComponent(termino)}`);
+      } else {
+        navigate("/explore");
+      }
+    },
+  });
 
   return (
     <Box
@@ -46,19 +65,35 @@ const Navbar = () => {
         }}
       >
         <Link component={RouterLink} to={"/"}>
-          <img width={"50px"} src={SoloLogo} alt="" />
+          <img width={"50px"} src={SoloLogo} alt="Logo" />
         </Link>
-        <Input
-          sx={{
-            width: {
-              xs: "50%",
-              sm: "30%",
-            },
-          }}
-          variant="outlined"
-          placeholder="Buscar maquinaria..."
-        ></Input>
+
+        {/* Formulario de búsqueda */}
+        <form onSubmit={formik.handleSubmit} style={{ display: "flex", gap: 8 }}>
+          <Input
+            id="search"
+            name="search"
+            variant="outlined"
+            placeholder="Buscar maquinaria..."
+            size="sm"
+            sx={{
+              width: {
+                xs: "50%",
+                sm: "90%",
+              },
+            }}
+            value={formik.values.search}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            //error={formik.touched.search && Boolean(formik.errors.search)}
+            aria-describedby="search-error-text"
+          />
+          <Button type="submit" color="danger" variant="solid" size="sm">
+            Buscar
+          </Button>
+        </form>
       </Sheet>
+
       {/* Bottom */}
       <Sheet
         sx={{

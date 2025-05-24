@@ -1,5 +1,7 @@
 import Grid from "@mui/joy/Grid";
 import MachineCard from "./MachineCard";
+import { useSearchParams } from "react-router-dom";
+import Typography from "@mui/joy/Typography";
 
 // Asi me imagino que llegarian los datos de la API
 const machines = [
@@ -70,19 +72,33 @@ const machines = [
 ];
 
 const Results = () => {
+  const [searchParams] = useSearchParams();
+  const query = searchParams.get("q")?.toLowerCase() || "";
+
+  // Filtramos por modelo que contenga el texto buscado
+  const filteredMachines = machines.filter((machine) =>
+    machine.model.toLowerCase().includes(query)
+  );
+
   return (
     <Grid container spacing={2} sx={{ px: 5, pb: 2 }}>
-      {machines.map((machine) => (
-        <Grid xs={6} sm={6} md={4} lg={3} key={machine.id}>
-          <MachineCard
-            imageUrl={machine.imageUrl}
-            model={machine.model}
-            category={machine.category}
-            price={machine.price}
-            onClick={console.log(machine.model)}
-          />
-        </Grid>
-      ))}
+      {filteredMachines.length > 0 ? (
+        filteredMachines.map((machine) => (
+          <Grid xs={6} sm={6} md={4} lg={3} key={machine.id}>
+            <MachineCard
+              imageUrl={machine.imageUrl}
+              model={machine.model}
+              category={machine.category}
+              price={machine.price}
+              onClick={() => console.log(machine.model)}
+            />
+          </Grid>
+        ))
+      ) : (
+        <Typography level="body-md" sx={{ px: 5, py: 3 }}>
+          No se encontraron resultados para: <strong>{query}</strong>
+        </Typography>
+      )}
     </Grid>
   );
 };

@@ -10,12 +10,12 @@ function Nav() {
       <ul
         style={{
           display: "flex",
-          gap: 1,
+          gap: 8,
           listStyle: "none",
         }}
       >
         {navItems.map((x) => (
-          <li>
+          <li key={x.path}>
             <Link
               textColor={"text.primary"}
               component={RouterLink}
