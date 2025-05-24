@@ -1,7 +1,7 @@
+use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
-use validator::Validate;
-use deadpool_postgres::Pool;
 use std::sync::Arc;
+use validator::Validate;
 
 #[derive(Deserialize, Validate)]
 pub struct CreateRegularUser {
@@ -35,4 +35,17 @@ pub struct Claims {
 #[derive(Clone)]
 pub struct AppState {
     pub pool: Arc<Pool>,
+}
+
+#[derive(Deserialize, Default, Debug, Validate)]
+pub struct CatalogParams {
+    pub page: Option<u32>,
+    pub page_size: Option<u32>,
+    pub order_by: Option<String>,
+    pub order_dir: Option<String>,
+    pub categories: Option<String>,
+    #[validate(range(min = 0.0))]
+    pub min_price: Option<f32>,
+    #[validate(range(min = 0.0))]
+    pub max_price: Option<f32>,
 }

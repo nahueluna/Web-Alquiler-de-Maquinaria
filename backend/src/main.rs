@@ -2,12 +2,10 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use tower_http::cors::CorsLayer;
 use handlers::auth::*;
 use helpers::auth::create_pool;
 use std::{env, sync::Arc};
-use custom_types::{structs::AppState,
-                   enums::RunningEnv};
+use tower_http::cors::CorsLayer;
 
 mod custom_types;
 mod handlers;
@@ -15,15 +13,21 @@ mod helpers;
 mod tests;
 
 #[tokio::main]
-async fn main() {    // Get the first CLI argument (after the executable name)
-    let db_env = env::args().nth(1).expect("Missing environment parameter: Usage cargo run -- <prod|test>");
+async fn main() {
+    // Get the first CLI argument (after the executable name)
+    let db_env = env::args()
+        .nth(1)
+        .expect("Missing environment parameter: Usage cargo run -- <prod|test>");
 
     // Create the pool
     let pool = match db_env.as_str() {
         "test" => create_pool(RunningEnv::Testing).await,
         "prod" => create_pool(RunningEnv::Production).await,
         other => {
-            panic!("Invalid environment parameter '{}': Usage cargo run -- <prod|test>", other);
+            panic!(
+                "Invalid environment parameter '{}': Usage cargo run -- <prod|test>",
+                other
+            );
         }
     };
 
@@ -46,7 +50,8 @@ async fn main() {    // Get the first CLI argument (after the executable name)
             CorsLayer::new()
                 .allow_origin(vec!["http://localhost:5173".parse().unwrap()])
                 .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
-                .allow_headers([axum::http::header::CONTENT_TYPE]))
+                .allow_headers([axum::http::header::CONTENT_TYPE]),
+        )
         .with_state(shared_state);
 
     // run our app with hyper, listening globally on port 8000
