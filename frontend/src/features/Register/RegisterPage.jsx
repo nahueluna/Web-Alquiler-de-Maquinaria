@@ -1,5 +1,7 @@
 import ErrorOutline from "@mui/icons-material/ErrorOutline";
 import MailIcon from "@mui/icons-material/Mail";
+import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheck";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import {
   Button,
   Checkbox,
@@ -9,12 +11,14 @@ import {
   Input,
   Link,
   Sheet,
+  Snackbar,
   Stack,
   Typography,
 } from "@mui/joy";
 import { useFormik } from "formik";
-import React from "react";
+import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
+import axios from "axios";
 
 import * as yup from "yup";
 
@@ -78,6 +82,10 @@ const validationSchema = yup.object({
 });
 
 const RegisterPage = () => {
+  const [loading, setLoading] = useState(false);
+  const [openSnack, setOpenSnack] = useState(false);
+  const [status, setStatus] = useState({ isError: false, message: "" });
+
   const formik = useFormik({
     initialValues: {
       nombre: "",
@@ -89,8 +97,35 @@ const RegisterPage = () => {
       terminos: false,
     },
     validationSchema,
-    onSubmit: (values) => {
-      alert(JSON.stringify(values, null, 2));
+    onSubmit: async (values) => {
+      setLoading(true);
+      const {
+        nombre: name,
+        apellido: surname,
+        email,
+        dni: id_card,
+        fecha,
+        telefono: phone,
+      } = values;
+
+      try {
+        const { data } = await axios.post("http://localhost:8000/signup", {
+          name,
+          surname,
+          email,
+          id_card,
+          birth_date: fecha.split("-").reverse().join("-"),
+          phone,
+        });
+        setStatus({ isError: false, message: data.message });
+        setOpenSnack(true);
+      } catch (error) {
+        console.error(error);
+        setStatus({ isError: true, message: error.response.data.message });
+        setOpenSnack(true);
+      } finally {
+        setLoading(false);
+      }
     },
   });
 
@@ -103,199 +138,233 @@ const RegisterPage = () => {
     );
 
   return (
-    <Sheet
-      variant="outlined"
-      sx={{
-        p: 4,
-        borderRadius: "md",
-        width: 600,
-        mx: "auto",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      <Typography level="h2" mb={2}>
-        Crea una cuenta
-      </Typography>
-      <Divider />
-      <form onSubmit={formik.handleSubmit}>
-        <Stack spacing={1.5} sx={{ pt: 2 }}>
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ justifyContent: "center", alignItems: "center" }}
-          >
-            <FormControl
-              error={formik.touched.nombre && Boolean(formik.errors.nombre)}
-            >
-              <Input
-                placeholder="Nombre"
-                name="nombre"
-                value={formik.values.nombre}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                endDecorator={errorIcon(
-                  formik.touched.nombre,
-                  formik.errors.nombre
-                )}
-                title={
-                  formik.touched.nombre && formik.errors.nombre
-                    ? formik.errors.nombre
-                    : ""
-                }
-              />
-            </FormControl>
-            <FormControl
-              error={formik.touched.apellido && Boolean(formik.errors.apellido)}
-            >
-              <Input
-                placeholder="Apellido"
-                name="apellido"
-                value={formik.values.apellido}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                endDecorator={errorIcon(
-                  formik.touched.apellido,
-                  formik.errors.apellido
-                )}
-                title={
-                  formik.touched.apellido && formik.errors.apellido
-                    ? formik.errors.apellido
-                    : ""
-                }
-              />
-            </FormControl>
-          </Stack>
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ justifyContent: "space-between", alignItems: "center" }}
-          >
-            <FormControl
-              error={formik.touched.dni && Boolean(formik.errors.dni)}
-            >
-              <Input
-                placeholder="DNI"
-                name="dni"
-                value={formik.values.dni}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                endDecorator={errorIcon(formik.touched.dni, formik.errors.dni)}
-                title={
-                  formik.touched.dni && formik.errors.dni
-                    ? formik.errors.dni
-                    : ""
-                }
-              />
-            </FormControl>
-            <FormControl
-              sx={{ flex: 1 }}
-              error={formik.touched.fecha && Boolean(formik.errors.fecha)}
-            >
-              <Input
-                type="date"
-                name="fecha"
-                value={formik.values.fecha}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                fullWidth
-                slotProps={{
-                  input: {
-                    min: "1900-01-01",
-                    max: todayStr.toString(),
-                  },
-                }}
-                endDecorator={errorIcon(
-                  formik.touched.fecha,
-                  formik.errors.fecha
-                )}
-                title={
-                  formik.touched.fecha && formik.errors.fecha
-                    ? formik.errors.fecha
-                    : ""
-                }
-              />
-            </FormControl>
-          </Stack>
-          <FormControl
-            error={formik.touched.email && Boolean(formik.errors.email)}
-          >
-            <Input
-              startDecorator={<MailIcon />}
-              type="email"
-              placeholder="Correo electronico"
-              name="email"
-              value={formik.values.email}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              endDecorator={errorIcon(
-                formik.touched.email,
-                formik.errors.email
-              )}
-              title={
-                formik.touched.email && formik.errors.email
-                  ? formik.errors.email
-                  : ""
-              }
-            />
-          </FormControl>
-          <FormControl>
-            <Input
-              type="tel"
-              placeholder="Numero de celular (opcional)"
-              name="telefono"
-              value={formik.values.telefono}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-            />
-          </FormControl>
-          <FormControl
+    <>
+      <Snackbar
+        variant="soft"
+        color={status.isError ? "danger" : "success"}
+        open={openSnack}
+        onClose={() => setOpenSnack(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        startDecorator={
+          status.isError ? (
+            <ErrorOutlineIcon />
+          ) : (
+            <PlaylistAddCheckCircleRoundedIcon />
+          )
+        }
+        endDecorator={
+          <Button
+            onClick={() => setOpenSnack(false)}
             size="sm"
-            sx={{ width: 400, alignSelf: "flex-start" }}
-            error={formik.touched.terminos && Boolean(formik.errors.terminos)}
+            variant="soft"
+            color={status.isError ? "danger" : "success"}
           >
-            <Checkbox
-              name="terminos"
-              checked={formik.values.terminos}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              label={
-                <React.Fragment>
-                  He leido y acepto los terminos y condiciones.
-                </React.Fragment>
-              }
-            />
-            {formik.touched.terminos && formik.errors.terminos && (
-              <FormHelperText>{formik.errors.terminos}</FormHelperText>
-            )}
-            <FormHelperText>
-              <Typography level="body-sm">
-                Lea nuestros{" "}
-                <Link component={RouterLink} to={"/terms"} level="body-sm">
-                  terminos y condiciones
-                </Link>
-                .
-              </Typography>
-            </FormHelperText>
-          </FormControl>
-          <Divider />
-          <Stack spacing={2} sx={{ alignItems: "center" }}>
-            <Button
-              color="success"
-              size="lg"
-              sx={{ width: "50%" }}
-              type="submit"
+            Dismiss
+          </Button>
+        }
+      >
+        {status.message}
+      </Snackbar>
+      <Sheet
+        variant="outlined"
+        sx={{
+          p: 4,
+          borderRadius: "md",
+          width: 600,
+          mx: "auto",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <Typography level="h2" mb={2}>
+          Crea una cuenta
+        </Typography>
+        <Divider />
+        <form onSubmit={formik.handleSubmit}>
+          <Stack spacing={1.5} sx={{ pt: 2 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ justifyContent: "center", alignItems: "center" }}
             >
-              Registrarse
-            </Button>
-            <Link component={RouterLink} to={"/login"} level="body-sm">
-              Ya tengo una cuenta
-            </Link>
+              <FormControl
+                error={formik.touched.nombre && Boolean(formik.errors.nombre)}
+              >
+                <Input
+                  placeholder="Nombre"
+                  name="nombre"
+                  value={formik.values.nombre}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  endDecorator={errorIcon(
+                    formik.touched.nombre,
+                    formik.errors.nombre
+                  )}
+                  title={
+                    formik.touched.nombre && formik.errors.nombre
+                      ? formik.errors.nombre
+                      : ""
+                  }
+                />
+              </FormControl>
+              <FormControl
+                error={
+                  formik.touched.apellido && Boolean(formik.errors.apellido)
+                }
+              >
+                <Input
+                  placeholder="Apellido"
+                  name="apellido"
+                  value={formik.values.apellido}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  endDecorator={errorIcon(
+                    formik.touched.apellido,
+                    formik.errors.apellido
+                  )}
+                  title={
+                    formik.touched.apellido && formik.errors.apellido
+                      ? formik.errors.apellido
+                      : ""
+                  }
+                />
+              </FormControl>
+            </Stack>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ justifyContent: "space-between", alignItems: "center" }}
+            >
+              <FormControl
+                error={formik.touched.dni && Boolean(formik.errors.dni)}
+              >
+                <Input
+                  placeholder="DNI"
+                  name="dni"
+                  value={formik.values.dni}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  endDecorator={errorIcon(
+                    formik.touched.dni,
+                    formik.errors.dni
+                  )}
+                  title={
+                    formik.touched.dni && formik.errors.dni
+                      ? formik.errors.dni
+                      : ""
+                  }
+                />
+              </FormControl>
+              <FormControl
+                sx={{ flex: 1 }}
+                error={formik.touched.fecha && Boolean(formik.errors.fecha)}
+              >
+                <Input
+                  type="date"
+                  name="fecha"
+                  value={formik.values.fecha}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  fullWidth
+                  slotProps={{
+                    input: {
+                      min: "1900-01-01",
+                      max: todayStr.toString(),
+                    },
+                  }}
+                  endDecorator={errorIcon(
+                    formik.touched.fecha,
+                    formik.errors.fecha
+                  )}
+                  title={
+                    formik.touched.fecha && formik.errors.fecha
+                      ? formik.errors.fecha
+                      : ""
+                  }
+                />
+              </FormControl>
+            </Stack>
+            <FormControl
+              error={formik.touched.email && Boolean(formik.errors.email)}
+            >
+              <Input
+                startDecorator={<MailIcon />}
+                type="email"
+                placeholder="Correo electronico"
+                name="email"
+                value={formik.values.email}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                endDecorator={errorIcon(
+                  formik.touched.email,
+                  formik.errors.email
+                )}
+                title={
+                  formik.touched.email && formik.errors.email
+                    ? formik.errors.email
+                    : ""
+                }
+              />
+            </FormControl>
+            <FormControl>
+              <Input
+                type="tel"
+                placeholder="Numero de celular (opcional)"
+                name="telefono"
+                value={formik.values.telefono}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+              />
+            </FormControl>
+            <FormControl
+              size="sm"
+              sx={{ width: 400, alignSelf: "flex-start" }}
+              error={formik.touched.terminos && Boolean(formik.errors.terminos)}
+            >
+              <Checkbox
+                name="terminos"
+                checked={formik.values.terminos}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                label={
+                  <React.Fragment>
+                    He leido y acepto los terminos y condiciones.
+                  </React.Fragment>
+                }
+              />
+              {formik.touched.terminos && formik.errors.terminos && (
+                <FormHelperText>{formik.errors.terminos}</FormHelperText>
+              )}
+              <FormHelperText>
+                <Typography level="body-sm">
+                  Lea nuestros{" "}
+                  <Link component={RouterLink} to={"/terms"} level="body-sm">
+                    terminos y condiciones
+                  </Link>
+                  .
+                </Typography>
+              </FormHelperText>
+            </FormControl>
+            <Divider />
+            <Stack spacing={2} sx={{ alignItems: "center" }}>
+              <Button
+                color="success"
+                size="lg"
+                sx={{ width: "50%" }}
+                type="submit"
+                loading={loading}
+              >
+                Registrarse
+              </Button>
+              <Link component={RouterLink} to={"/login"} level="body-sm">
+                Ya tengo una cuenta
+              </Link>
+            </Stack>
           </Stack>
-        </Stack>
-      </form>
-    </Sheet>
+        </form>
+      </Sheet>
+    </>
   );
 };
 
