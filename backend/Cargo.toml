@@ -8,7 +8,7 @@ axum = "0.8.4"
 reqwest = { version = "0.12.15", features = ["json"] }
 serde = {version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
-tokio = {version = "1.45.0", features = ["full"] }
+tokio = {version = "1.45.1", features = ["full"] }
 tracing-subscriber = "0.3.19"
 chrono = {version = "0.4.41", features = ["serde"]}
 jsonwebtoken = "9.3.1"
