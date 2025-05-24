@@ -1,8 +1,10 @@
+use crate::custom_types::enums::RunningEnv;
+use crate::custom_types::structs::AppState;
 use axum::{
     routing::{get, post},
     Router,
 };
-use handlers::auth::*;
+use handlers::{auth::*, machinery_mgmt::explore_catalog};
 use helpers::auth::create_pool;
 use std::{env, sync::Arc};
 use tower_http::cors::CorsLayer;
@@ -46,6 +48,7 @@ async fn main() {
         .route("/signup", post(client_sign_up))
         // `POST /login` goes to `client_login`
         .route("/login", post(client_login))
+        .route("/explore", get(explore_catalog))
         .layer(
             CorsLayer::new()
                 .allow_origin(vec!["http://localhost:5173".parse().unwrap()])
