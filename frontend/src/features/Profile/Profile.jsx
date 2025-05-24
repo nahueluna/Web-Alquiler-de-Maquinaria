@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -9,6 +10,8 @@ import {
 } from "@mui/joy";
 
 const Profile = () => {
+  const navigate = useNavigate();
+
   const [userData, setUserData] = useState({
     nombre: "Valentino Amato Roberts",
     correo: "elmisilpato@gmail.com",
@@ -31,6 +34,10 @@ const Profile = () => {
     setEditMode(false);
   };
 
+  const handleChangePassword = () => {
+    navigate("/recover-password");
+  };
+
   return (
     <Sheet
       sx={{
@@ -49,39 +56,23 @@ const Profile = () => {
 
       <Divider sx={{ mb: 2 }} />
 
+      {/* Nombre (no se puede cambiar) */}
       <Box sx={{ display: "flex", gap: 2, mb: 2, alignItems: "center" }}>
         <Typography level="body-sm" sx={{ minWidth: 100, fontWeight: "md" }}>
           Nombre:
         </Typography>
-        {editMode ? (
-          <Input
-            name="nombre"
-            value={formData.nombre}
-            onChange={handleChange}
-            sx={{ flex: 1 }}
-          />
-        ) : (
-          <Typography>{userData.nombre}</Typography>
-        )}
+        <Typography>{userData.nombre}</Typography>
       </Box>
 
+      {/* Correo (no se puede cambiar) */}
       <Box sx={{ display: "flex", gap: 2, mb: 2, alignItems: "center" }}>
         <Typography level="body-sm" sx={{ minWidth: 100, fontWeight: "md" }}>
           Correo:
         </Typography>
-        {editMode ? (
-          <Input
-            name="correo"
-            type="email"
-            value={formData.correo}
-            onChange={handleChange}
-            sx={{ flex: 1 }}
-          />
-        ) : (
-          <Typography>{userData.correo}</Typography>
-        )}
+        <Typography>{userData.correo}</Typography>
       </Box>
 
+      {/* Teléfono (editable) */}
       <Box sx={{ display: "flex", gap: 2, mb: 3, alignItems: "center" }}>
         <Typography level="body-sm" sx={{ minWidth: 100, fontWeight: "md" }}>
           Teléfono:
@@ -98,7 +89,11 @@ const Profile = () => {
         )}
       </Box>
 
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Button variant="outlined" color="neutral" onClick={handleChangePassword}>
+          Cambiar contraseña
+        </Button>
+
         {editMode ? (
           <Button color="primary" onClick={handleSave}>
             Guardar cambios
