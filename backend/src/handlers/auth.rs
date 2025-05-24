@@ -112,8 +112,18 @@ pub async fn client_sign_up(
                 );
             }
 
-            let birth_date = chrono::NaiveDate::parse_from_str(&payload.birth_date, "%d-%m-%Y")
-                .expect("Invalid date format");
+            let birth_date =
+                match chrono::NaiveDate::parse_from_str(&payload.birth_date, "%d-%m-%Y") {
+                    Ok(date) => date,
+                    Err(_) => {
+                        return (
+                            StatusCode::BAD_REQUEST,
+                            Json(json!({
+                                "message": "Invalid birth date format",
+                            })),
+                        );
+                    }
+                };
 
             if !is_adult(birth_date) {
                 return (
