@@ -1,8 +1,9 @@
 import { Box, Button, Input, Link, Sheet } from "@mui/joy";
 import { Link as RouterLink } from "react-router-dom";
-import SoloLogo from "../assets/SoloLogo.png";
+import SoloLogo from "../../assets/SoloLogo.png";
 import { useEffect, useState } from "react";
 import Nav from "./Nav";
+import UserDrop from "./UserDrop";
 
 const Navbar = () => {
   const [hideNav, setHideNav] = useState(false);
@@ -74,6 +75,7 @@ const Navbar = () => {
         <Box>
           <Nav />
         </Box>
+        {/* TODO: Hacer un ternario para mostrar los botones o el menu de usuario si existe uno */}
         <Box
           sx={{
             display: "flex",
