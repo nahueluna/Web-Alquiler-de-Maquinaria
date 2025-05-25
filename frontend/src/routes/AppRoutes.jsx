@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router-dom";
+import ChangePassword from "../features/ChangePassword/ChangePassword";
 import Dashboard from "../features/Dashboard/DashboardPage";
 import ExplorePage from "../features/Explore/ExplorePage";
 import Home from "../features/Home/HomePage";
@@ -11,7 +12,6 @@ import RegisterPage from "../features/Register/RegisterPage";
 import Terms from "../features/Terms/TermsPage";
 import TwoFactor from "../features/TwoFactorAuth/TwoFactor";
 import MainLayout from "../layout/MainLayout";
-import ChangePassword from "../features/ChangePassword/ChangePassword";
 
 export default function AppRoutes() {
   return (
@@ -27,10 +27,9 @@ export default function AppRoutes() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/two-factor" element={<TwoFactor />} />
-
-      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
