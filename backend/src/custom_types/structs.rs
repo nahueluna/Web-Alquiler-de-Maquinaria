@@ -2,7 +2,6 @@ use super::enums::{OrderByField, OrderDirection};
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::sync::Arc;
 use validator::Validate;
 
 #[derive(Debug)]
@@ -89,6 +88,29 @@ impl MachineModel {
             policy: row.get("policy"),
             description: row.get("description"),
             price: row.get("price"),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Location {
+    pub id: i32,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub street: String,
+    pub number: String,
+    pub city: String,
+}
+
+impl Location {
+    pub fn build_from_row(row: &tokio_postgres::Row) -> Self {
+        Location {
+            id: row.get("location_id"),
+            latitude: row.get("latitude"),
+            longitude: row.get("longitude"),
+            street: row.get("street"),
+            number: row.get("number"),
+            city: row.get("city"),
         }
     }
 }
