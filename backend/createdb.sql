@@ -9,7 +9,8 @@ CREATE TABLE users (
     birthdate date NOT NULL,
     id_card varchar(30) UNIQUE NOT NULL,
     phone varchar(50) NULL,
-    password varchar(100) NOT NULL,
+    psw_hash varchar(64) UNIQUE NOT NULL,
+    salt varchar(16) NOT NULL,
     role smallint NOT NULL
 );
 

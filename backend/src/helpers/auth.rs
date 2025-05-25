@@ -1,7 +1,5 @@
-use chrono::{Datelike, Duration, NaiveDate, Utc};
-use dotenvy::dotenv;
+use chrono::{Datelike, NaiveDate, Utc};
 use hex;
-use jsonwebtoken::{encode, EncodingKey, Header};
 use lettre::message::{Mailbox, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
@@ -11,8 +9,8 @@ use sha2::{Digest, Sha256};
 use std::env;
 use tokio_postgres::NoTls;
 use deadpool_postgres::{Pool, Manager};
-
-use crate::custom_types::{structs::*, enums::RunningEnv};
+use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm, TokenData};
+use crate::custom_types::{structs::Claims, enums::RunningEnv};
 
 pub fn generate_random_string(lenght: usize) -> String {
     let random_string: String = rng()
@@ -25,7 +23,6 @@ pub fn generate_random_string(lenght: usize) -> String {
 }
 
 pub async fn create_pool(running_env: RunningEnv) -> Pool {
-    dotenv().ok();
 
     let database_url = match running_env {
         RunningEnv::Production => env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file"),
@@ -54,68 +51,27 @@ pub fn is_adult(birth_date: NaiveDate) -> bool {
     age >= 18
 }
 
-pub fn encode_password(password: &str) -> String {
+pub fn encode_password(password: &str, salt: &str) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(password.as_bytes());
+    hasher.update(format!("{}{}", salt, password).as_bytes());
     let result = hasher.finalize();
     hex::encode(result)
 }
 
-pub fn generate_token(
-    user_id: &str,
-    role: &str,
-    token_type: &str,
-    expires_in_minutes: usize,
-    secret_key: &str,
-) -> Result<String, jsonwebtoken::errors::Error> {
-    let expiration = Utc::now()
-        .checked_add_signed(Duration::minutes(expires_in_minutes as i64))
-        .expect("date out of range")
-        .timestamp();
-
-    let claims = Claims {
-        sub: user_id.to_string(),
-        exp: expiration as usize,
-        role: role.to_string(),
-        token_type: token_type.to_string(),
-    };
-
-    encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(secret_key.as_bytes()),
-    )
-}
-
-// Checks if a password with salt is correct
-pub fn check_password(password_from_input: &str, stored_password_hash: &str) -> bool {
-    return encode_password(password_from_input) == stored_password_hash;
-}
-
-// Gets an user's password hash from the database
-pub async fn get_password_hash_from_db(email: &str) -> String {
-    let hardcoed_password_hash = "$argon2i$v=19$m=65536,t=4,p=1$randomsalt$randomhash";
-
-    hardcoed_password_hash.to_string()
-}
-
-pub fn send_mail(addressee: &str, subject: &str, body: &str) {
-    // Load variables from .env
-    dotenv().ok();
-
-    let email_address = env::var("EMAIL").unwrap();
-    let app_password = env::var("APP_PASSWORD").unwrap();
+pub fn send_mail(address: &str, subject: &str, body: &str) -> Result<(), String> {
+    let email_address = env::var("EMAIL").map_err(|e| e.to_string())?;
+    let app_password = env::var("APP_PASSWORD").map_err(|e| e.to_string())?;
 
     let email = Message::builder()
         .from(Mailbox::new(
-            Some("Rust Bot".into()),
-            email_address.parse().unwrap(),
+            Some("SAGA Soporte".into()),
+            email_address.parse().map_err(|_| "Email parsing failed")?,
         ))
-        .reply_to(email_address.parse().unwrap())
-        .to(addressee.parse().unwrap())
+        .reply_to(email_address.parse().map_err(|_| "Email parsing failed")?)
+        .to(address.parse().map_err(|_| "Email parsing failed")?)
         .subject(subject)
         .singlepart(SinglePart::plain(body.to_string()))
-        .unwrap();
+        .map_err(|e| e.to_string())?;
 
     let creds = Credentials::new(email_address.clone(), app_password);
 
@@ -125,7 +81,17 @@ pub fn send_mail(addressee: &str, subject: &str, body: &str) {
         .build();
 
     match mailer.send(&email) {
-        Ok(_) => println!("Email sent successfully!"),
-        Err(e) => eprintln!("Failed to send email: {e}"),
+        Ok(_) => Ok(()),
+        Err(e) => Err(e.to_string()),
     }
+}
+
+pub fn validate_jwt(jwt: &str) -> Option<TokenData<Claims>> {
+    let secret_key = env::var("JWT_SECRET_KEY").expect("JTW_SECRET_KEY must be set in the .env file");
+
+    decode::<Claims>(
+        jwt,
+        &DecodingKey::from_secret(secret_key.as_ref()),
+        &Validation::default(),
+    ).ok()
 }
