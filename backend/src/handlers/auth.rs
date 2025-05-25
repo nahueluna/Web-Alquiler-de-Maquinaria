@@ -93,7 +93,7 @@ pub async fn client_sign_up(
                       &hashed_password,&salt,&role,],).await;
 
             let clients_t = transaction.execute(
-                    "INSERT INTO clients (id, birthdate, id_card, phone) VALUES (currval('users_id_seq'), $1, $2, $3)",
+                    "INSERT INTO user_info (id, birthdate, id_card, phone) VALUES (currval('users_id_seq'), $1, $2, $3)",
                     &[&birth_date, &payload.id_card, &payload.phone],
                     ).await;
 

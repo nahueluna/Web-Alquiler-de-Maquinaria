@@ -11,12 +11,10 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role) VALUES
 ('login@example.com', 'Ivy', 'Taylor', '9c819791b519290f435a8fcf896b2125274350636b220106f8629f6eedb3ea7d', 'PC8cXiOnFZO8Radu', 2),
 ('jack@example.com', 'Jack', 'Anderson', '90123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f678', 'jkl012mno345pqr6', 1);
 
-INSERT INTO employees (id, birthdate, id_card, phone) VALUES
+INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),
 (6, '1982-07-11', 'ID678901', '555-5678'),
-(11, '1987-08-08', 'ID012345', '555-8901');
-
-INSERT INTO clients (id, birthdate, id_card, phone) VALUES
+(11, '1987-08-08', 'ID012345', '555-8901'),
 (4, '1988-12-03', 'ID456789', NULL),
 (8, '1989-02-14', 'ID890123', NULL),
 (9, '1993-06-30', 'ID901234', '555-7890'),

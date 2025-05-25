@@ -13,14 +13,7 @@ CREATE TABLE users (
     role smallint NOT NULL
 );
 
-CREATE TABLE clients (
-    id INTEGER PRIMARY KEY REFERENCES users(id),
-    birthdate date NOT NULL,
-    id_card varchar(30) UNIQUE NOT NULL,
-    phone varchar(50) NULL
-);
-
-CREATE TABLE employees (
+CREATE TABLE user_info (
     id INTEGER PRIMARY KEY REFERENCES users(id),
     birthdate date NOT NULL,
     id_card varchar(30) UNIQUE NOT NULL,
