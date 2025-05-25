@@ -1,9 +1,14 @@
-use crate::custom_types::structs::{AppState, CatalogParams, Machine};
+use std::future;
+
+use crate::custom_types::enums::{OrderByField, OrderDirection};
+use crate::custom_types::structs::{AppState, CatalogParams, MachineModel};
 use axum::{extract::Query, extract::State, http::StatusCode, Json};
 use deadpool_postgres::{Pool, Status};
 use serde_json::json;
-use validator::Validate;
+use tokio_postgres::types::ToSql;
+use validator::{Validate, ValidateLength};
 
+#[axum::debug_handler]
 pub async fn explore_catalog(
     State(state): State<AppState>,
     query_params: Query<CatalogParams>,
@@ -21,33 +26,108 @@ pub async fn explore_catalog(
     let page = query_params.page.unwrap_or(1);
     let page_size = query_params.page_size.unwrap_or(20);
 
-    let _order_by = query_params.order_by.as_deref();
-    let _order_direction = query_params.order_dir.as_deref();
-    let _categories = query_params.categories.as_deref();
-    let _min_price = query_params.min_price;
-    let _max_price = query_params.max_price;
+    let _categories = query_params.categories.as_deref(); // Will be implemented later
 
     if let Ok(client) = state.pool.get().await {
         let offset = (page - 1) * page_size;
         let limit = page_size;
 
-        if let Ok(total_rows) = client
-            .query_one("SELECT COUNT(*) FROM machines;", &[])
+        let mut where_clauses: Vec<String> = Vec::new();
+        let mut params: Vec<Box<dyn ToSql + Sync + Send>> = Vec::new();
+        let mut param_idx = 1;
+
+        if let Some(search_term) = &query_params.search {
+            where_clauses.push(format!(
+                "(name ILIKE ${} OR brand ILIKE ${} OR model ILIKE ${})",
+                param_idx,
+                param_idx + 1,
+                param_idx + 2
+            ));
+
+            params.push(Box::new(format!("%{}%", search_term)));
+            params.push(Box::new(format!("%{}%", search_term)));
+            params.push(Box::new(format!("%{}%", search_term)));
+
+            param_idx += 3;
+        }
+
+        if let Some(min_price) = &query_params.min_price {
+            where_clauses.push(format!("(price >= ${})", param_idx));
+
+            params.push(Box::new(min_price));
+            param_idx += 1;
+        }
+
+        if let Some(max_price) = &query_params.max_price {
+            where_clauses.push(format!("(price <= ${})", param_idx));
+
+            params.push(Box::new(max_price));
+        }
+
+        let where_clause = if where_clauses.is_empty() {
+            "".to_string()
+        } else {
+            format!("WHERE {}", where_clauses.join(" AND "))
+        };
+
+        let order_clause = if let Some(order_by) = &query_params.order_by {
+            let order_dir = query_params
+                .order_dir
+                .as_ref()
+                .unwrap_or(&OrderDirection::Asc);
+
+            let direction_str = match order_dir {
+                OrderDirection::Asc => "ASC".to_string(),
+                OrderDirection::Desc => "DESC".to_string(),
+            };
+
+            let order_by_str = match order_by {
+                OrderByField::Price => "price".to_string(),
+                OrderByField::Rating => "rating".to_string(),
+            };
+
+            format!("ORDER BY {} {}", order_by_str, direction_str)
+        } else {
+            "ORDER BY id ASC".to_string()
+        };
+
+        params.push(Box::new(limit as i64));
+        params.push(Box::new(offset as i64));
+
+        let limit_param_idx = param_idx;
+        let offset_param_idx = param_idx + 1;
+
+        let select_query = format!(
+            "SELECT * FROM machinery_models {} {} LIMIT ${} OFFSET ${};",
+            where_clause, order_clause, limit_param_idx, offset_param_idx
+        );
+        let count_query = format!("SELECT COUNT(*) FROM machinery_models {};", where_clause);
+
+        let all_params_slice: Vec<&(dyn ToSql + Sync + Send)> =
+            params.iter().map(|p| p.as_ref()).collect();
+
+        let count_params: Vec<&(dyn ToSql + Sync)> = all_params_slice
+            [..(all_params_slice.len() - 2)]
+            .iter()
+            .map(|p_ref| *p_ref as &(dyn ToSql + Sync)) // explicit coercion to traits ToSql + Sync
+            .collect();
+
+        let select_params: Vec<&(dyn ToSql + Sync)> = all_params_slice
+            .iter()
+            .map(|p_ref| *p_ref as &(dyn ToSql + Sync))
+            .collect();
+
+        if let Ok(count_row) = client
+            .query_one(&count_query, count_params.as_slice())
             .await
         {
-            let total_items: i64 = total_rows.get(0);
+            let total_items: i64 = count_row.get(0);
 
-            match client
-                .query(
-                    "SELECT * FROM machines LIMIT $1 OFFSET $2;",
-                    &[&(limit as i64), &(offset as i64)],
-                )
-                .await
-            {
-                Ok(rows) => {
-                    let machinery_list: Vec<Machine> = rows
+            match client.query(&select_query, select_params.as_slice()).await {
+                Ok(machinery_rows) => {
+                    let machinery_list: Vec<MachineModel> = machinery_rows
                         .into_iter()
-                        .map(|row| Machine::build_from_row(&row))
+                        .map(|row| MachineModel::build_from_row(&row))
                         .collect();
 
                     return (
