@@ -19,7 +19,7 @@ mod tests {
 
         // ----------- Successful client user creation
 
-        let succesful_res = http_client
+        let successful_res = http_client
             .post("http://localhost:8000/signup")
             .json(&serde_json::json!({"email": "user@example.com",
             "name": "alice",
@@ -40,7 +40,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(succesful_res.status(), 201);
+        assert_eq!(successful_res.status(), 201);
 
         let user_info = successful_rows.get(0).unwrap();
 

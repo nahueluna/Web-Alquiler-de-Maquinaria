@@ -87,44 +87,39 @@ pub async fn client_sign_up(
 
             let role: i16 = 2; // 2 = client user role
 
-            match transaction.execute(
-                    "INSERT INTO users (email, name, surname, birthdate, id_card, phone, psw_hash, salt, role)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);",
-                    &[
-                        &payload.email,
-                        &payload.name,
-                        &payload.surname,
-                        &birth_date,
-                        &payload.id_card,
-                        &payload.phone,
-                        &hashed_password,
-                        &salt,
-                        &role,
-                    ],).await {
-                Ok(_) =>
-                    {
-                        let subject = "Contraseña generada para sistema de Bob el Alquilador";
-                        let body = format!(
-                            "Hola, {}. Tu contraseña es: {}. \nSi desea, puede cambiarla luego de iniciar sesión.",
-                            payload.name, password
-                        );
+            let users_t = transaction.execute(
+                    "INSERT INTO users (email, name, surname, psw_hash, salt, role) VALUES ($1, $2, $3, $4, $5, $6);",
+                    &[&payload.email,&payload.name,&payload.surname,
+                      &hashed_password,&salt,&role,],).await;
 
-                        let send_mail_res = send_mail(&payload.email, subject, &body);
-                        if send_mail_res.is_ok() {
-                            match transaction.commit().await {
-                                Ok(_) => return (StatusCode::CREATED,
-                                Json(json!({"message": "Client user successfully registered"}))),
-                                Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
-                                Json(json!({"message": "Failed to commit DB transaction",}))),
-                            };
-                        } else {
-                            return (StatusCode::INTERNAL_SERVER_ERROR,
-                                Json(json!({"message": "Failed to send the email"})));
-                        }
-                    },
-                Err(_) =>    return (StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"message": "Failed to save the new user"}))),
-            };
+            let clients_t = transaction.execute(
+                    "INSERT INTO clients (id, birthdate, id_card, phone) VALUES (currval('users_id_seq'), $1, $2, $3)",
+                    &[&birth_date, &payload.id_card, &payload.phone],
+                    ).await;
+
+            if users_t.is_ok() && clients_t.is_ok() {
+                let subject = "Contraseña generada para sistema de Bob el Alquilador";
+                let body = format!(
+                    "Hola, {}. Tu contraseña es: {}. \nSi desea, puede cambiarla luego de iniciar sesión.",
+                    payload.name, password
+                );
+
+                let send_mail_res = send_mail(&payload.email, subject, &body);
+                if send_mail_res.is_ok() {
+                    match transaction.commit().await {
+                        Ok(_) => return (StatusCode::CREATED,
+                        Json(json!({"message": "Client user successfully registered"}))),
+                        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({"message": "Failed to commit DB transaction",}))),
+                    };
+                } else {
+                    return (StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({"message": "Failed to send the email"})));
+                }
+            } else {
+                return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to save the new user"})));
+            }
         }
     }
     (
@@ -159,9 +154,6 @@ pub async fn login(
         email: row.get("email"),
         name: row.get("name"),
         surname: row.get("surname"),
-        birthdate: row.get("birthdate"),
-        id_card: row.get("id_card"),
-        phone: row.get("phone"),
         psw_hash: row.get("psw_hash"),
         salt: row.get("salt"),
         role: row.get("role"),
