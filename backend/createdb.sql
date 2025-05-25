@@ -20,6 +20,11 @@ CREATE TABLE user_info (
     phone varchar(50) NULL
 );
 
+CREATE TABLE codes_2fa (
+    id INTEGER PRIMARY KEY REFERENCES users(id),
+    code INTEGER NOT NULL
+);
+
 CREATE TABLE machinery_models (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,

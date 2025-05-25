@@ -9,6 +9,7 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role) VALUES
 ('hank@example.com', 'Hank', 'Moore', '7890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f6', 'hij890klm123nop4', 2),
 ('ivy@example.com', 'Ivy', 'Taylor', '890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f67', 'ijk901lmn234opq5', 2),
 ('login@example.com', 'Ivy', 'Taylor', '9c819791b519290f435a8fcf896b2125274350636b220106f8629f6eedb3ea7d', 'PC8cXiOnFZO8Radu', 2),
+('admin@example.com', 'admin', 'admin', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 0),
 ('jack@example.com', 'Jack', 'Anderson', '90123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f678', 'jkl012mno345pqr6', 1);
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES

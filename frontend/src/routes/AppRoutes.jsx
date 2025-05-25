@@ -3,6 +3,7 @@ import ChangePassword from "../features/ChangePassword/ChangePassword";
 import Dashboard from "../features/Dashboard/DashboardPage";
 import ExplorePage from "../features/Explore/ExplorePage";
 import Home from "../features/Home/HomePage";
+import IncreaseMachineStock from "../features/IncreaseMachineStock/IncreaseMachineStock";
 import Login from "../features/Login/LoginPage";
 import NotFoundPage from "../features/NotFoundPage";
 import Product from "../features/Product/Product";
@@ -28,6 +29,10 @@ export default function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="*" element={<NotFoundPage />} />
+        <Route
+          path="/increase-machine-stock"
+          element={<IncreaseMachineStock />}
+        />
       </Route>
       <Route path="/two-factor" element={<TwoFactor />} />
     </Routes>
