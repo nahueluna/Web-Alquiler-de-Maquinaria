@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -7,11 +6,10 @@ import {
   Typography,
   Sheet,
   Divider,
+  Snackbar,
 } from "@mui/joy";
 
 const Profile = () => {
-  const navigate = useNavigate();
-
   const [userData, setUserData] = useState({
     nombre: "Valentino Amato Roberts",
     correo: "elmisilpato@gmail.com",
@@ -20,6 +18,7 @@ const Profile = () => {
 
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState(userData);
+  const [showSnackbar, setShowSnackbar] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -35,7 +34,8 @@ const Profile = () => {
   };
 
   const handleChangePassword = () => {
-    navigate("/recover-password");
+    // Simula que se envió un correo
+    setShowSnackbar(true);
   };
 
   return (
@@ -104,6 +104,18 @@ const Profile = () => {
           </Button>
         )}
       </Box>
+
+      {/* Mensajito para el cambio de contraseña (testeando snackbar)*/}
+      <Snackbar
+        open={showSnackbar}
+        onClose={() => setShowSnackbar(false)}
+        autoHideDuration={3000}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        variant="soft"
+        color="success"
+      >
+        Se le ha enviado un correo para cambiar su contraseña.
+      </Snackbar>
     </Sheet>
   );
 };
