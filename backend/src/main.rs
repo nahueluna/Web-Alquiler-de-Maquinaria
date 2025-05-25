@@ -4,11 +4,11 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use handlers::{auth::*, machinery_mgmt::explore_catalog};
+use dotenvy::dotenv;
+use handlers::{auth::*, machinery_mgmt::explore_catalog, machinery_mgmt::select_machine};
 use helpers::auth::create_pool;
 use std::{env, sync::Arc};
 use tower_http::cors::CorsLayer;
-use dotenvy::dotenv;
 
 mod custom_types;
 mod handlers;
@@ -33,10 +33,6 @@ async fn main() {
                 "Invalid environment parameter '{}': Usage cargo run -- <prod|test>",
                 other
             );
-            panic!(
-                "Invalid environment parameter '{}': Usage cargo run -- <prod|test>",
-                other
-            );
         }
     };
 
@@ -53,12 +49,11 @@ async fn main() {
         .route("/signup", post(client_sign_up))
         .route("/login", post(login))
         .route("/explore", get(explore_catalog))
+        .route("/machinery/{id}", get(select_machine))
         .layer(
             CorsLayer::new()
                 .allow_origin(vec!["http://localhost:5173".parse().unwrap()])
                 .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
-                .allow_headers([axum::http::header::CONTENT_TYPE]),
-        )
                 .allow_headers([axum::http::header::CONTENT_TYPE]),
         )
         .with_state(shared_state);
