@@ -1,8 +1,8 @@
 use std::future;
 
 use crate::custom_types::enums::{OrderByField, OrderDirection};
-use crate::custom_types::structs::{AppState, CatalogParams, MachineModel};
-use axum::{extract::Query, extract::State, http::StatusCode, Json};
+use crate::custom_types::structs::{AppState, CatalogParams, Location, MachineModel};
+use axum::{extract::Path, extract::Query, extract::State, http::StatusCode, Json};
 use deadpool_postgres::{Pool, Status};
 use serde_json::json;
 use tokio_postgres::types::ToSql;
@@ -143,6 +143,60 @@ pub async fn explore_catalog(
                 Err(e) => {
                     eprintln!("Error querying database: {:?}", e);
                 }
+            }
+        }
+    }
+
+    return (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({
+            "message": "Error connecting to the database",
+        })),
+    );
+}
+
+pub async fn select_machine(
+    State(state): State<AppState>,
+    Path(machine_id): Path<i32>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Ok(client) = state.pool.get().await {
+        let machine_query = "SELECT * FROM machinery_models WHERE id = $1;";
+
+        let location_query =
+            "SELECT locations.id AS location_id, latitude, longitude, street, number, city 
+        FROM machinery_models INNER JOIN machinery_units 
+            ON machinery_models.id = machinery_units.model_id INNER JOIN locations 
+            ON machinery_units.location_id = locations.id 
+        WHERE machinery_models.id = $1;";
+
+        match client.query_one(machine_query, &[&machine_id]).await {
+            Ok(machine_row) => match client.query(location_query, &[&machine_id]).await {
+                Ok(location_rows) => {
+                    let machine = MachineModel::build_from_row(&machine_row);
+                    let locations: Vec<Location> = location_rows
+                        .into_iter()
+                        .map(|r| Location::build_from_row(&r))
+                        .collect();
+
+                    return (
+                        StatusCode::OK,
+                        Json(json!({
+                            "machine": machine,
+                            "locations": locations,
+                        })),
+                    );
+                }
+                Err(e) => eprintln!("Error querying locations: {:?}", e),
+            },
+
+            Err(e) => {
+                eprintln!("Error querying the machine: {:?}", e);
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "message": "Machine not found",
+                    })),
+                );
             }
         }
     }
