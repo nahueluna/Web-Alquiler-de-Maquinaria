@@ -39,7 +39,7 @@ pub async fn client_sign_up(
         );
     }
 
-    if let Ok(client) = state.pool.get().await {
+    if let Ok(mut client) = state.pool.get().await {
         if let Ok(rows) = client
             .query("SELECT * FROM users WHERE email = $1;", &[&payload.email])
             .await
@@ -75,13 +75,19 @@ pub async fn client_sign_up(
                 );
             }
 
+            let transaction = match client.transaction().await {
+                Ok(t) => t,
+                Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to create a DB transaction",}))),
+            };
+
             let password = generate_random_string(8);
             let salt = generate_random_string(16);
             let hashed_password = encode_password(&password, &salt);
 
             let role: i16 = 2; // 2 = client user role
 
-            match client.query(
+            match transaction.execute(
                     "INSERT INTO users (email, name, surname, birthdate, id_card, phone, psw_hash, salt, role)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);",
                     &[
@@ -103,11 +109,17 @@ pub async fn client_sign_up(
                             payload.name, password
                         );
 
-                        match send_mail(&payload.email, subject, &body) {
-                            Ok(_) =>    return (StatusCode::CREATED,
+                        let send_mail_res = send_mail(&payload.email, subject, &body);
+                        if send_mail_res.is_ok() {
+                            match transaction.commit().await {
+                                Ok(_) => return (StatusCode::CREATED,
                                 Json(json!({"message": "Client user successfully registered"}))),
-                            Err(_) =>    return (StatusCode::INTERNAL_SERVER_ERROR,
-                                Json(json!({"message": "Failed to send the email"}))),
+                                Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(json!({"message": "Failed to commit DB transaction",}))),
+                            };
+                        } else {
+                            return (StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(json!({"message": "Failed to send the email"})));
                         }
                     },
                 Err(_) =>    return (StatusCode::INTERNAL_SERVER_ERROR,
