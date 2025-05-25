@@ -12,6 +12,7 @@ import Terms from "../features/Terms/TermsPage";
 import TwoFactor from "../features/TwoFactorAuth/TwoFactor";
 import MainLayout from "../layout/MainLayout";
 import ChangePassword from "../features/ChangePassword/ChangePassword";
+import IncreaseMachineStock from "../features/IncreaseMachineStock/IncreaseMachineStock"
 
 export default function AppRoutes() {
   return (
@@ -27,6 +28,7 @@ export default function AppRoutes() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/increase-machine-stock" element={<IncreaseMachineStock />} />
       </Route>
       <Route path="/two-factor" element={<TwoFactor />} />
 
