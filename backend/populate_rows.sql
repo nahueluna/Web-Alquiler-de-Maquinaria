@@ -11,14 +11,58 @@ INSERT INTO users (email, name, surname, birthdate, id_card, phone, psw_hash, sa
 ('login@example.com', 'Ivy', 'Taylor', '1993-06-30', '888888', '555-7890', '9c819791b519290f435a8fcf896b2125274350636b220106f8629f6eedb3ea7d', 'PC8cXiOnFZO8Radu', 2),
 ('jack@example.com', 'Jack', 'Anderson', '1987-08-08', 'ID012345', '555-8901', '90123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f678', 'jkl012mno345pqr6', 1);
 
-INSERT INTO machines (serial_number, name, brand, model, year, policy, description, price) VALUES
-('SN1001', 'Hydraulic Press A1', 'Bosch', 'HP-A1', 2020, 'Standard warranty: 2 years', 'Industrial hydraulic press for metal shaping.', 12500.00),
-('SN1002', 'Laser Cutter X5', 'Epilog', 'LC-X5', 2021, 'Extended warranty: 3 years', 'High-precision CO2 laser cutter for wood and acrylic.', 18999.50),
-('SN1003', '3D Printer Max', 'Ultimaker', 'S5', 2022, 'Standard warranty: 1 year', 'FDM 3D printer with dual extrusion.', 7499.99),
-('SN1004', 'CNC Milling Machine', 'Haas', 'VF-2', 2019, 'Standard warranty: 2 years', 'Vertical machining center for metal parts.', 22000.00),
-('SN1005', 'Lathe Pro 3000', 'Jet', 'LP-3000', 2018, 'Standard warranty: 2 years', 'Precision lathe for metal and wood turning.', 9700.00),
-('SN1006', 'Welding Station ZX', 'Lincoln Electric', 'WS-ZX', 2023, 'Extended warranty: 4 years', 'Advanced TIG/MIG welding station.', 4200.00),
-('SN1007', 'Drill Press HeavyDuty', 'DeWalt', 'DP-HD', 2020, 'Standard warranty: 2 years', 'Floor drill press for industrial drilling.', 3100.00),
-('SN1008', 'Plasma Cutter Turbo', 'Hypertherm', 'PC-Turbo', 2021, 'Standard warranty: 2 years', 'Portable plasma cutter for steel plates.', 6500.00),
-('SN1009', 'Industrial Robot Arm', 'Fanuc', 'M-20iA', 2022, 'Extended warranty: 5 years', '6-axis robotic arm for assembly and welding.', 36000.00),
-('SN1010', 'Compressor XTR', 'Atlas Copco', 'XTR-500', 2017, 'Standard warranty: 2 years', 'High-performance air compressor for workshops.', 8700.00);
+-- Insert sample data into the machinery_models table
+INSERT INTO machinery_models (name, brand, model, year, policy, description, price) VALUES
+('Excavadora hidráulica', 'Caterpillar', 'CAT320D', 2020, 'Cancelación con 48h de anticipación', 'Excavadora para trabajos pesados', 150000.00),
+('Retroexcavadora', 'John Deere', '310SL', 2019, 'Sin devolución', 'Ideal para zonas urbanas', 95000.00),
+('Cargadora frontal', 'Komatsu', 'WA270', 2021, 'Cancelación sin costo 24h antes', 'Cargadora con gran potencia', 120000.00),
+('Miniexcavadora', 'Bobcat', 'E35', 2022, 'Cancelación parcial con retención del 20%', 'Compacta para espacios reducidos', 75000.00),
+('Grúa torre', 'Liebherr', 'EC-B', 2023, 'No reembolsable', 'Grúa de gran altura', 200000.00);
+
+-- Insert sample data into the locations table
+INSERT INTO locations (latitude, longitude, street, number, city) VALUES
+(-34.603722, -58.381592, 'Av. Corrientes', '1234', 'Buenos Aires'),
+(-34.920495, -57.953566, 'Calle 50', '678', 'La Plata'),
+(-32.944242, -60.650538, 'Av. Pellegrini', '2345', 'Rosario'),
+(-31.420083, -64.188776, 'Bv. San Juan', '789', 'Córdoba');
+
+-- Insert sample data into the machinery_units table
+INSERT INTO machinery_units (serial_number, status, notes, assigned_at, model_id, location_id) VALUES
+-- Modelo 1 (Caterpillar)
+('CAT-001', 'available', 'Bien mantenida', NOW() - INTERVAL '100 days', 1, 1),
+('CAT-002', 'rented', NULL, NOW() - INTERVAL '20 days', 1, 2),
+('CAT-003', 'maintenance', 'Pérdida de potencia', NOW() - INTERVAL '5 days', 1, 3),
+
+-- Modelo 2 (John Deere)
+('JD-001', 'available', NULL, NOW() - INTERVAL '50 days', 2, 1),
+('JD-002', 'rented', 'Ligeras rayaduras', NOW() - INTERVAL '10 days', 2, 4),
+('JD-003', 'maintenance', 'Filtro obstruido', NOW() - INTERVAL '15 days', 2, 2),
+
+-- Modelo 3 (Komatsu)
+('KM-001', 'available', NULL, NOW() - INTERVAL '60 days', 3, 3),
+('KM-002', 'rented', NULL, NOW() - INTERVAL '30 days', 3, 4),
+('KM-003', 'available', 'Uso reciente', NOW() - INTERVAL '5 days', 3, 1),
+
+-- Modelo 4 (Bobcat)
+('BC-001', 'available', 'Nueva', NOW() - INTERVAL '2 days', 4, 2),
+('BC-002', 'rented', NULL, NOW() - INTERVAL '40 days', 4, 3),
+('BC-003', 'maintenance', 'Aceite bajo', NOW() - INTERVAL '7 days', 4, 4),
+
+-- Modelo 5 (Liebherr)
+('LH-001', 'available', NULL, NOW() - INTERVAL '3 days', 5, 1),
+('LH-002', 'rented', NULL, NOW() - INTERVAL '25 days', 5, 2),
+('LH-003', 'available', NULL, NOW() - INTERVAL '12 days', 5, 3);
+
+-- Insert sample data into the machinery_location_history table
+INSERT INTO machinery_location_history (unit_id, location_id, assigned_at, unassigned_at) VALUES
+-- CAT-001 antes estaba en locación 2
+(1, 2, NOW() - INTERVAL '180 days', NOW() - INTERVAL '100 days'),
+
+-- JD-003 estuvo en Rosario antes
+(6, 3, NOW() - INTERVAL '100 days', NOW() - INTERVAL '15 days'),
+
+-- KM-002 estuvo en Buenos Aires antes
+(8, 1, NOW() - INTERVAL '90 days', NOW() - INTERVAL '30 days'),
+
+-- BC-003 estaba en La Plata
+(12, 2, NOW() - INTERVAL '50 days', NOW() - INTERVAL '7 days');
