@@ -1,5 +1,4 @@
 use super::enums::{OrderByField, OrderDirection};
-use chrono::NaiveDate;
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -11,9 +10,9 @@ pub struct User {
     pub email: String,
     pub name: String,
     pub surname: String,
-    pub birthdate: NaiveDate,
-    pub id_card: String,
-    pub phone: Option<String>,
+    //pub birthdate: NaiveDate,
+    //pub id_card: String,
+    //pub phone: Option<String>,
     pub psw_hash: String,
     pub salt: String,
     pub role: i16,

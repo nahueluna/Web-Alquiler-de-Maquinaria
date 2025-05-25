@@ -8,12 +8,23 @@ CREATE TABLE users (
     email varchar(254) UNIQUE NOT NULL,
     name varchar(100) NOT NULL,
     surname varchar(100) NOT NULL,
-    birthdate date NOT NULL,
-    id_card varchar(30) UNIQUE NOT NULL,
-    phone varchar(50) NULL,
     psw_hash varchar(64) UNIQUE NOT NULL,
     salt varchar(16) NOT NULL,
     role smallint NOT NULL
+);
+
+CREATE TABLE clients (
+    id INTEGER PRIMARY KEY REFERENCES users(id),
+    birthdate date NOT NULL,
+    id_card varchar(30) UNIQUE NOT NULL,
+    phone varchar(50) NULL
+);
+
+CREATE TABLE employees (
+    id INTEGER PRIMARY KEY REFERENCES users(id),
+    birthdate date NOT NULL,
+    id_card varchar(30) UNIQUE NOT NULL,
+    phone varchar(50) NULL
 );
 
 CREATE TABLE machinery_models (

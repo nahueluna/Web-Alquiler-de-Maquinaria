@@ -3,6 +3,5 @@
 debug/
 target/
 
-populate_rows.sql
 Dockerfile
 .env
