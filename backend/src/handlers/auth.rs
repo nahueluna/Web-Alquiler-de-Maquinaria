@@ -1,4 +1,5 @@
 use axum::{http::StatusCode, Json, extract::State};
+use deadpool_postgres::GenericClient;
 use validator::Validate;
 use serde_json::json;
 use std::env;
@@ -163,6 +164,46 @@ pub async fn login(
         return (StatusCode::BAD_REQUEST, Json(json!({"message": "The password is invalid"})));
     }
 
+    if user.role != 2 {
+        if let Some(code) = payload.code {
+            match client
+                .query_one("SELECT * FROM codes_2fa WHERE id = $1 AND code = $2;",
+                    &[&user.id, &code]).await {
+                Ok(r) => r,
+                Err(_) => return (StatusCode::BAD_REQUEST,
+                            Json(json!({"message": "The code provided is invalid"}))),
+            };
+        } else {
+            let code = create_2fa_code();
+            let subject = "Verificación en dos pasos - Bob el Alquilador";
+            let body = format!(
+                "Hola, {}. Su código de verificación de dos pasos es: {}.\nSi solicitó más de un código, solo el último que haya recibido es válido.",
+                user.name, code
+            );
+
+            let send_mail_res = send_mail(&payload.email, subject, &body);
+
+            if send_mail_res.is_err() {
+                return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to send the email"})));
+            }
+
+            let del_q = client.execute("DELETE FROM codes_2fa WHERE id = $1;",
+                &[&user.id]).await;
+
+            let ins_q = client.execute("INSERT INTO codes_2fa (id, code) VALUES ($1, $2);",
+                &[&user.id, &code]).await;
+
+            if del_q.is_ok() && ins_q.is_ok() {
+                return (StatusCode::OK,
+                    Json(json!({"message": "2FA email sent"})));
+            } else {
+                return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to save the 2FA code"})));
+            }
+        }
+    }
+
     let secret_key = env::var("JWT_SECRET_KEY").expect("JTW_SECRET_KEY must be set in the .env file");
 
     let expiration = Utc::now()
@@ -176,7 +217,7 @@ pub async fn login(
         role: user.role,
     };
 
-    match encode(&Header::default(), &claims, &EncodingKey::from_secret(secret_key.as_ref())) {
+    return match encode(&Header::default(), &claims, &EncodingKey::from_secret(secret_key.as_ref())) {
         Ok(t) => (StatusCode::OK,
                     Json(json!({"access": t}))),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR,

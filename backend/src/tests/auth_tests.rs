@@ -147,6 +147,12 @@ mod tests {
         setup().await;
         let client = Client::new();
 
+        let pool = create_pool(RunningEnv::Testing);
+        let db_client = match pool.await.get().await {
+            Ok(c) => c,
+            Err(e) => panic!("Failed to connect to the database: {}", e),
+        };
+
         // Successful login
         let res = client
             .post("http://localhost:8000/login")
@@ -164,6 +170,53 @@ mod tests {
         let claims = validate_jwt(&jwt.to_string()).unwrap().claims;
         assert_eq!(10, claims.user_id);
         assert_eq!(2, claims.role);
+
+        // Successful admin login
+        let rows = db_client.query("SELECT * FROM codes_2fa WHERE id = $1;",
+                &[&11i32]).await.unwrap();
+        assert_eq!(rows.len(), 0);
+
+        let res = client
+            .post("http://localhost:8000/login")
+            .json(&serde_json::json!({
+                "email": "admin@example.com",
+                "password": "password"
+            })).send().await.unwrap();
+
+        assert_eq!(res.status(), 200);
+        assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"].as_str().unwrap(), "2FA email sent");
+
+        let rows = db_client.query("SELECT * FROM codes_2fa WHERE id = $1;",
+                &[&11i32]).await.unwrap();
+        assert_eq!(rows.len(), 1);
+        let code1: i32 = rows.get(0).unwrap().get("code");
+
+        client.post("http://localhost:8000/login")
+            .json(&serde_json::json!({
+                "email": "admin@example.com",
+                "password": "password"
+            })).send().await.unwrap();
+
+        let rows = db_client.query("SELECT * FROM codes_2fa WHERE id = $1;",
+                &[&11i32]).await.unwrap();
+        assert_eq!(rows.len(), 1);
+        let code2: i32 = rows.get(0).unwrap().get("code");
+        assert_ne!(code1, code2);
+
+        let res = client
+            .post("http://localhost:8000/login")
+            .json(&serde_json::json!({
+                "email": "admin@example.com",
+                "password": "password",
+                "code": code2
+            })).send().await.unwrap();
+
+        assert_eq!(res.status(), 200);
+        let jwt_value = res.json::<serde_json::Value>().await.unwrap();
+        let jwt = jwt_value["access"].as_str().unwrap();
+        let claims = validate_jwt(&jwt.to_string()).unwrap().claims;
+        assert_eq!(11, claims.user_id);
+        assert_eq!(0, claims.role);
 
         // Unauthorized login due to wrong password
         let res = client

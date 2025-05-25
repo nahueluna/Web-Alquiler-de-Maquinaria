@@ -37,6 +37,7 @@ pub struct CreateRegularUser {
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
+    pub code: Option<i32>, //2FA Code
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use std::env;
 use tokio_postgres::NoTls;
 use deadpool_postgres::{Pool, Manager};
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm, TokenData};
+use jsonwebtoken::{decode, DecodingKey, Validation, TokenData};
 use crate::custom_types::{structs::Claims, enums::RunningEnv};
 
 pub fn generate_random_string(lenght: usize) -> String {
@@ -20,6 +20,11 @@ pub fn generate_random_string(lenght: usize) -> String {
         .collect();
 
     random_string
+}
+
+pub fn create_2fa_code() -> i32 {
+    let mut rng = rand::rng();
+    rng.random_range(10000..1000000)
 }
 
 pub async fn create_pool(running_env: RunningEnv) -> Pool {
