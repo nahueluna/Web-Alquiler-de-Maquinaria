@@ -33,8 +33,8 @@ CREATE TABLE machinery_models (
 
 CREATE TABLE locations (
     id SERIAL PRIMARY KEY,
-    latitude NUMERIC(9,6),
-    longitude NUMERIC(9,6),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
     street TEXT,
     number TEXT,
     city TEXT

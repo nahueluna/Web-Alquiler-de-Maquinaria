@@ -33,6 +33,10 @@ async fn main() {
                 "Invalid environment parameter '{}': Usage cargo run -- <prod|test>",
                 other
             );
+            panic!(
+                "Invalid environment parameter '{}': Usage cargo run -- <prod|test>",
+                other
+            );
         }
     };
 
@@ -53,6 +57,8 @@ async fn main() {
             CorsLayer::new()
                 .allow_origin(vec!["http://localhost:5173".parse().unwrap()])
                 .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
+                .allow_headers([axum::http::header::CONTENT_TYPE]),
+        )
                 .allow_headers([axum::http::header::CONTENT_TYPE]),
         )
         .with_state(shared_state);

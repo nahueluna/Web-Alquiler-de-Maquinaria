@@ -2,6 +2,7 @@ use super::enums::{OrderByField, OrderDirection};
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::sync::Arc;
 use validator::Validate;
 
 #[derive(Debug)]
