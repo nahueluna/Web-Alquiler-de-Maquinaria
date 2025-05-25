@@ -40,8 +40,8 @@ async fn main() {    // Get the first CLI argument (after the executable name)
         .route("/", get(root))
         // `POST /register` goes to `client_sign_up`
         .route("/signup", post(client_sign_up))
-        // `POST /login` goes to `client_login`
-        .route("/login", post(client_login))
+        // `POST /login` goes to `login`
+        .route("/login", post(login))
         .layer(
             CorsLayer::new()
                 .allow_origin(vec!["http://localhost:5173".parse().unwrap()])

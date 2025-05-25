@@ -1,19 +1,16 @@
 use axum::{http::StatusCode, Json, extract::State};
 use validator::Validate;
 use serde_json::json;
+use std::env;
+use dotenvy::dotenv;
+use chrono::{Utc, Duration};
+use jsonwebtoken::{encode, Header, EncodingKey};
 use crate::custom_types::structs::*;
 use crate::helpers::auth::*;
 
 // basic handler that responds with a static string
-pub async fn root(State(state): State<AppState>) -> &'static str {
-    if let Ok(client) = state.pool.get().await {
-        let rows = client.query("SELECT * FROM users WHERE id = 1;", &[]).await.unwrap();
-        let email: String = rows.get(0).unwrap().get("email");
-        println!("success: {:?}", email);
-    } else {
-        println!("error");
-    }
-    "Hello, World!"
+pub async fn root() -> &'static str {
+    "OK"
 }
 
 pub async fn client_sign_up(
@@ -24,8 +21,7 @@ pub async fn client_sign_up(
 ) -> (StatusCode, Json<serde_json::Value>) {
     let payload = match payload_result {
         Ok(p) => p,
-        Err(e) => {
-            eprintln!("Deserialization error: {:?}", e);
+        Err(_) => {
             return (
                 StatusCode::UNPROCESSABLE_ENTITY,
                 Json(json!({
@@ -35,8 +31,7 @@ pub async fn client_sign_up(
         }
     };
 
-    if let Err(e) = payload.validate() {
-        eprintln!("Validation error: {:?}", e);
+    if let Err(_) = payload.validate() {
         return (
             StatusCode::BAD_REQUEST,
             Json(json!({
@@ -83,14 +78,13 @@ pub async fn client_sign_up(
 
             let password = generate_random_string(8);
             let salt = generate_random_string(16);
-            let hashed_password = encode_password(&format!("{}{}", salt, password));
+            let hashed_password = encode_password(&password, &salt);
 
             let role: i16 = 2; // 2 = client user role
 
-            if let Ok(_) = client
-                .query(
-                    "INSERT INTO users (email, name, surname, birthdate, id_card, phone, password, role)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8);",
+            match client.query(
+                    "INSERT INTO users (email, name, surname, birthdate, id_card, phone, psw_hash, salt, role)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);",
                     &[
                         &payload.email,
                         &payload.name,
@@ -99,26 +93,29 @@ pub async fn client_sign_up(
                         &payload.id_card,
                         &payload.phone,
                         &hashed_password,
+                        &salt,
                         &role,
-                    ],
-                )
-                .await
-            {
-                let subject = "Contraseña generada para sistema de Bob el Alquilador";
-                let body = format!(
-                    "Hola, {}. Tu contraseña es: {}. \nSi desea, puede cambiarla luego de iniciar sesión.",
-                    payload.name, password
-                );
-                send_mail(&payload.email, subject, &body);
+                    ],).await {
+                Ok(_) =>
+                    {
+                        let subject = "Contraseña generada para sistema de Bob el Alquilador";
+                        let body = format!(
+                            "Hola, {}. Tu contraseña es: {}. \nSi desea, puede cambiarla luego de iniciar sesión.",
+                            payload.name, password
+                        );
 
-                return (
-                    StatusCode::CREATED,
-                    Json(json!({"message": "Client user successfully registered"})),
-                );
-            }
+                        match send_mail(&payload.email, subject, &body) {
+                            Ok(_) =>    return (StatusCode::CREATED,
+                                Json(json!({"message": "Client user successfully registered"}))),
+                            Err(_) =>    return (StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(json!({"message": "Failed to send the email"}))),
+                        }
+                    },
+                Err(_) =>    return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to save the new user"}))),
+            };
         }
     }
-
     (
         StatusCode::INTERNAL_SERVER_ERROR,
         Json(json!({
@@ -129,40 +126,59 @@ pub async fn client_sign_up(
 
 // This handler checks if the email and password are correct
 // and returns a JSON response with a message
-pub async fn client_login(
+pub async fn login(
+    State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
 ) -> (StatusCode, Json<serde_json::Value>) {
-    // Hardcoded email, replace with database data
-    let email = "user@example.com";
+    dotenv().ok();
 
-    if payload.email == email {
-        let salt = "randomsalt";
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to connect to the DB"}))),
+    };
 
-        let password_with_salt = format!("{}{}", payload.password, salt);
-        let stored_password_hash = get_password_hash_from_db(&payload.email).await;
-        {
-            if check_password(&password_with_salt, &stored_password_hash) {
-                return (
-                    StatusCode::OK,
-                    Json(json!({
-                        "message": "Successfully logged in",
-                    })),
-                );
-            }
+    let row = match client
+        .query_one("SELECT * FROM users WHERE email = $1;", &[&payload.email]).await {
+        Ok(r) => r,
+        Err(_) => return (StatusCode::BAD_REQUEST,
+                    Json(json!({"message": "The user does not exist"}))),
+    };
 
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({
-                    "message": "Invalid password",
-                })),
-            );
-        }
+    let user = User {
+        id: row.get("id"),
+        email: row.get("email"),
+        name: row.get("name"),
+        surname: row.get("surname"),
+        birthdate: row.get("birthdate"),
+        id_card: row.get("id_card"),
+        phone: row.get("phone"),
+        psw_hash: row.get("psw_hash"),
+        salt: row.get("salt"),
+        role: row.get("role"),
+    };
+
+    if encode_password(&payload.password, &user.salt) != user.psw_hash {
+        return (StatusCode::BAD_REQUEST, Json(json!({"message": "The password is invalid"})));
     }
 
-    (
-        StatusCode::UNAUTHORIZED,
-        Json(json!({
-            "message": "Invalid email",
-        })),
-    )
+    let secret_key = env::var("JWT_SECRET_KEY").expect("JTW_SECRET_KEY must be set in the .env file");
+
+    let expiration = Utc::now()
+        .checked_add_signed(Duration::days(30))
+        .expect("valid timestamp")
+        .timestamp();
+
+    let claims = Claims {
+        user_id: user.id,
+        exp: expiration as usize,
+        role: user.role,
+    };
+
+    match encode(&Header::default(), &claims, &EncodingKey::from_secret(secret_key.as_ref())) {
+        Ok(t) => (StatusCode::OK,
+                    Json(json!({"access": t}))),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to create the JWT"}))),
+    }
 }

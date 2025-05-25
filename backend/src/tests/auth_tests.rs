@@ -7,15 +7,6 @@ mod tests {
     use reqwest::Client;
 
     #[tokio::test]
-    async fn test_pool() {
-        setup().await;
-        // Successful client user creation
-        let client = Client::new();
-        let res = client.get("http://localhost:8000/").send().await.unwrap();
-        println!("{:?}", res);
-    }
-
-    #[tokio::test]
     async fn test_create_client() {
         setup().await;
         let pool = create_pool(RunningEnv::Testing);
@@ -156,44 +147,47 @@ mod tests {
         setup().await;
         let client = Client::new();
 
-        // Correct login
+        // Successful login
         let res = client
             .post("http://localhost:8000/login")
             .json(&serde_json::json!({
-                "email": "user@example.com",
-                "password": "password123"
+                "email": "login@example.com",
+                "password": "0iRxP5lD"
             }))
             .send()
             .await
             .unwrap();
 
         assert_eq!(res.status(), 200);
+        assert_eq!(res.json::<serde_json::Value>().await.unwrap()["access"], "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxMCwiZXhwIjoxNzUwNzI5ODIyLCJyb2xlIjoyfQ.nAeMRhR_Ts6lDKIk0F6kYk4jZJCEoitaefqfXhK6h8o");
 
         // Unauthorized login due to wrong password
         let res = client
             .post("http://localhost:8000/login")
             .json(&serde_json::json!({
-                "email": "user@example.com",
-                "password": "notapassword"
+                "email": "login@example.com",
+                "password": "badpassword"
             }))
             .send()
             .await
             .unwrap();
 
-        assert_eq!(res.status(), 401);
+        assert_eq!(res.status(), 400);
+        assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "The password is invalid");
 
         // Unauthorized login due to wrong email
         let res = client
             .post("http://localhost:8000/login")
             .json(&serde_json::json!({
-                "email": "notauser@example.com",
+                "email": "notanuser@example.com",
                 "password": "password123"
             }))
             .send()
             .await
             .unwrap();
 
-        assert_eq!(res.status(), 401);
+        assert_eq!(res.status(), 400);
+        assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "The user does not exist");
     }
 
     #[tokio::test]
@@ -203,6 +197,6 @@ mod tests {
             "recipient@example.com",
             "Hello from Rust!",
             "This email was sent securely using dotenv.",
-        );
+        ).unwrap();
     }
 }
