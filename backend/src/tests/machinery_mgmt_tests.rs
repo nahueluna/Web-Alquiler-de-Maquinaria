@@ -81,6 +81,54 @@ mod tests {
             machine6.as_object().unwrap().get("model").unwrap(),
             "CAT320D"
         );
+    }
 
+    #[tokio::test]
+    async fn test_select_machine() {
+        setup().await;
+        let http_client = Client::new();
+
+        // ----------- Select a machine with a valid ID
+
+        let valid_machine_id = 1;
+        let valid_response = http_client
+            .get(format!(
+                "http://localhost:8000/machinery/{}",
+                valid_machine_id
+            ))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(valid_response.status(), 200);
+
+        let response_body = valid_response.json::<serde_json::Value>().await.unwrap();
+
+        let machine = response_body["machine"].as_object().unwrap();
+
+        assert_eq!(machine.get("id").unwrap(), 1);
+        assert_eq!(machine.get("model").unwrap(), "CAT320D");
+        assert_eq!(machine.get("brand").unwrap(), "Caterpillar");
+
+        let locations = response_body["locations"].as_array().unwrap();
+
+        assert_eq!(locations.len(), 3);
+        assert_eq!(locations[0]["id"].as_i64().unwrap(), 1);
+
+        assert_eq!(locations[1]["city"].as_str().unwrap(), "La Plata");
+
+        // ----------- Select a machine with an invalid ID
+
+        let invalid_machine_id = 9999;
+        let invalid_response = http_client
+            .get(format!(
+                "http://localhost:8000/machinery/{}",
+                invalid_machine_id
+            ))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(invalid_response.status(), 404);
     }
 }
