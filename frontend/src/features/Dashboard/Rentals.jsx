@@ -9,9 +9,10 @@ const Rentals = () => {
         display: "flex",
         justifyContent: "flex-start",
         alignItems: "center",
+        height: "100%",
       }}
     >
-      <Stack spacing={4} sx={{ padding: 2, maxWidth: "80%" }}>
+      <Stack spacing={4} sx={{ padding: 2, width: "100%", height: "100%" }}>
         <FormControl sx={{ width: "350px" }}>
           <Input
             endDecorator={<SearchIcon />}
@@ -19,10 +20,13 @@ const Rentals = () => {
           ></Input>
         </FormControl>
         <RentalCard
+          rentalNumber="223"
           model="HGG-345"
           renter="Carlitos Marado"
           startDate="2022-04-16"
-          finished={false}
+          endDate="2022-04-20"
+          status="active"
+          paidAmount="234.423,33"
         />
       </Stack>
     </Sheet>

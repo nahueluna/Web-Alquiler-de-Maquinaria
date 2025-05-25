@@ -1,46 +1,55 @@
-import Card from "@mui/joy/Card";
-import CardContent from "@mui/joy/CardContent";
-import CardOverflow from "@mui/joy/CardOverflow";
-import Divider from "@mui/joy/Divider";
-import Typography from "@mui/joy/Typography";
+import { Box, Button, Chip, Sheet, Stack, Typography } from "@mui/joy";
 
-export default function RentalCard({ model, renter, startDate, finished }) {
+export default function RentalCard({
+  rentalNumber,
+  renter,
+  status,
+  startDate,
+  endDate,
+  paidAmount,
+}) {
   return (
-    <Card
-      variant={"outlined"}
+    <Sheet
+      variant="outlined"
       sx={{
-        cursor: "pointer",
-        transition: "transform 0.2s, box-shadow 0.2s",
-        transform: "scale(1)",
-        "&:hover": {
-          transform: "scale(1.01)",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
-        },
+        minWidth: "400px",
+        maxWidth: "800px",
+        height: "50%",
+        borderRadius: "md",
+        padding: 2,
       }}
     >
-      <CardContent>
-        <Typography level="title-lg">{model}</Typography>
-        <Typography level="body-sm" textColor="grey">
-          Alquilado por {renter}
-        </Typography>
-        <Typography level="body-sm"></Typography>
-      </CardContent>
-      <CardOverflow variant="soft" sx={{ bgcolor: "background.level1" }}>
-        <Divider inset="context" />
-        <CardContent orientation="horizontal">
-          <Typography
-            level="body-xs"
-            textColor="text.secondary"
-            sx={{ fontWeight: "md" }}
-          >
-            Fecha de inicio {startDate}
-          </Typography>
-          <Divider orientation="vertical" sx={{ mx: 1 }} />
-          <Typography>
-            {finished ? "Alquiler terminado" : "Alquiler activo"}
-          </Typography>
-        </CardContent>
-      </CardOverflow>
-    </Card>
+      <Stack spacing={2}>
+        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Chip variant="outlined" color="danger" size="lg">
+            ID {rentalNumber}
+          </Chip>
+          <Chip variant="solid" color="danger" size="lg">
+            {status}
+          </Chip>
+        </Box>
+        <Typography level={5}>Alquilado por {renter}</Typography>
+        <Box>
+          <Typography level={5}>Desde {startDate}</Typography>
+          <Typography level={5}>Hasta {endDate}</Typography>
+        </Box>
+        <Stack direction="row" spacing={2}>
+          <Typography>Fecha de retiro: - </Typography>
+          <Button color="danger" size="xs" variant="solid">
+            Cargar retiro
+          </Button>
+        </Stack>
+        <Stack direction="row" spacing={2}>
+          <Typography>Fecha de devolucion: - </Typography>
+          <Button color="danger" size="xs" variant="solid">
+            Cargar devolucion
+          </Button>
+        </Stack>
+        <Typography>Monto abonado: {paidAmount}</Typography>
+        <Button color="danger" size="lg" variant="soft" sx={{ width: "40%" }}>
+          Cancelar alquiler
+        </Button>
+      </Stack>
+    </Sheet>
   );
 }
