@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::custom_types::enums::RunningEnv;
-    use crate::helpers::auth::{create_pool, send_mail};
+    use crate::helpers::auth::{create_pool, send_mail, validate_jwt};
     use crate::tests::helpers::setup;
     use chrono::Datelike;
     use reqwest::Client;
@@ -159,7 +159,11 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.status(), 200);
-        assert_eq!(res.json::<serde_json::Value>().await.unwrap()["access"], "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxMCwiZXhwIjoxNzUwNzI5ODIyLCJyb2xlIjoyfQ.nAeMRhR_Ts6lDKIk0F6kYk4jZJCEoitaefqfXhK6h8o");
+        let jwt_value = res.json::<serde_json::Value>().await.unwrap();
+        let jwt = jwt_value["access"].as_str().unwrap();
+        let claims = validate_jwt(&jwt.to_string()).unwrap().claims;
+        assert_eq!(10, claims.user_id);
+        assert_eq!(2, claims.role);
 
         // Unauthorized login due to wrong password
         let res = client

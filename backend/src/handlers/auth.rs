@@ -2,7 +2,6 @@ use axum::{http::StatusCode, Json, extract::State};
 use validator::Validate;
 use serde_json::json;
 use std::env;
-use dotenvy::dotenv;
 use chrono::{Utc, Duration};
 use jsonwebtoken::{encode, Header, EncodingKey};
 use crate::custom_types::structs::*;
@@ -130,8 +129,6 @@ pub async fn login(
     State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
 ) -> (StatusCode, Json<serde_json::Value>) {
-    dotenv().ok();
-
     let client = match state.pool.get().await {
         Ok(c) => c,
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,

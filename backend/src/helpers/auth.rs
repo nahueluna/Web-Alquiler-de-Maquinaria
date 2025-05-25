@@ -1,5 +1,4 @@
 use chrono::{Datelike, NaiveDate, Utc};
-use dotenvy::dotenv;
 use hex;
 use lettre::message::{Mailbox, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
@@ -10,8 +9,8 @@ use sha2::{Digest, Sha256};
 use std::env;
 use tokio_postgres::NoTls;
 use deadpool_postgres::{Pool, Manager};
-
-use crate::custom_types::enums::RunningEnv;
+use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm, TokenData};
+use crate::custom_types::{structs::Claims, enums::RunningEnv};
 
 pub fn generate_random_string(lenght: usize) -> String {
     let random_string: String = rng()
@@ -24,7 +23,6 @@ pub fn generate_random_string(lenght: usize) -> String {
 }
 
 pub async fn create_pool(running_env: RunningEnv) -> Pool {
-    dotenv().ok();
 
     let database_url = match running_env {
         RunningEnv::Production => env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file"),
@@ -61,9 +59,6 @@ pub fn encode_password(password: &str, salt: &str) -> String {
 }
 
 pub fn send_mail(address: &str, subject: &str, body: &str) -> Result<(), String> {
-    // Load variables from .env
-    dotenv().ok();
-
     let email_address = env::var("EMAIL").map_err(|e| e.to_string())?;
     let app_password = env::var("APP_PASSWORD").map_err(|e| e.to_string())?;
 
@@ -89,4 +84,14 @@ pub fn send_mail(address: &str, subject: &str, body: &str) -> Result<(), String>
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }
+}
+
+pub fn validate_jwt(jwt: &str) -> Option<TokenData<Claims>> {
+    let secret_key = env::var("JWT_SECRET_KEY").expect("JTW_SECRET_KEY must be set in the .env file");
+
+    decode::<Claims>(
+        jwt,
+        &DecodingKey::from_secret(secret_key.as_ref()),
+        &Validation::default(),
+    ).ok()
 }

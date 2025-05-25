@@ -8,6 +8,7 @@ use handlers::{auth::*, machinery_mgmt::explore_catalog};
 use helpers::auth::create_pool;
 use std::{env, sync::Arc};
 use tower_http::cors::CorsLayer;
+use dotenvy::dotenv;
 
 mod custom_types;
 mod handlers;
@@ -16,6 +17,8 @@ mod tests;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok(); //Load .env
+
     // Get the first CLI argument (after the executable name)
     let db_env = env::args()
         .nth(1)
