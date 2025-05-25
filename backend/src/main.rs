@@ -18,6 +18,8 @@ mod tests;
 #[tokio::main]
 async fn main() {
     dotenv().ok(); //Load .env
+    let frontend_url = env::var("FRONTEND_URL").expect("FRONTEND_URL must be set in the .env file");
+    let socket_addr = env::var("SOCKET_ADDR").expect("SOCKET_ADDR must be set in the .env file");
 
     // Get the first CLI argument (after the executable name)
     let db_env = env::args()
@@ -52,13 +54,13 @@ async fn main() {
         .route("/machinery/{id}", get(select_machine))
         .layer(
             CorsLayer::new()
-                .allow_origin(vec!["http://localhost:5173".parse().unwrap()])
+                .allow_origin(vec![frontend_url.parse().unwrap()])
                 .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
                 .allow_headers([axum::http::header::CONTENT_TYPE]),
         )
         .with_state(shared_state);
 
-    // run our app with hyper, listening globally on port 8000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
+    // run our app with hyper
+    let listener = tokio::net::TcpListener::bind(socket_addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

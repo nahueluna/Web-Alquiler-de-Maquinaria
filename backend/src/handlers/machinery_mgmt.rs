@@ -1,12 +1,9 @@
-use std::future;
-
 use crate::custom_types::enums::{OrderByField, OrderDirection};
 use crate::custom_types::structs::{AppState, CatalogParams, Location, MachineModel};
 use axum::{extract::Path, extract::Query, extract::State, http::StatusCode, Json};
-use deadpool_postgres::{Pool, Status};
 use serde_json::json;
 use tokio_postgres::types::ToSql;
-use validator::{Validate, ValidateLength};
+use validator::Validate;
 
 #[axum::debug_handler]
 pub async fn explore_catalog(

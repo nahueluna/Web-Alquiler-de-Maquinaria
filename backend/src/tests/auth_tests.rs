@@ -2,7 +2,7 @@
 mod tests {
     use crate::custom_types::enums::RunningEnv;
     use crate::helpers::auth::{create_pool, send_mail, validate_jwt};
-    use crate::tests::helpers::setup;
+    use crate::tests::helpers::*;
     use chrono::Datelike;
     use reqwest::Client;
 
@@ -20,7 +20,7 @@ mod tests {
         // ----------- Successful client user creation
 
         let successful_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({"email": "user@example.com",
             "name": "alice",
             "surname": "wonderland",
@@ -52,7 +52,7 @@ mod tests {
         // ----------- Conflict due to existing email
 
         let repeated_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({"email": "user@example.com",
             "name": "alice",
             "surname": "wonderland",
@@ -82,7 +82,7 @@ mod tests {
         let birth_date = format!("01-01-{}", year);
 
         let forbidden_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({"email": "anotheruser@example.com",
             "name": "alice",
             "surname": "wonderland",
@@ -99,7 +99,7 @@ mod tests {
         // ----------- Bad request due to invalid email format
 
         let invalid_format_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({"email": "user@.com",
             "name": "alice",
             "surname": "wonderland",
@@ -116,7 +116,7 @@ mod tests {
         // ----------- Unprocessable entity
 
         let unprocessable_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({}))
             .send()
             .await
@@ -127,7 +127,7 @@ mod tests {
         // ----------- Bad request due to invalid birth date format
 
         let invalid_date_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({"email": "anotheruser@example.com",
             "name": "alice",
             "surname": "wonderland",
@@ -155,7 +155,7 @@ mod tests {
 
         // Successful login
         let res = client
-            .post("http://localhost:8000/login")
+            .post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "login@example.com",
                 "password": "0iRxP5lD"
@@ -177,7 +177,7 @@ mod tests {
         assert_eq!(rows.len(), 0);
 
         let res = client
-            .post("http://localhost:8000/login")
+            .post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "admin@example.com",
                 "password": "password"
@@ -191,7 +191,7 @@ mod tests {
         assert_eq!(rows.len(), 1);
         let code1: i32 = rows.get(0).unwrap().get("code");
 
-        client.post("http://localhost:8000/login")
+        client.post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "admin@example.com",
                 "password": "password"
@@ -204,7 +204,7 @@ mod tests {
         assert_ne!(code1, code2);
 
         let res = client
-            .post("http://localhost:8000/login")
+            .post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "admin@example.com",
                 "password": "password",
@@ -220,7 +220,7 @@ mod tests {
 
         // Unauthorized login due to wrong password
         let res = client
-            .post("http://localhost:8000/login")
+            .post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "login@example.com",
                 "password": "badpassword"
@@ -234,7 +234,7 @@ mod tests {
 
         // Unauthorized login due to wrong email
         let res = client
-            .post("http://localhost:8000/login")
+            .post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "notanuser@example.com",
                 "password": "password123"
