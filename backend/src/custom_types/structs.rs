@@ -72,6 +72,7 @@ pub struct Claims {
     pub user_id: i32,
     pub exp: usize, // expiration time (as UTC timestamp)
     pub role: i16,  // user role
+    pub is_refresh: bool //Whether it is an access or a refresh token
 }
 
 #[derive(Clone)]

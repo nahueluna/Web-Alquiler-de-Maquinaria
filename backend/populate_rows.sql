@@ -86,12 +86,12 @@ INSERT INTO categories (name) VALUES
 
 -- Modelo 1: Excavadora Caterpillar → Construcción pesada
 INSERT INTO machinery_categories (model_id, category_id) VALUES
-(1, 1),
+(1, 1);
 
 -- Modelo 2: Retroexcavadora John Deere → Obras urbanas, Movimiento de tierra, Compactación
 INSERT INTO machinery_categories (model_id, category_id) VALUES
 (2, 2),
-(2, 3);
+(2, 3),
 (2, 5);
 
 -- Modelo 3: Cargadora frontal Komatsu → Movimiento de tierra, Compactación

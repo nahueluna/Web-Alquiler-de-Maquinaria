@@ -1,10 +1,8 @@
-use axum::{http::StatusCode, Json, extract::State};
+use axum::{extract::State, http::{header, HeaderMap, HeaderValue, StatusCode},
+    response::{IntoResponse, Response}, Json};
 use deadpool_postgres::GenericClient;
 use validator::Validate;
 use serde_json::json;
-use std::env;
-use chrono::{Utc, Duration};
-use jsonwebtoken::{encode, Header, EncodingKey};
 use crate::custom_types::structs::*;
 use crate::helpers::auth::*;
 
@@ -136,18 +134,18 @@ pub async fn client_sign_up(
 pub async fn login(
     State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
-) -> (StatusCode, Json<serde_json::Value>) {
+) -> Response {
     let client = match state.pool.get().await {
         Ok(c) => c,
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"message": "Failed to connect to the DB"}))),
+                    Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
     };
 
     let row = match client
         .query_one("SELECT * FROM users WHERE email = $1;", &[&payload.email]).await {
         Ok(r) => r,
         Err(_) => return (StatusCode::BAD_REQUEST,
-                    Json(json!({"message": "The user does not exist"}))),
+                    Json(json!({"message": "The user does not exist"}))).into_response(),
     };
 
     let user = User {
@@ -161,7 +159,7 @@ pub async fn login(
     };
 
     if encode_password(&payload.password, &user.salt) != user.psw_hash {
-        return (StatusCode::BAD_REQUEST, Json(json!({"message": "The password is invalid"})));
+        return (StatusCode::BAD_REQUEST, Json(json!({"message": "The password is invalid"}))).into_response();
     }
 
     let pub_user = PubUser::from(user);
@@ -171,7 +169,7 @@ pub async fn login(
             .query_one("SELECT * FROM user_info WHERE id = $1;", &[&pub_user.id]).await {
             Ok(r) => r,
             Err(_) => return (StatusCode::BAD_REQUEST,
-                        Json(json!({"message": "The user does not exist"}))),
+                        Json(json!({"message": "The user does not exist"}))).into_response(),
         };
         Some(UserInfo {
             id: row.get("id"),
@@ -191,7 +189,7 @@ pub async fn login(
                     &[&pub_user.id, &code]).await {
                 Ok(r) => r,
                 Err(_) => return (StatusCode::BAD_REQUEST,
-                            Json(json!({"message": "The code provided is invalid"}))),
+                            Json(json!({"message": "The code provided is invalid"}))).into_response(),
             };
         } else {
             let code = create_2fa_code();
@@ -205,7 +203,7 @@ pub async fn login(
 
             if send_mail_res.is_err() {
                 return (StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"message": "Failed to send the email"})));
+                    Json(json!({"message": "Failed to send the email"}))).into_response();
             }
 
             let del_q = client.execute("DELETE FROM codes_2fa WHERE id = $1;",
@@ -216,33 +214,37 @@ pub async fn login(
 
             if del_q.is_ok() && ins_q.is_ok() {
                 return (StatusCode::OK,
-                    Json(json!({"message": "2FA email sent"})));
+                    Json(json!({"message": "2FA email sent"}))).into_response();
             } else {
                 return (StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"message": "Failed to save the 2FA code"})));
+                    Json(json!({"message": "Failed to save the 2FA code"}))).into_response();
             }
         }
     }
 
-    let secret_key = env::var("JWT_SECRET_KEY").expect("JTW_SECRET_KEY must be set in the .env file");
-
-    let expiration = Utc::now()
-        .checked_add_signed(Duration::days(30))
-        .expect("valid timestamp")
-        .timestamp();
-
-    let claims = Claims {
-        user_id: pub_user.id,
-        exp: expiration as usize,
-        role: pub_user.role,
+    let access = match generate_jwt(pub_user.id, pub_user.role, false) {
+        Ok(a) => a,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed create the JWT"}))).into_response(),
+    };
+    let refresh = match generate_jwt(pub_user.id, pub_user.role, true) {
+        Ok(a) => a,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed create the JWT"}))).into_response(),
     };
 
-    return match encode(&Header::default(), &claims, &EncodingKey::from_secret(secret_key.as_ref())) {
-        Ok(t) => (StatusCode::OK,
-                    Json(json!({"access": t,
-                                "pub_user": pub_user,
-                                "user_info": user_info}))),
-        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"message": "Failed to create the JWT"}))),
-    }
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::SET_COOKIE,
+        HeaderValue::from_str(&format!(
+            "refresh_token={}; HttpOnly; SameSite=Lax; Path=/refresh",
+            refresh
+        ))
+        .unwrap(),
+    );
+
+    let body = Json(json!({"access": access,
+        "pub_user": pub_user,"user_info": user_info}));
+
+    (StatusCode::OK, headers, body).into_response()
 }

@@ -165,6 +165,17 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.status(), 200);
+        let cookies = res.headers()
+            .get_all("set-cookie")
+            .iter()
+            .map(|v| v.to_str().unwrap())
+            .collect::<Vec<_>>();
+        let refresh_cookie = cookies.iter().find(|c| c.starts_with("refresh_token=")).unwrap()
+            .split(';').next().and_then(|s| s.split('=').nth(1)).unwrap();
+        let claims = validate_jwt(&refresh_cookie.to_string()).unwrap().claims;
+        assert_eq!(10, claims.user_id);
+        assert_eq!(2, claims.role);
+        assert_eq!(true, claims.is_refresh);
         let value = res.json::<serde_json::Value>().await.unwrap();
         let jwt = value["access"].as_str().unwrap();
         let claims = validate_jwt(&jwt.to_string()).unwrap().claims;
@@ -217,6 +228,17 @@ mod tests {
             })).send().await.unwrap();
 
         assert_eq!(res.status(), 200);
+        let cookies = res.headers()
+            .get_all("set-cookie")
+            .iter()
+            .map(|v| v.to_str().unwrap())
+            .collect::<Vec<_>>();
+        let refresh_cookie = cookies.iter().find(|c| c.starts_with("refresh_token=")).unwrap()
+            .split(';').next().and_then(|s| s.split('=').nth(1)).unwrap();
+        let claims = validate_jwt(&refresh_cookie.to_string()).unwrap().claims;
+        assert_eq!(11, claims.user_id);
+        assert_eq!(0, claims.role);
+        assert_eq!(true, claims.is_refresh);
         let value = res.json::<serde_json::Value>().await.unwrap();
         let jwt = value["access"].as_str().unwrap();
         let claims = validate_jwt(&jwt.to_string()).unwrap().claims;

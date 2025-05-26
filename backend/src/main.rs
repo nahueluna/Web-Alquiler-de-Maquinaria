@@ -14,6 +14,7 @@ mod custom_types;
 mod handlers;
 mod helpers;
 mod tests;
+mod constants;
 
 #[tokio::main]
 async fn main() {
