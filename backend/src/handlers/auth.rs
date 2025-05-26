@@ -11,6 +11,7 @@ use hex;
 use std::env;
 use crate::custom_types::structs::*;
 use crate::helpers::auth::*;
+use crate::constants::CHANGE_PSW_CODE_EXP_MINS;
 
 // basic handler that responds with a static string
 pub async fn root() -> &'static str {
@@ -363,5 +364,66 @@ pub async fn request_psw_change(
     } else {
         return (StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({"message": "Failed to save the code"}))).into_response();
+    }
+}
+
+pub async fn change_password (
+    State(state): State<AppState>,
+    Json(payload): Json<ChangePsw>,
+) -> Response {
+
+    if let Err(e) = payload.validate() {
+        return (StatusCode::BAD_REQUEST, Json(json!({
+            "message": &format!("Invalid input data: {}",e)}))).into_response();
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
+    };
+
+    let row = match client
+        .query_one("SELECT * FROM change_psw_codes WHERE code = $1
+        AND created_at > NOW() - make_interval(mins => $2::int);",
+        &[&payload.code, &CHANGE_PSW_CODE_EXP_MINS]).await {
+        Ok(r) => r,
+        Err(_) => return (StatusCode::BAD_REQUEST,
+            Json(json!({"message": "The code is invalid or has expired"}))).into_response(),
+    };
+
+    let id: i32 = row.get("id");
+
+    let row = match client
+        .query_one("SELECT * FROM users WHERE id = $1;", &[&id]).await {
+        Ok(r) => r,
+        Err(_) => return (StatusCode::BAD_REQUEST,
+            Json(json!({"message": "Failed to retrieve the user from the DB"}))).into_response(),
+    };
+
+    let user = User {
+        id: row.get("id"),
+        email: row.get("email"),
+        name: row.get("name"),
+        surname: row.get("surname"),
+        psw_hash: row.get("psw_hash"),
+        salt: row.get("salt"),
+        role: row.get("role"),
+    };
+
+    let salt = generate_random_string(16);
+    let hashed_password = encode_password(&payload.new_password, &salt);
+
+    if client.execute("UPDATE users SET psw_hash = $1, salt = $2 WHERE id = $3;",
+        &[&hashed_password, &salt, &user.id]).await.is_ok() {
+        //Delete the used code
+        let _ = client.execute("DELETE FROM change_psw_codes WHERE id = $1;",
+            &[&user.id]).await;
+
+        return (StatusCode::OK,
+            Json(json!({"message": "Password changed successfully"}))).into_response();
+    } else {
+        return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to change the password"}))).into_response();
     }
 }

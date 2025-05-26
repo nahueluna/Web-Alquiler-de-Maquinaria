@@ -84,6 +84,13 @@ pub struct Email {
     pub email: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct ChangePsw {
+    #[validate(length(min = 8))]
+    pub new_password: String,
+    pub code: String,
+}
+
 #[derive(Deserialize, Default, Debug, Validate)]
 pub struct CatalogParams {
     pub search: Option<String>,

@@ -1,5 +1,5 @@
-use crate::custom_types::{enums::RunningEnv, structs::{UserInfo, PubUser}};
-use crate::helpers::auth::{create_pool, send_mail, validate_jwt};
+use crate::custom_types::{enums::RunningEnv, structs::{UserInfo, PubUser, User}};
+use crate::helpers::auth::{create_pool, send_mail, validate_jwt, encode_password};
 use crate::tests::helpers::*;
 use chrono::Datelike;
 use reqwest::Client;
@@ -343,7 +343,6 @@ async fn test_refresh() {
     assert_eq!(pub_user.role, 2);
 }
 
-
 #[tokio::test]
 async fn test_request_psw_change() {
     setup().await;
@@ -373,4 +372,55 @@ async fn test_request_psw_change() {
 
     db_client.query_one("SELECT * FROM change_psw_codes WHERE id = $1;",
             &[&10i32]).await.unwrap();
+}
+
+#[tokio::test]
+async fn test_change_password() {
+    setup().await;
+    let client = Client::new();
+
+    let pool = create_pool(RunningEnv::Testing);
+    let db_client = match pool.await.get().await {
+        Ok(c) => c,
+        Err(e) => panic!("Failed to connect to the database: {}", e),
+    };
+
+    let res = client
+        .post(backend_url("/changepsw"))
+        .json(&serde_json::json!({
+            "new_password": "short",
+            "code": "code"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 400);
+    assert!(res.json::<serde_json::Value>().await.unwrap()["message"].as_str().unwrap().contains("Invalid input data: new_password: Validation error: length"));
+
+    let res = client
+        .post(backend_url("/changepsw"))
+        .json(&serde_json::json!({
+            "new_password": "password",
+            "code": "change_psw_code"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Password changed successfully");
+
+    let row = db_client.query_one("SELECT * FROM users WHERE email = $1;",
+        &[&"pswchange@example.com"]).await.unwrap();
+
+    let user = User {
+        id: row.get("id"),
+        email: row.get("email"),
+        name: row.get("name"),
+        surname: row.get("surname"),
+        psw_hash: row.get("psw_hash"),
+        salt: row.get("salt"),
+        role: row.get("role"),
+    };
+
+    assert_eq!(user.psw_hash, encode_password("password", &user.salt));
 }

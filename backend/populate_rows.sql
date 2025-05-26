@@ -10,7 +10,8 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role) VALUES
 ('ivy@example.com', 'Ivy', 'Taylor', '890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f67', 'ijk901lmn234opq5', 2),
 ('login@example.com', 'Ivy', 'Taylor', '9c819791b519290f435a8fcf896b2125274350636b220106f8629f6eedb3ea7d', 'PC8cXiOnFZO8Radu', 2),
 ('admin@example.com', 'admin', 'admin', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 0),
-('refresh@example.com', 'refresh', 'refresh', '69aa8cddc392e17d03008aa250cae723ee7402524007124e8190aaec5c7311e0', '1234123412341234', 2);
+('refresh@example.com', 'refresh', 'refresh', '69aa8cddc392e17d03008aa250cae723ee7402524007124e8190aaec5c7311e0', '1234123412341234', 2),
+('pswchange@example.com', 'psw', 'change', 'change', 'psw', 0);
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),
@@ -20,6 +21,9 @@ INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (9, '1993-06-30', 'ID901234', '555-7890'),
 (10, '1993-06-30', '888888', '555-7890'),
 (12, '1993-06-30', '123123', '555-7890');
+
+INSERT INTO change_psw_codes (id, code) VALUES
+(13, 'change_psw_code');
 
 -- Insert sample data into the machinery_models table
 INSERT INTO machinery_models (name, brand, model, year, policy, description, price) VALUES
