@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
+import UserContext from "../../context/UserContext";
+import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import axios from "axios";
 import * as Yup from "yup";
@@ -15,11 +17,30 @@ import {
 const phoneRegex = /^[\d+\-\s]{8,17}$/;
 
 const Profile = () => {
+  const { user } = useContext(UserContext);
+  const navigate = useNavigate();
   const [userData, setUserData] = useState({
-    nombre: "Valentino Amato Roberts",
-    correo: "mrdjangus@gmail.com",
-    telefono: "+54 1234-5678",
+    nombre: "",
+    correo: "",
+    telefono: "",
   });
+
+  // Si no estas logeado, redirige al /login
+  useEffect(() => {
+    if (!user) {
+      navigate("/login", { replace: true });
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    if (user) {
+      setUserData({
+        nombre: user.pub_user.name || "",
+        correo: user.pub_user.email || "",
+        telefono: user.user_info.phone || "",
+      });
+    }
+  }, [user]);
 
   const [editMode, setEditMode] = useState(false);
 
@@ -92,7 +113,7 @@ const handleChangePassword = async () => {
         borderColor: "neutral.outlinedBorder",
       }}
     >
-      <Typography level="h4" fontWeight="lg" mb={2}>
+      <Typography level="h3" fontWeight="lg" mb={2}>
         Mis datos
       </Typography>
 
@@ -137,7 +158,9 @@ const handleChangePassword = async () => {
             )}
           </form>
         ) : (
-          <Typography>{userData.telefono}</Typography>
+          <Typography>
+            {userData.telefono ? userData.telefono : <i>No cargado</i>}
+          </Typography>
         )}
       </Box>
 
