@@ -55,11 +55,9 @@ export default function MachineCard({
             lineHeight: 1.5,
           }}
         >
-          <Skeleton loading={loading}>{model}</Skeleton>
+          {model}
         </Typography>
-        <Typography level="body-sm">
-          <Skeleton loading={loading}>{category}</Skeleton>
-        </Typography>
+        <Typography level="body-sm">{category}</Typography>
       </CardContent>
       <CardOverflow variant="soft" sx={{ bgcolor: "background.level1" }}>
         <Divider inset="context" />
@@ -69,17 +67,15 @@ export default function MachineCard({
             textColor="text.secondary"
             sx={{ fontWeight: "md" }}
           >
-            <Skeleton loading={loading}>
-              ARS ${price}
-              <Typography
-                level="body-xs"
-                textColor="grey"
-                sx={{ fontWeight: "md" }}
-              >
-                {" "}
-                por día
-              </Typography>
-            </Skeleton>
+            ARS ${price}
+            <Typography
+              level="body-xs"
+              textColor="grey"
+              sx={{ fontWeight: "md" }}
+            >
+              {" "}
+              por día
+            </Typography>
           </Typography>
         </CardContent>
       </CardOverflow>
