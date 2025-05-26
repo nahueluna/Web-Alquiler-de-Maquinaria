@@ -59,6 +59,7 @@ pub async fn explore_catalog(
             where_clauses.push(format!("(price <= ${})", param_idx));
 
             params.push(Box::new(max_price));
+            param_idx += 1;
         }
 
         let where_clause = if where_clauses.is_empty() {
@@ -114,32 +115,37 @@ pub async fn explore_catalog(
             .map(|p_ref| *p_ref as &(dyn ToSql + Sync))
             .collect();
 
-        if let Ok(count_row) = client
+        match client
             .query_one(&count_query, count_params.as_slice())
             .await
         {
-            let total_items: i64 = count_row.get(0);
+            Ok(count_row) => {
+                let total_items: i64 = count_row.get(0);
 
-            match client.query(&select_query, select_params.as_slice()).await {
-                Ok(machinery_rows) => {
-                    let machinery_list: Vec<MachineModel> = machinery_rows
-                        .into_iter()
-                        .map(|row| MachineModel::build_from_row(&row))
-                        .collect();
+                match client.query(&select_query, select_params.as_slice()).await {
+                    Ok(machinery_rows) => {
+                        let machinery_list: Vec<MachineModel> = machinery_rows
+                            .into_iter()
+                            .map(|row| MachineModel::build_from_row(&row))
+                            .collect();
 
-                    return (
-                        StatusCode::OK,
-                        Json(json!({
-                            "page": page,
-                            "page_size": page_size,
-                            "total_items": total_items,
-                            "items": machinery_list,
-                        })),
-                    );
+                        return (
+                            StatusCode::OK,
+                            Json(json!({
+                                "page": page,
+                                "page_size": page_size,
+                                "total_items": total_items,
+                                "items": machinery_list,
+                            })),
+                        );
+                    }
+                    Err(e) => {
+                        eprintln!("Error querying database: {:?}", e);
+                    }
                 }
-                Err(e) => {
-                    eprintln!("Error querying database: {:?}", e);
-                }
+            }
+            Err(e) => {
+                eprintln!("Error counting items: {:?}", e);
             }
         }
     }

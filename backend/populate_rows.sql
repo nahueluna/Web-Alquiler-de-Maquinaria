@@ -76,3 +76,35 @@ INSERT INTO machinery_location_history (unit_id, location_id, assigned_at, unass
 
 -- BC-003 estaba en La Plata
 (12, 2, NOW() - INTERVAL '50 days', NOW() - INTERVAL '7 days');
+
+INSERT INTO categories (name) VALUES
+('Construcción pesada'),
+('Obras urbanas'),
+('Movimiento de tierra'),
+('Elevación'),
+('Compactación');
+
+-- Modelo 1: Excavadora Caterpillar → Construcción pesada
+INSERT INTO machinery_categories (model_id, category_id) VALUES
+(1, 1),
+
+-- Modelo 2: Retroexcavadora John Deere → Obras urbanas, Movimiento de tierra, Compactación
+INSERT INTO machinery_categories (model_id, category_id) VALUES
+(2, 2),
+(2, 3);
+(2, 5);
+
+-- Modelo 3: Cargadora frontal Komatsu → Movimiento de tierra, Compactación
+INSERT INTO machinery_categories (model_id, category_id) VALUES
+(3, 3),
+(3, 5);
+
+-- Modelo 4: Miniexcavadora Bobcat → Obras urbanas, Movimiento de tierra
+INSERT INTO machinery_categories (model_id, category_id) VALUES
+(4, 2),
+(4, 3);
+
+-- Modelo 5: Grúa torre Liebherr → Construcción pesada, Elevación
+INSERT INTO machinery_categories (model_id, category_id) VALUES
+(5, 1),
+(5, 4);
