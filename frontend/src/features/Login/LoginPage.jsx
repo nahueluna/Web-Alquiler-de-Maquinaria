@@ -19,6 +19,18 @@ import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCh
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 export default function LoginPage() {
+  const { user, setUser, login } = useContext(UserContext);
+  const [loading, setLoading] = useState(false);
+  const [openSnack, setOpenSnack] = useState(false);
+  const [status, setStatus] = useState({ isError: false, message: "" });
+  const nav = useNavigate();
+
+  useEffect(() => {
+    if (user !== null) {
+      nav("/");
+    }
+  }, [user]);
+
   const validationSchema = yup.object({
     email: yup
       .string("Enter your email")
@@ -39,83 +51,130 @@ export default function LoginPage() {
       password: "",
     },
     validationSchema: validationSchema,
-    onSubmit: (values) => {
-      alert(JSON.stringify(values, null, 2));
+    onSubmit: async (values) => {
+      setLoading(true);
+      try {
+        const user = await login(values);
+
+        setStatus({ isError: false, message: "Successfully logged in!" });
+        setOpenSnack(true);
+        setTimeout(() => setUser(user), 1000);
+      } catch (error) {
+        setStatus({ isError: true, message: error.response.data.message });
+        setOpenSnack(true);
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
     },
   });
 
   return (
-    <Sheet
-      variant="outlined"
-      sx={{
-        p: 4,
-        borderRadius: "md",
-        width: 400,
-        mx: "auto",
-      }}
-    >
-      <Typography level="h4" mb={2}>
-        Iniciar sesión
-      </Typography>
-
-      <form onSubmit={formik.handleSubmit}>
-        <Stack spacing={2}>
-          <FormControl error={formik.errors.email}>
-            <div>
-              <FormLabel>Email</FormLabel>
-              <Input
-                name="email"
-                type="email"
-                value={formik.values.email}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                error={formik.touched.email && Boolean(formik.errors.email)}
-              />
-              {formik.touched.email && formik.errors.email && (
-                <FormHelperText>{formik.errors.email}</FormHelperText>
-              )}
-            </div>
-          </FormControl>
-
-          <FormControl error={formik.errors.password}>
-            <div>
-              <FormLabel>Contraseña</FormLabel>
-              <Input
-                name="password"
-                type="password"
-                value={formik.values.password}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                error={
-                  formik.touched.password && Boolean(formik.errors.password)
-                }
-              />
-              {formik.touched.password && formik.errors.password && (
-                <FormHelperText>{formik.errors.password}</FormHelperText>
-              )}
-            </div>
-          </FormControl>
-
-          <Link
-            component={RouterLink}
-            to={"/recover-password"}
-            level="body-sm"
-            sx={{ alignSelf: "center", fontWeight: "500" }}
+    <>
+      <Snackbar
+        variant="soft"
+        color={status.isError ? "danger" : "success"}
+        open={openSnack}
+        onClose={() => setOpenSnack(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        startDecorator={
+          status.isError ? (
+            <ErrorOutlineIcon />
+          ) : (
+            <PlaylistAddCheckCircleRoundedIcon />
+          )
+        }
+        endDecorator={
+          <Button
+            onClick={() => setOpenSnack(false)}
+            size="sm"
+            variant="soft"
+            color={status.isError ? "danger" : "success"}
           >
-            ¿Olvidaste tu contraseña?
-          </Link>
-
-          <Button type="submit" variant="solid" color="primary">
-            Ingresar
+            Dismiss
           </Button>
-          <Typography level="body-xs" sx={{ textAlign: "center" }}>
-            No tenes una cuenta?{" "}
-            <Link component={RouterLink} to={"/register"}>
-              Registrarse
+        }
+      >
+        {status.message}
+      </Snackbar>
+      <Sheet
+        variant="outlined"
+        sx={{
+          p: 4,
+          borderRadius: "md",
+          width: 400,
+          mx: "auto",
+        }}
+      >
+        <Typography level="h4" mb={2}>
+          Iniciar sesión
+        </Typography>
+
+        <form onSubmit={formik.handleSubmit}>
+          <Stack spacing={2}>
+            <FormControl error={formik.errors.email}>
+              <div>
+                <FormLabel>Email</FormLabel>
+                <Input
+                  name="email"
+                  type="email"
+                  value={formik.values.email}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={formik.touched.email && Boolean(formik.errors.email)}
+                />
+                {formik.touched.email && formik.errors.email && (
+                  <FormHelperText>{formik.errors.email}</FormHelperText>
+                )}
+              </div>
+            </FormControl>
+
+            <FormControl error={formik.errors.password}>
+              <div>
+                <FormLabel>Contraseña</FormLabel>
+                <Input
+                  name="password"
+                  type="password"
+                  value={formik.values.password}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  error={
+                    formik.touched.password && Boolean(formik.errors.password)
+                  }
+                />
+                {formik.touched.password && formik.errors.password && (
+                  <FormHelperText>{formik.errors.password}</FormHelperText>
+                )}
+              </div>
+            </FormControl>
+
+            <Link
+              component={RouterLink}
+              to={"/recover-password"}
+              level="body-sm"
+              sx={{ alignSelf: "center", fontWeight: "500" }}
+            >
+              ¿Olvidaste tu contraseña?
             </Link>
-          </Typography>
-        </Stack>
-      </form>
-    </Sheet>
+
+            <Button
+              disabled={!(formik.isValid && formik.dirty)} // Disable the button initially and until the form is valid
+              loading={loading}
+              type="submit"
+              variant="solid"
+              color="primary"
+            >
+              Ingresar
+            </Button>
+            <Typography level="body-xs" sx={{ textAlign: "center" }}>
+              No tenes una cuenta?{" "}
+              <Link component={RouterLink} to={"/register"}>
+                Registrarse
+              </Link>
+            </Typography>
+          </Stack>
+        </form>
+      </Sheet>
+    </>
   );
 }
