@@ -25,6 +25,12 @@ CREATE TABLE codes_2fa (
     code INTEGER NOT NULL
 );
 
+CREATE TABLE change_psw_codes (
+    id INTEGER PRIMARY KEY REFERENCES users(id),
+    code varchar(64) UNIQUE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE machinery_models (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,

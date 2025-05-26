@@ -59,7 +59,6 @@ pub struct CreateRegularUser {
     pub phone: Option<String>,
 }
 
-// the input to our `client_login` handler
 #[derive(Deserialize)]
 pub struct LoginRequest {
     pub email: String,
@@ -78,6 +77,11 @@ pub struct Claims {
 #[derive(Clone)]
 pub struct AppState {
     pub pool: Arc<Pool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Email {
+    pub email: String,
 }
 
 #[derive(Deserialize, Default, Debug, Validate)]

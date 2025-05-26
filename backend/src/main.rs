@@ -52,6 +52,7 @@ async fn main() {
         .route("/signup", post(client_sign_up))
         .route("/login", post(login))
         .route("/refresh", post(refresh))
+        .route("/requestpswchange", post(request_psw_change))
         .route("/explore", get(explore_catalog))
         .route("/machinery/{id}", get(select_machine))
         .layer(

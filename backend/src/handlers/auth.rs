@@ -6,6 +6,9 @@ use axum_extra::TypedHeader;
 use deadpool_postgres::GenericClient;
 use validator::Validate;
 use serde_json::json;
+use rand::RngCore;
+use hex;
+use std::env;
 use crate::custom_types::structs::*;
 use crate::helpers::auth::*;
 
@@ -297,4 +300,68 @@ pub async fn refresh(
     let body = Json(json!({"access": new_access}));
 
     (StatusCode::OK, headers, body).into_response()
+}
+
+pub async fn request_psw_change(
+    State(state): State<AppState>,
+    Json(payload): Json<Email>,
+) -> Response {
+    let frontend_url = match env::var("FRONTEND_URL") {
+        Ok(e) => e,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "FRONTEND_URL must be set in the .env file"}))).into_response(),
+    };
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
+    };
+
+    let row = match client
+        .query_one("SELECT * FROM users WHERE email = $1;", &[&payload.email]).await {
+        Ok(r) => r,
+        Err(_) => return (StatusCode::BAD_REQUEST,
+                    Json(json!({"message": "The user does not exist"}))).into_response(),
+    };
+
+    let user = User {
+        id: row.get("id"),
+        email: row.get("email"),
+        name: row.get("name"),
+        surname: row.get("surname"),
+        psw_hash: row.get("psw_hash"),
+        salt: row.get("salt"),
+        role: row.get("role"),
+    };
+
+    let mut bytes = [0u8; 32];
+    rand::rng().fill_bytes(&mut bytes);
+    let code = hex::encode(bytes);
+
+    let del_q = client.execute("DELETE FROM change_psw_codes WHERE id = $1;",
+        &[&user.id]).await;
+
+    let ins_q = client.execute("INSERT INTO change_psw_codes (id, code) VALUES ($1, $2);",
+        &[&user.id, &code]).await;
+
+    if del_q.is_ok() && ins_q.is_ok() {
+        let subject = "Cambio de contraseña - Bob el Alquilador";
+        let body = format!("Hola, {}. Para establecer una nueva contraseña, siga el siguiente enlace.: {}/changepsw/{}.",
+            user.name, frontend_url, code
+        );
+
+        let send_mail_res = send_mail(&payload.email, subject, &body);
+
+        if send_mail_res.is_err() {
+            return (StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to send the email"}))).into_response();
+        } else {
+            return (StatusCode::OK,
+                Json(json!({"message": "Password change email sent"}))).into_response();
+        }
+    } else {
+        return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to save the code"}))).into_response();
+    }
 }
