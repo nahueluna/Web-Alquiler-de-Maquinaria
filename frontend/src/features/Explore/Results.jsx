@@ -1,6 +1,6 @@
 import Grid from "@mui/joy/Grid";
 import MachineCard from "./MachineCard";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Typography from "@mui/joy/Typography";
 import axios from "axios";
 import { useEffect, useState } from "react";
@@ -10,6 +10,7 @@ const Results = () => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
+  const nav = useNavigate();
   const query = searchParams.get("q")?.toLowerCase() || "";
 
   useEffect(() => {
@@ -46,7 +47,7 @@ const Results = () => {
               model={machine.model}
               category={machine.category}
               price={machine.price}
-              onClick={() => console.log(machine.model)}
+              onClick={() => nav(`/explore/${machine.id}`)}
             />
           </Grid>
         ))
