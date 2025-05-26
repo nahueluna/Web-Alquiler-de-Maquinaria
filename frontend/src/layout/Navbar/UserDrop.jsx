@@ -11,17 +11,22 @@ import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownR
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import AgricultureRoundedIcon from "@mui/icons-material/AgricultureRounded";
-
-// TODO: Tomar el usuario para mostrar el nombre y lo que haga falta. Probablemente de un context
+import UserContext from "../../context/UserContext";
+import { useContext } from "react";
 
 function UserDrop() {
+  const { user } = useContext(UserContext);
+  const {
+    pub_user: { name },
+  } = user;
+
   return (
     <Dropdown>
       <MenuButton
         endDecorator={<KeyboardArrowDownRoundedIcon />}
         variant="plain"
       >
-        User
+        {name}
       </MenuButton>
       <Menu placement="bottom-end">
         <MenuItem>
