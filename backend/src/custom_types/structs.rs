@@ -70,9 +70,9 @@ pub struct LoginRequest {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub user_id: i32,
-    pub exp: usize, // expiration time (as UTC timestamp)
-    pub role: i16,  // user role
-    pub is_refresh: bool //Whether it is an access or a refresh token
+    pub exp: usize,       // expiration time (as UTC timestamp)
+    pub role: i16,        // user role
+    pub is_refresh: bool, //Whether it is an access or a refresh token
 }
 
 #[derive(Clone)]
@@ -87,7 +87,8 @@ pub struct CatalogParams {
     pub page_size: Option<u32>,
     pub order_by: Option<OrderByField>,
     pub order_dir: Option<OrderDirection>,
-    pub categories: Option<Vec<String>>,
+    #[serde(default, rename = "category")]
+    pub categories: Vec<String>,
     #[validate(range(min = 0.0))]
     pub min_price: Option<f32>,
     #[validate(range(min = 0.0))]
