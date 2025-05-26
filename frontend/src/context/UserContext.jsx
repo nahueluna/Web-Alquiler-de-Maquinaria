@@ -28,6 +28,17 @@ export function UserProvider({ children }) {
     return data;
   }
 
+  async function refresh() {
+    const { data } = await axios.post("http://localhost:8000/refresh", null, {
+      withCredentials: true,
+    });
+    const user = JSON.parse(window.localStorage.getItem("user"));
+    user.access = data.access;
+
+    saveLocalStorage("user", user);
+    return data;
+  }
+
   function logout() {
     window.localStorage.removeItem("user");
     setUser(null);
@@ -41,6 +52,7 @@ export function UserProvider({ children }) {
         setUser,
         login,
         logout,
+        refresh,
       }}
     >
       {children}
