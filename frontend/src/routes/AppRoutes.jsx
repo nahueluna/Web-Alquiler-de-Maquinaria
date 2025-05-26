@@ -12,6 +12,7 @@ import RegisterPage from "../features/Register/RegisterPage";
 import Terms from "../features/Terms/TermsPage";
 import TwoFactor from "../features/TwoFactorAuth/TwoFactor";
 import MainLayout from "../layout/MainLayout";
+import AddEmployee from "../features/AddEmployee/AddEmployee"
 
 export default function AppRoutes() {
   return (
@@ -27,6 +28,7 @@ export default function AppRoutes() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/add-employee" element={<AddEmployee />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/two-factor" element={<TwoFactor />} />

@@ -34,20 +34,23 @@ const Profile = () => {
   };
 
   const handleChangePassword = () => {
-    // Simula que se envió un correo
+    // Simula que se envió un correo, ACÁ CONECTAR CON EL BACKEND
     setShowSnackbar(true);
   };
 
   return (
-    <Sheet
+    <Box
       sx={{
-        maxWidth: 600,
-        margin: "auto",
-        marginTop: 4,
-        padding: 4,
+        maxWidth: 400,
+        mx: "auto",
+        mt: 4,
+        mb: 4,
+        p: 4,
         borderRadius: "lg",
         boxShadow: "sm",
         backgroundColor: "background.surface",
+        border: "1px solid",
+        borderColor: "neutral.outlinedBorder"
       }}
     >
       <Typography level="h4" fontWeight="lg" mb={2}>
@@ -116,7 +119,7 @@ const Profile = () => {
       >
         Se le ha enviado un correo para cambiar su contraseña.
       </Snackbar>
-    </Sheet>
+    </Box>
   );
 };
 
