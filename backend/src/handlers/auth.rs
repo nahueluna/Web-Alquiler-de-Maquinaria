@@ -1,5 +1,8 @@
-use axum::{extract::State, http::{header, HeaderMap, HeaderValue, StatusCode},
+use axum::{extract::State,
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response}, Json};
+use headers::Cookie;
+use axum_extra::TypedHeader;
 use deadpool_postgres::GenericClient;
 use validator::Validate;
 use serde_json::json;
@@ -164,7 +167,8 @@ pub async fn login(
 
     let pub_user = PubUser::from(user);
 
-    let user_info = if pub_user.role != 2 {
+    //Clients(2) and Employees(1) have user_info
+    let user_info = if pub_user.role != 0 {
         let row = match client
             .query_one("SELECT * FROM user_info WHERE id = $1;", &[&pub_user.id]).await {
             Ok(r) => r,
@@ -245,6 +249,52 @@ pub async fn login(
 
     let body = Json(json!({"access": access,
         "pub_user": pub_user,"user_info": user_info}));
+
+    (StatusCode::OK, headers, body).into_response()
+}
+
+pub async fn refresh(
+    State(state): State<AppState>,
+    TypedHeader(cookie): TypedHeader<Cookie>) -> Response {
+    let refresh_token = match cookie.get("refresh_token") {
+        Some(t) => t,
+        None => return (StatusCode::UNAUTHORIZED,
+                    Json(json!({"message": "Missing refresh token"}))).into_response(),
+    };
+
+    let claims = match validate_jwt(refresh_token) {
+        Some(data) => data,
+        None => return (StatusCode::UNAUTHORIZED,
+                    Json(json!({"message": "Invalid refresh token"}))).into_response(),
+    }.claims;
+
+    if !claims.is_refresh {
+        return (StatusCode::UNAUTHORIZED,
+            Json(json!({"message": "Invalid token type"}))).into_response();
+    }
+
+    let new_access = match generate_jwt(claims.user_id, claims.role, false) {
+        Ok(a) => a,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed create the JWT"}))).into_response(),
+    };
+    let new_refresh = match generate_jwt(claims.user_id, claims.role, true) {
+        Ok(a) => a,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed create the JWT"}))).into_response(),
+    };
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::SET_COOKIE,
+        HeaderValue::from_str(&format!(
+            "refresh_token={}; HttpOnly; SameSite=Lax; Path=/refresh",
+            new_refresh
+        ))
+        .unwrap(),
+    );
+
+    let body = Json(json!({"access": new_access}));
 
     (StatusCode::OK, headers, body).into_response()
 }

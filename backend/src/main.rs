@@ -5,7 +5,7 @@ use axum::{
     Router,
 };
 use dotenvy::dotenv;
-use handlers::{auth::*, machinery_mgmt::explore_catalog, machinery_mgmt::select_machine};
+use handlers::{auth::*, machinery_mgmt::*};
 use helpers::auth::create_pool;
 use std::{env, sync::Arc};
 use tower_http::cors::CorsLayer;
@@ -51,6 +51,7 @@ async fn main() {
         .route("/", get(root))
         .route("/signup", post(client_sign_up))
         .route("/login", post(login))
+        .route("/refresh", post(refresh))
         .route("/explore", get(explore_catalog))
         .route("/machinery/{id}", get(select_machine))
         .layer(

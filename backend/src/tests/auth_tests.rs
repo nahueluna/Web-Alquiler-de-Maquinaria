@@ -183,7 +183,8 @@ mod tests {
         assert_eq!(2, claims.role);
         let pub_user: PubUser = serde_json::from_value(value["pub_user"].clone()).unwrap();
         let user_info: Option<UserInfo> = serde_json::from_value(value["user_info"].clone()).unwrap();
-        assert!(user_info.is_none());
+        let user_info = user_info.unwrap();
+        assert_eq!(user_info.id, 10);
         assert_eq!(pub_user.id, 10);
         assert_eq!(pub_user.role, 2);
 
@@ -246,8 +247,7 @@ mod tests {
         assert_eq!(0, claims.role);
         let pub_user: PubUser = serde_json::from_value(value["pub_user"].clone()).unwrap();
         let user_info: Option<UserInfo> = serde_json::from_value(value["user_info"].clone()).unwrap();
-        let user_info = user_info.unwrap();
-        assert_eq!(user_info.id, 11);
+        assert!(user_info.is_none());
         assert_eq!(pub_user.id, 11);
         assert_eq!(pub_user.role, 0);
 
@@ -288,5 +288,60 @@ mod tests {
             "Hello from Rust!",
             "This email was sent securely using dotenv.",
         ).unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_refresh() {
+        setup().await;
+        let client = Client::new();
+
+        let pool = create_pool(RunningEnv::Testing);
+        let db_client = match pool.await.get().await {
+            Ok(c) => c,
+            Err(e) => panic!("Failed to connect to the database: {}", e),
+        };
+
+        // Successful login
+        let res = client
+            .post(backend_url("/login"))
+            .json(&serde_json::json!({
+                "email": "refresh@example.com",
+                "password": "password1"
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        let cookie_header = res.headers().get("set-cookie")
+            .unwrap().to_str().unwrap();
+
+        let refresh_res = client
+            .post("http://localhost:8000/refresh")
+            .header("Cookie", cookie_header)
+            .send().await.unwrap();
+        assert_eq!(refresh_res.status(), 200);
+
+        let cookies = refresh_res.headers()
+            .get_all("set-cookie")
+            .iter()
+            .map(|v| v.to_str().unwrap())
+            .collect::<Vec<_>>();
+        let refresh_cookie = cookies.iter().find(|c| c.starts_with("refresh_token=")).unwrap()
+            .split(';').next().and_then(|s| s.split('=').nth(1)).unwrap();
+        let claims = validate_jwt(&refresh_cookie.to_string()).unwrap().claims;
+        assert_eq!(12, claims.user_id);
+        assert_eq!(2, claims.role);
+        assert_eq!(true, claims.is_refresh);
+        let value = res.json::<serde_json::Value>().await.unwrap();
+        let jwt = value["access"].as_str().unwrap();
+        let claims = validate_jwt(&jwt.to_string()).unwrap().claims;
+        assert_eq!(12, claims.user_id);
+        assert_eq!(2, claims.role);
+        let pub_user: PubUser = serde_json::from_value(value["pub_user"].clone()).unwrap();
+        let user_info: Option<UserInfo> = serde_json::from_value(value["user_info"].clone()).unwrap();
+        let user_info = user_info.unwrap();
+        assert_eq!(user_info.id, 12);
+        assert_eq!(pub_user.id, 12);
+        assert_eq!(pub_user.role, 2);
     }
 }
