@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::custom_types::enums::RunningEnv;
+    use crate::custom_types::{enums::RunningEnv, structs::{UserInfo, User}};
     use crate::helpers::auth::{create_pool, send_mail, validate_jwt};
     use crate::tests::helpers::*;
     use chrono::Datelike;
@@ -165,11 +165,16 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.status(), 200);
-        let jwt_value = res.json::<serde_json::Value>().await.unwrap();
-        let jwt = jwt_value["access"].as_str().unwrap();
+        let value = res.json::<serde_json::Value>().await.unwrap();
+        let jwt = value["access"].as_str().unwrap();
         let claims = validate_jwt(&jwt.to_string()).unwrap().claims;
         assert_eq!(10, claims.user_id);
         assert_eq!(2, claims.role);
+        let user: User = serde_json::from_value(value["user"].clone()).unwrap();
+        let user_info: Option<UserInfo> = serde_json::from_value(value["user_info"].clone()).unwrap();
+        assert!(user_info.is_none());
+        assert_eq!(user.id, 10);
+        assert_eq!(user.role, 2);
 
         // Successful admin login
         let rows = db_client.query("SELECT * FROM codes_2fa WHERE id = $1;",
@@ -212,11 +217,17 @@ mod tests {
             })).send().await.unwrap();
 
         assert_eq!(res.status(), 200);
-        let jwt_value = res.json::<serde_json::Value>().await.unwrap();
-        let jwt = jwt_value["access"].as_str().unwrap();
+        let value = res.json::<serde_json::Value>().await.unwrap();
+        let jwt = value["access"].as_str().unwrap();
         let claims = validate_jwt(&jwt.to_string()).unwrap().claims;
         assert_eq!(11, claims.user_id);
         assert_eq!(0, claims.role);
+        let user: User = serde_json::from_value(value["user"].clone()).unwrap();
+        let user_info: Option<UserInfo> = serde_json::from_value(value["user_info"].clone()).unwrap();
+        let user_info = user_info.unwrap();
+        assert_eq!(user_info.id, 11);
+        assert_eq!(user.id, 11);
+        assert_eq!(user.role, 0);
 
         // Unauthorized login due to wrong password
         let res = client

@@ -3,19 +3,25 @@ use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use validator::Validate;
+use chrono::NaiveDate;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct User {
     pub id: i32,
     pub email: String,
     pub name: String,
     pub surname: String,
-    //pub birthdate: NaiveDate,
-    //pub id_card: String,
-    //pub phone: Option<String>,
     pub psw_hash: String,
     pub salt: String,
     pub role: i16,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserInfo {
+    pub id: i32,
+    pub birthdate: NaiveDate,
+    pub id_card: String,
+    pub phone: Option<String>,
 }
 
 #[derive(Deserialize, Validate)]

@@ -164,6 +164,24 @@ pub async fn login(
         return (StatusCode::BAD_REQUEST, Json(json!({"message": "The password is invalid"})));
     }
 
+    let user_info = if user.role != 2 {
+        let row = match client
+            .query_one("SELECT * FROM user_info WHERE id = $1;", &[&user.id]).await {
+            Ok(r) => r,
+            Err(_) => return (StatusCode::BAD_REQUEST,
+                        Json(json!({"message": "The user does not exist"}))),
+        };
+        Some(UserInfo {
+            id: row.get("id"),
+            birthdate: row.get("birthdate"),
+            id_card: row.get("id_card"),
+            phone: row.get("phone"),
+        })
+    } else {
+        None
+    };
+
+
     if user.role != 2 {
         if let Some(code) = payload.code {
             match client
@@ -219,7 +237,9 @@ pub async fn login(
 
     return match encode(&Header::default(), &claims, &EncodingKey::from_secret(secret_key.as_ref())) {
         Ok(t) => (StatusCode::OK,
-                    Json(json!({"access": t}))),
+                    Json(json!({"access": t,
+                                "user": user,
+                                "user_info": user_info}))),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({"message": "Failed to create the JWT"}))),
     }
