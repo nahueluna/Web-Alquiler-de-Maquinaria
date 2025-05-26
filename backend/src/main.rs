@@ -58,6 +58,7 @@ async fn main() {
             CorsLayer::new()
                 .allow_origin(vec![frontend_url.parse().unwrap()])
                 .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
+                .allow_credentials(true)
                 .allow_headers([axum::http::header::CONTENT_TYPE]),
         )
         .with_state(shared_state);
