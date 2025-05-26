@@ -1,9 +1,9 @@
 use super::enums::{OrderByField, OrderDirection};
+use chrono::NaiveDate;
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use validator::Validate;
-use chrono::NaiveDate;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
@@ -87,7 +87,7 @@ pub struct CatalogParams {
     pub page_size: Option<u32>,
     pub order_by: Option<OrderByField>,
     pub order_dir: Option<OrderDirection>,
-    pub categories: Option<String>,
+    pub categories: Option<Vec<String>>,
     #[validate(range(min = 0.0))]
     pub min_price: Option<f32>,
     #[validate(range(min = 0.0))]
