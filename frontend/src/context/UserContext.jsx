@@ -15,7 +15,13 @@ export function UserProvider({ children }) {
   }, []);
 
   async function login(loginInfo) {
-    const { data } = await axios.post("http://localhost:8000/login", loginInfo);
+    const { data } = await axios.post(
+      "http://localhost:8000/login",
+      loginInfo,
+      {
+        withCredentials: true,
+      }
+    );
 
     saveLocalStorage("user", data);
 
