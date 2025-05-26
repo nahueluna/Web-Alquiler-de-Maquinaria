@@ -72,10 +72,10 @@ function AddEmployee() {
           maxWidth: 400,
           mx: 'auto',
           mt: 4,
+          mb: 4,
           display: 'flex',
           flexDirection: 'column',
           gap: 2,
-
           p: 4,
           borderRadius: 'lg',
           boxShadow: 'sm',
@@ -85,7 +85,7 @@ function AddEmployee() {
         }}
         noValidate
       >
-        <Typography level="h3" component="h1" textAlign="center" mb={2}>
+        <Typography level="h4" component="h1" textAlign="center" mb={2}>
           Registrar empleado
         </Typography>
 

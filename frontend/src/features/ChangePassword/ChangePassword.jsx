@@ -39,6 +39,7 @@ const ChangePassword = () => {
         maxWidth: 400,
         mx: "auto",
         mt: 4,
+        mb: 4,
         p: 4,
         borderRadius: "lg",
         boxShadow: "sm",
