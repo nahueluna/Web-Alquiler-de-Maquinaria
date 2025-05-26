@@ -15,7 +15,7 @@ import UserContext from "../../context/UserContext";
 import { useContext } from "react";
 
 function UserDrop() {
-  const { user } = useContext(UserContext);
+  const { user, logout } = useContext(UserContext);
   const {
     pub_user: { name },
   } = user;
@@ -58,7 +58,7 @@ function UserDrop() {
             underline="none"
             textColor={"text.primary"}
             component={RouterLink}
-            onClick={() => {}} // TODO:
+            onClick={logout}
           >
             Cerrar sesion
           </Link>

@@ -22,12 +22,19 @@ export function UserProvider({ children }) {
     return data;
   }
 
+  function logout() {
+    window.localStorage.removeItem("user");
+    setUser(null);
+    // TODO: Blacklist token
+  }
+
   return (
     <UserContext.Provider
       value={{
         user,
         setUser,
         login,
+        logout,
       }}
     >
       {children}
