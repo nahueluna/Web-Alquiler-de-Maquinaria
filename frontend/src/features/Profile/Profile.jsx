@@ -11,7 +11,7 @@ import {
   FormHelperText,
 } from "@mui/joy";
 
-const phoneRegex = /^[\d+\-\s]{8,20}$/;
+const phoneRegex = /^[\d+\-\s]{8,17}$/;
 
 const Profile = () => {
   const [userData, setUserData] = useState({
@@ -38,7 +38,7 @@ const Profile = () => {
         .required("Teléfono es obligatorio")
         .matches(
           phoneRegex,
-          "Teléfono inválido (solo números, +, -, espacios, 8-20 caracteres)"
+          "Teléfono inválido (solo números, +, -, espacios, 8-17 caracteres)"
         ),
     }),
     onSubmit: (values) => {

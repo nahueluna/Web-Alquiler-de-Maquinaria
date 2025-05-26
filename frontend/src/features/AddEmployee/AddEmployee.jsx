@@ -44,7 +44,7 @@ function AddEmployee() {
         .required('DNI es obligatorio'),
 
         telefono: Yup.string()
-        .matches(/^\d{6,15}$/, 'Teléfono debe tener entre 6 y 15 dígitos')
+        .matches(/^\d{8,17}$/, 'Teléfono debe tener entre 8 y 17 dígitos')
         .notRequired(),
     }),
     onSubmit: (values, { setSubmitting, resetForm }) => {
