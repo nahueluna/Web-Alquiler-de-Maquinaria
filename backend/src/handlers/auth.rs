@@ -164,9 +164,11 @@ pub async fn login(
         return (StatusCode::BAD_REQUEST, Json(json!({"message": "The password is invalid"})));
     }
 
-    let user_info = if user.role != 2 {
+    let pub_user = PubUser::from(user);
+
+    let user_info = if pub_user.role != 2 {
         let row = match client
-            .query_one("SELECT * FROM user_info WHERE id = $1;", &[&user.id]).await {
+            .query_one("SELECT * FROM user_info WHERE id = $1;", &[&pub_user.id]).await {
             Ok(r) => r,
             Err(_) => return (StatusCode::BAD_REQUEST,
                         Json(json!({"message": "The user does not exist"}))),
@@ -182,11 +184,11 @@ pub async fn login(
     };
 
 
-    if user.role != 2 {
+    if pub_user.role != 2 {
         if let Some(code) = payload.code {
             match client
                 .query_one("SELECT * FROM codes_2fa WHERE id = $1 AND code = $2;",
-                    &[&user.id, &code]).await {
+                    &[&pub_user.id, &code]).await {
                 Ok(r) => r,
                 Err(_) => return (StatusCode::BAD_REQUEST,
                             Json(json!({"message": "The code provided is invalid"}))),
@@ -196,7 +198,7 @@ pub async fn login(
             let subject = "Verificación en dos pasos - Bob el Alquilador";
             let body = format!(
                 "Hola, {}. Su código de verificación de dos pasos es: {}.\nSi solicitó más de un código, solo el último que haya recibido es válido.",
-                user.name, code
+                pub_user.name, code
             );
 
             let send_mail_res = send_mail(&payload.email, subject, &body);
@@ -207,10 +209,10 @@ pub async fn login(
             }
 
             let del_q = client.execute("DELETE FROM codes_2fa WHERE id = $1;",
-                &[&user.id]).await;
+                &[&pub_user.id]).await;
 
             let ins_q = client.execute("INSERT INTO codes_2fa (id, code) VALUES ($1, $2);",
-                &[&user.id, &code]).await;
+                &[&pub_user.id, &code]).await;
 
             if del_q.is_ok() && ins_q.is_ok() {
                 return (StatusCode::OK,
@@ -230,15 +232,15 @@ pub async fn login(
         .timestamp();
 
     let claims = Claims {
-        user_id: user.id,
+        user_id: pub_user.id,
         exp: expiration as usize,
-        role: user.role,
+        role: pub_user.role,
     };
 
     return match encode(&Header::default(), &claims, &EncodingKey::from_secret(secret_key.as_ref())) {
         Ok(t) => (StatusCode::OK,
                     Json(json!({"access": t,
-                                "user": user,
+                                "pub_user": pub_user,
                                 "user_info": user_info}))),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({"message": "Failed to create the JWT"}))),

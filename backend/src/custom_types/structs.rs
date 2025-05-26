@@ -17,6 +17,27 @@ pub struct User {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct PubUser {
+    pub id: i32,
+    pub email: String,
+    pub name: String,
+    pub surname: String,
+    pub role: i16,
+}
+
+impl From<User> for PubUser {
+    fn from(user: User) -> Self {
+        PubUser {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            surname: user.surname,
+            role: user.role,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UserInfo {
     pub id: i32,
     pub birthdate: NaiveDate,
