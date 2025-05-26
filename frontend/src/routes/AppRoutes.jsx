@@ -3,7 +3,6 @@ import ChangePassword from "../features/ChangePassword/ChangePassword";
 import Dashboard from "../features/Dashboard/DashboardPage";
 import ExplorePage from "../features/Explore/ExplorePage";
 import Home from "../features/Home/HomePage";
-import IncreaseMachineStock from "../features/IncreaseMachineStock/IncreaseMachineStock";
 import Login from "../features/Login/LoginPage";
 import NotFoundPage from "../features/NotFoundPage";
 import Product from "../features/Product/Product";
@@ -22,17 +21,13 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/explore" element={<ExplorePage />} />
-        <Route path="/maquina/:id" element={<Product />} />
+        <Route path="/explore/:id" element={<Product />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/recover-password" element={<RecoverPassword />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="*" element={<NotFoundPage />} />
-        <Route
-          path="/increase-machine-stock"
-          element={<IncreaseMachineStock />}
-        />
       </Route>
       <Route path="/two-factor" element={<TwoFactor />} />
     </Routes>
