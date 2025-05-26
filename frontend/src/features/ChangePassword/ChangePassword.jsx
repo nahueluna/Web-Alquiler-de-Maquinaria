@@ -34,7 +34,7 @@ const ChangePassword = () => {
   });
 
   return (
-    <Sheet
+    <Box
       sx={{
         maxWidth: 400,
         mx: "auto",
@@ -43,9 +43,11 @@ const ChangePassword = () => {
         borderRadius: "lg",
         boxShadow: "sm",
         backgroundColor: "background.surface",
+        border: "1px solid",        
+        borderColor: "neutral.outlinedBorder" 
       }}
     >
-      <Typography level="h4" fontWeight="lg" mb={2}>
+      <Typography level="h3" fontWeight="lg" mb={2}>
         Cambiar contraseña
       </Typography>
 
@@ -94,7 +96,7 @@ const ChangePassword = () => {
           </Button>
         </form>
       )}
-    </Sheet>
+    </Box>
   );
 };
 

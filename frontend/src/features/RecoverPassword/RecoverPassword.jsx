@@ -49,24 +49,18 @@ function RecoverPassword() {
   });
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: "60vh",
-        p: 0,
-      }}
-    >
       <Box
-        sx={{
-          maxWidth: 400,
-          p: 3,
-          padding: "30px",
-          borderRadius: "md",
-          boxShadow: "md",
-          bgcolor: "background.surface",
-        }}
+      sx={{
+        maxWidth: 400,
+        mx: "auto",
+        mt: 4,
+        p: 4,
+        borderRadius: "lg",
+        boxShadow: "sm",
+        backgroundColor: "background.surface",
+        border: "1px solid",
+        borderColor: "neutral.outlinedBorder"
+      }}
       >
         {!mensajeEnviado && (
           <Typography
@@ -115,7 +109,6 @@ function RecoverPassword() {
           </form>
         )}
       </Box>
-    </Box>
   );
 }
 
