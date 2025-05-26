@@ -1,13 +1,17 @@
 import React, { useState } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 import {
   Box,
   Button,
   Input,
   Typography,
-  Sheet,
   Divider,
   Snackbar,
+  FormHelperText,
 } from "@mui/joy";
+
+const phoneRegex = /^[\d+\-\s]{8,20}$/;
 
 const Profile = () => {
   const [userData, setUserData] = useState({
@@ -17,25 +21,39 @@ const Profile = () => {
   });
 
   const [editMode, setEditMode] = useState(false);
-  const [formData, setFormData] = useState(userData);
-  const [showSnackbar, setShowSnackbar] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  // Snackbar telefono
+  const [showSaveSnackbar, setShowSaveSnackbar] = useState(false);
+  // Snackbar contraseña
+  const [showChangePasswordSnackbar, setShowChangePasswordSnackbar] = useState(false);
 
-  const handleSave = () => {
-    setUserData(formData);
-    setEditMode(false);
-  };
+  const formik = useFormik({
+    initialValues: {
+      telefono: userData.telefono,
+    },
+    enableReinitialize: true,
+    validateOnMount: true,
+    validationSchema: Yup.object({
+      telefono: Yup.string()
+        .required("Teléfono es obligatorio")
+        .matches(
+          phoneRegex,
+          "Teléfono inválido (solo números, +, -, espacios, 8-20 caracteres)"
+        ),
+    }),
+    onSubmit: (values) => {
+      setUserData((prev) => ({
+        ...prev,
+        telefono: values.telefono,
+      }));
+      setEditMode(false);
+      setShowSaveSnackbar(true);
+    },
+  });
 
   const handleChangePassword = () => {
     // Simula que se envió un correo, ACÁ CONECTAR CON EL BACKEND
-    setShowSnackbar(true);
+    setShowChangePasswordSnackbar(true);
   };
 
   return (
@@ -50,7 +68,7 @@ const Profile = () => {
         boxShadow: "sm",
         backgroundColor: "background.surface",
         border: "1px solid",
-        borderColor: "neutral.outlinedBorder"
+        borderColor: "neutral.outlinedBorder",
       }}
     >
       <Typography level="h4" fontWeight="lg" mb={2}>
@@ -81,24 +99,44 @@ const Profile = () => {
           Teléfono:
         </Typography>
         {editMode ? (
-          <Input
-            name="telefono"
-            value={formData.telefono}
-            onChange={handleChange}
-            sx={{ flex: 1 }}
-          />
+          <form onSubmit={formik.handleSubmit} style={{ flex: 1 }}>
+            <Input
+              name="telefono"
+              value={formik.values.telefono}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              error={formik.touched.telefono && Boolean(formik.errors.telefono)}
+              autoFocus
+              sx={{ width: "100%" }}
+            />
+            {formik.touched.telefono && formik.errors.telefono && (
+              <FormHelperText sx={{ color: "error.500" }}>
+                {formik.errors.telefono}
+              </FormHelperText>
+            )}
+          </form>
         ) : (
           <Typography>{userData.telefono}</Typography>
         )}
       </Box>
 
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <Button variant="outlined" color="neutral" onClick={handleChangePassword}>
           Cambiar contraseña
         </Button>
 
         {editMode ? (
-          <Button color="primary" onClick={handleSave}>
+          <Button
+            color="primary"
+            onClick={formik.handleSubmit}
+            disabled={formik.touched.telefono && Boolean(formik.errors.telefono)}
+          >
             Guardar cambios
           </Button>
         ) : (
@@ -108,10 +146,22 @@ const Profile = () => {
         )}
       </Box>
 
-      {/* Mensajito para el cambio de contraseña (testeando snackbar)*/}
+      {/* Snackbar para guardar teléfono */}
       <Snackbar
-        open={showSnackbar}
-        onClose={() => setShowSnackbar(false)}
+        open={showSaveSnackbar}
+        onClose={() => setShowSaveSnackbar(false)}
+        autoHideDuration={3000}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        variant="soft"
+        color="success"
+      >
+        Teléfono guardado correctamente.
+      </Snackbar>
+
+      {/* Snackbar para cambio de contraseña */}
+      <Snackbar
+        open={showChangePasswordSnackbar}
+        onClose={() => setShowChangePasswordSnackbar(false)}
         autoHideDuration={3000}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         variant="soft"

@@ -14,8 +14,8 @@ import * as yup from "yup";
 const validationSchema = yup.object({
   email: yup
     .string()
-    .email("Ingrese un correo electrónico válido")
-    .required("El correo es obligatorio"),
+    .matches(/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/, 'Correo electrónico inválido')
+    .required('El correo es obligatorio')
 });
 
 function RecoverPassword() {
@@ -40,7 +40,7 @@ function RecoverPassword() {
           body: JSON.stringify({ email: values.email }),
         });
       } catch (error) {
-        // No hacemos un carajo porque no hay que chequear si existe el mail, VLLC.
+        // No hacemos un carajo porque no hay que chequear si existe el mail
       } finally {
         setLoading(false);
         setMensajeEnviado(true);
@@ -113,4 +113,4 @@ function RecoverPassword() {
   );
 }
 
-export default RecoverPassword; // teso puto
+export default RecoverPassword;

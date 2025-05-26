@@ -6,36 +6,54 @@ import * as Yup from 'yup';
 function AddEmployee() {
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
-  const formik = useFormik({
+    const formik = useFormik({
     initialValues: {
-      email: '',
-      nombre: '',
-      apellido: '',
-      fechaNacimiento: '',
-      dni: '',
-      telefono: '',
+        email: '',
+        nombre: '',
+        apellido: '',
+        fechaNacimiento: '',
+        dni: '',
+        telefono: '',
     },
     validationSchema: Yup.object({
-      email: Yup.string()
-        .email('Email inválido')
+        email: Yup.string()
+        .matches(/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/, 'Email inválido')
         .required('Email es obligatorio'),
-      nombre: Yup.string().required('Nombre es obligatorio'),
-      apellido: Yup.string().required('Apellido es obligatorio'),
-      fechaNacimiento: Yup.date()
+
+        nombre: Yup.string()
+        .matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,}$/, 'Nombre solo puede contener letras y espacios')
+        .required('Nombre es obligatorio'),
+
+        apellido: Yup.string()
+        .matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{2,}$/, 'Apellido solo puede contener letras y espacios')
+        .required('Apellido es obligatorio'),
+
+        fechaNacimiento: Yup.date()
         .required('Fecha de nacimiento es obligatoria')
-        .typeError('Fecha inválida (formato YYYY-MM-DD)'),
-      dni: Yup.string()
-        .matches(/^\d+$/, 'DNI debe contener solo números')
+        .typeError('Fecha inválida (formato YYYY-MM-DD)')
+        .max(new Date(), 'La fecha no puede ser futura')
+        .test('mayor-edad', 'Debe de ser mayor de 18 años', function (value) {
+            if (!value) return false;
+            const hoy = new Date();
+            const fecha18 = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate());
+            return value <= fecha18;
+        }),
+
+        dni: Yup.string()
+        .matches(/^\d{7,8}$/, 'DNI debe tener entre 7 y 8 números')
         .required('DNI es obligatorio'),
-      telefono: Yup.string().matches(/^\d*$/, 'Teléfono debe contener solo números'),
+
+        telefono: Yup.string()
+        .matches(/^\d{6,15}$/, 'Teléfono debe tener entre 6 y 15 dígitos')
+        .notRequired(),
     }),
     onSubmit: (values, { setSubmitting, resetForm }) => {
-      setSubmitting(false);
-      setOpenSnackbar(true);
-      resetForm();
-      // ACÁ CONECTAR CON EL BACKEND
+        setSubmitting(false);
+        setOpenSnackbar(true);
+        resetForm();
+        // ACÁ CONECTAR CON EL BACKEND
     },
-  });
+    });
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') return;
