@@ -16,7 +16,6 @@ const Navbar = () => {
   useEffect(() => {
     function scrollNavbar() {
       const { scrollY: scroll } = window;
-      console.log(scroll);
 
       setHideNav(scroll > 100);
     }
