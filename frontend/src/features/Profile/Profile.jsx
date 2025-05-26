@@ -17,7 +17,7 @@ const phoneRegex = /^[\d+\-\s]{8,17}$/;
 const Profile = () => {
   const [userData, setUserData] = useState({
     nombre: "Valentino Amato Roberts",
-    correo: "damiangregoret@gmail.com",
+    correo: "mrdjangus@gmail.com",
     telefono: "+54 1234-5678",
   });
 
