@@ -78,11 +78,11 @@ INSERT INTO machinery_location_history (unit_id, location_id, assigned_at, unass
 (12, 2, NOW() - INTERVAL '50 days', NOW() - INTERVAL '7 days');
 
 INSERT INTO categories (name) VALUES
-('Construcción pesada'),
-('Obras urbanas'),
-('Movimiento de tierra'),
-('Elevación'),
-('Compactación');
+('construccion pesada'),
+('obras urbanas'),
+('movimiento de tierra'),
+('elevacion'),
+('compactacion');
 
 -- Modelo 1: Excavadora Caterpillar → Construcción pesada
 INSERT INTO machinery_categories (model_id, category_id) VALUES
