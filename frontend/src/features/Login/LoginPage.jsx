@@ -34,8 +34,35 @@ export default function LoginPage() {
       password: "",
     },
     validationSchema: validationSchema,
-    onSubmit: (values) => {
-      alert(JSON.stringify(values, null, 2));
+    onSubmit: async (values) => {
+      setLoading(true);
+      const {
+        nombre: name,
+        apellido: surname,
+        email,
+        dni: id_card,
+        fecha,
+        telefono: phone,
+      } = values;
+
+      try {
+        const { data } = await axios.post("http://localhost:8000/signup", {
+          name,
+          surname,
+          email,
+          id_card,
+          birth_date: fecha.split("-").reverse().join("-"),
+          phone,
+        });
+        setStatus({ isError: false, message: data.message });
+        setOpenSnack(true);
+      } catch (error) {
+        console.error(error);
+        setStatus({ isError: true, message: error.response.data.message });
+        setOpenSnack(true);
+      } finally {
+        setLoading(false);
+      }
     },
   });
 
