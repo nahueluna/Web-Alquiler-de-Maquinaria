@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import {
   Box,
   Typography,
@@ -26,24 +27,32 @@ function RecoverPassword() {
     document.title = "Recuperar contraseña";
   }, []);
 
-  const formik = useFormik({
-    initialValues: {
-      email: "",
-    },
-    validationSchema,
-    onSubmit: async (values) => {
-      setLoading(true);
-      try {
-        await fetch("http://localhost:3000/api/password-reset", { // Como no hay backend todavia, dejamos un fetch que no hace nada
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: values.email }),
-        });
-      } catch (error) {
-        // No hacemos un carajo porque no hay que chequear si existe el mail
-      } finally {
-        setLoading(false);
+const formik = useFormik({
+  initialValues: {
+    email: "",
+  },
+  validationSchema,
+  onSubmit: async (values) => {
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/requestpswchange",
+        { email: values.email },
+        { withCredentials: true }
+      );
+
+      if (response.status === 200) {
         setMensajeEnviado(true);
+      }
+    } catch (error) {
+      if (error.response) {
+        setErrorSnackbar({ open: true, message: error.response.data.message });
+      } else {
+        console.error("Error al conectar con el backend:", error);
+        alert("Error de red. No se pudo contactar al servidor.");
+      }
+    } finally {
+      setLoading(false);
       }
     },
   });

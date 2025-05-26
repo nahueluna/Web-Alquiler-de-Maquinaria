@@ -27,7 +27,7 @@ export default function AppRoutes() {
         <Route path="/recover-password" element={<RecoverPassword />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="/changepsw/:code" element={<ChangePassword />} />
         <Route path="/add-employee" element={<AddEmployee />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

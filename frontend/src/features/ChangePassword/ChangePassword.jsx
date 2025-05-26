@@ -10,9 +10,13 @@ import {
 } from "@mui/joy";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import axios from "axios";
+import { useParams } from "react-router-dom";
 
 const ChangePassword = () => {
+  const { code } = useParams(); // Agarramos el código de la URL
   const [success, setSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   const formik = useFormik({
     initialValues: {
@@ -27,9 +31,26 @@ const ChangePassword = () => {
         .oneOf([Yup.ref("password"), null], "Las contraseñas no coinciden")
         .required("Requerido"),
     }),
-    onSubmit: (values) => { // LLAMAR AL BACKEND ACÁ
-      console.log("Nueva contraseña:", values.password);
-      setSuccess(true);
+    onSubmit: async (values) => {
+      try {
+        const { data } = await axios.post(
+          "http://localhost:8000/changepsw",
+          {
+            code: code,
+            new_password: values.password,
+          },
+          {
+            withCredentials: true,
+          }
+        );
+        console.log("Respuesta del servidor:", data);
+        setSuccess(true);
+        setErrorMsg(null);
+      } catch (error) {
+        const mensaje = error.response?.data?.mensaje || "Error";
+        setErrorMsg(mensaje);
+        setSuccess(false);
+      }
     },
   });
 
@@ -44,8 +65,8 @@ const ChangePassword = () => {
         borderRadius: "lg",
         boxShadow: "sm",
         backgroundColor: "background.surface",
-        border: "1px solid",        
-        borderColor: "neutral.outlinedBorder" 
+        border: "1px solid",
+        borderColor: "neutral.outlinedBorder",
       }}
     >
       <Typography level="h3" fontWeight="lg" mb={2}>
@@ -91,6 +112,12 @@ const ChangePassword = () => {
               </Typography>
             )}
           </Box>
+
+          {errorMsg && (
+            <Alert color="danger" variant="soft" sx={{ mb: 2 }}>
+              {errorMsg}
+            </Alert>
+          )}
 
           <Button type="submit" color="primary" fullWidth>
             Cambiar contraseña

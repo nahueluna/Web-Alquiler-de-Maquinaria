@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useFormik } from "formik";
+import axios from "axios";
 import * as Yup from "yup";
 import {
   Box,
@@ -16,7 +17,7 @@ const phoneRegex = /^[\d+\-\s]{8,17}$/;
 const Profile = () => {
   const [userData, setUserData] = useState({
     nombre: "Valentino Amato Roberts",
-    correo: "elmisilpato@gmail.com",
+    correo: "damiangregoret@gmail.com",
     telefono: "+54 1234-5678",
   });
 
@@ -26,6 +27,8 @@ const Profile = () => {
   const [showSaveSnackbar, setShowSaveSnackbar] = useState(false);
   // Snackbar contraseña
   const [showChangePasswordSnackbar, setShowChangePasswordSnackbar] = useState(false);
+  // Snackbar error al enviar el mail
+  const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: "" });
 
   const formik = useFormik({
     initialValues: {
@@ -51,9 +54,27 @@ const Profile = () => {
     },
   });
 
-  const handleChangePassword = () => {
-    // Simula que se envió un correo, ACÁ CONECTAR CON EL BACKEND
-    setShowChangePasswordSnackbar(true);
+const handleChangePassword = async () => {
+  try {
+    const response = await axios.post(
+      "http://localhost:8000/requestpswchange",
+      { email: userData.correo },
+      { withCredentials: true } // Para las cookies (?)
+    );
+
+    if (response.status === 200) {
+      setShowChangePasswordSnackbar(true); // Si funca...
+    }
+  } catch (error) {
+    if (error.response) {
+      // ERROR 1
+      setErrorSnackbar({ open: true, message: error.response.data.message });
+    } else {
+      // ERROR 2
+      console.error("Error al conectar con el backend:", error);
+      alert("Error de red. No se pudo contactar al servidor.");
+      }
+    }
   };
 
   return (
@@ -168,6 +189,16 @@ const Profile = () => {
         color="success"
       >
         Se le ha enviado un correo para cambiar su contraseña.
+      </Snackbar>
+      <Snackbar
+        open={errorSnackbar.open}
+        onClose={() => setErrorSnackbar({ ...errorSnackbar, open: false })}
+        autoHideDuration={4000}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        variant="soft"
+        color="danger"
+      >
+        {errorSnackbar.message}
       </Snackbar>
     </Box>
   );
