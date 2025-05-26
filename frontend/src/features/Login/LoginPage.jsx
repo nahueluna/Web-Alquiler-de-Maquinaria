@@ -6,12 +6,17 @@ import {
   Input,
   Link,
   Sheet,
+  Snackbar,
   Stack,
   Typography,
 } from "@mui/joy";
 import { useFormik } from "formik";
-import { Link as RouterLink } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
+import { Link as RouterLink, Navigate, useNavigate } from "react-router-dom";
 import * as yup from "yup";
+import UserContext from "../../context/UserContext";
+import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheck";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 export default function LoginPage() {
   const validationSchema = yup.object({
