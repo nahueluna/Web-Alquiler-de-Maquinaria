@@ -15,11 +15,34 @@ export function UserProvider({ children }) {
   }, []);
 
   async function login(loginInfo) {
-    const { data } = await axios.post("http://localhost:8000/login", loginInfo);
+    const { data } = await axios.post(
+      "http://localhost:8000/login",
+      loginInfo,
+      {
+        withCredentials: true,
+      }
+    );
 
     saveLocalStorage("user", data);
 
     return data;
+  }
+
+  async function refresh() {
+    const { data } = await axios.post("http://localhost:8000/refresh", null, {
+      withCredentials: true,
+    });
+    const user = JSON.parse(window.localStorage.getItem("user"));
+    user.access = data.access;
+
+    saveLocalStorage("user", user);
+    return data;
+  }
+
+  function logout() {
+    window.localStorage.removeItem("user");
+    setUser(null);
+    // TODO: Blacklist token
   }
 
   return (
@@ -28,6 +51,8 @@ export function UserProvider({ children }) {
         user,
         setUser,
         login,
+        logout,
+        refresh,
       }}
     >
       {children}

@@ -1,6 +1,8 @@
 use crate::custom_types::enums::{OrderByField, OrderDirection};
 use crate::custom_types::structs::{AppState, CatalogParams, Location, MachineModel};
-use axum::{extract::Path, extract::Query, extract::State, http::StatusCode, Json};
+use axum::{extract::Path, extract::State, http::StatusCode, Json};
+use axum_extra::extract::Query;
+use deadpool_postgres::Status;
 use serde_json::json;
 use tokio_postgres::types::ToSql;
 use validator::Validate;
@@ -23,19 +25,18 @@ pub async fn explore_catalog(
     let page = query_params.page.unwrap_or(1);
     let page_size = query_params.page_size.unwrap_or(20);
 
-    let _categories = query_params.categories.as_deref(); // Will be implemented later
-
     if let Ok(client) = state.pool.get().await {
         let offset = (page - 1) * page_size;
         let limit = page_size;
 
         let mut where_clauses: Vec<String> = Vec::new();
+        let mut join_clauses: Vec<String> = Vec::new();
         let mut params: Vec<Box<dyn ToSql + Sync + Send>> = Vec::new();
         let mut param_idx = 1;
 
         if let Some(search_term) = &query_params.search {
             where_clauses.push(format!(
-                "(name ILIKE ${} OR brand ILIKE ${} OR model ILIKE ${})",
+                "(mm.name ILIKE ${} OR mm.brand ILIKE ${} OR mm.model ILIKE ${})",
                 param_idx,
                 param_idx + 1,
                 param_idx + 2
@@ -60,6 +61,40 @@ pub async fn explore_catalog(
 
             params.push(Box::new(max_price));
             param_idx += 1;
+        }
+
+        if let (Some(min), Some(max)) = (&query_params.min_price, &query_params.max_price) {
+            if min > max {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({
+                        "message": "Minimum price cannot be greater than maximum price",
+                    })),
+                );
+            }
+        }
+
+        let categories = &query_params.categories;
+
+        if !categories.is_empty() {
+            join_clauses
+                .push("INNER JOIN machinery_categories mc ON mm.id = mc.model_id".to_string());
+            join_clauses.push("INNER JOIN categories c ON mc.category_id = c.id".to_string());
+
+            let category_placeholders: Vec<String> = categories
+                .iter()
+                .map(|_| {
+                    let placeholder = format!("${}", param_idx);
+                    param_idx += 1;
+                    placeholder
+                })
+                .collect();
+
+            where_clauses.push(format!("c.name IN ({})", category_placeholders.join(", ")));
+
+            for cat_name in categories {
+                params.push(Box::new(cat_name.clone()));
+            }
         }
 
         let where_clause = if where_clauses.is_empty() {
@@ -95,11 +130,21 @@ pub async fn explore_catalog(
         let limit_param_idx = param_idx;
         let offset_param_idx = param_idx + 1;
 
+        let all_joins = join_clauses.join(" ");
+
         let select_query = format!(
-            "SELECT * FROM machinery_models {} {} LIMIT ${} OFFSET ${};",
-            where_clause, order_clause, limit_param_idx, offset_param_idx
+            "SELECT DISTINCT mm.* FROM machinery_models mm {} {} {} LIMIT ${} OFFSET ${};",
+            all_joins, where_clause, order_clause, limit_param_idx, offset_param_idx
         );
-        let count_query = format!("SELECT COUNT(*) FROM machinery_models {};", where_clause);
+
+        let count_query = if join_clauses.is_empty() {
+            format!("SELECT COUNT(*) FROM machinery_models mm {};", where_clause)
+        } else {
+            format!(
+                "SELECT COUNT(DISTINCT mm.id) FROM machinery_models mm {} {};",
+                all_joins, where_clause
+            )
+        };
 
         let all_params_slice: Vec<&(dyn ToSql + Sync + Send)> =
             params.iter().map(|p| p.as_ref()).collect();
