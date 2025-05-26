@@ -1,5 +1,21 @@
-import { Box, Button, Divider, Sheet, Table, Typography } from "@mui/joy";
+import {
+  Box,
+  Button,
+  DialogContent,
+  Divider,
+  FormControl,
+  FormLabel,
+  Input,
+  Modal,
+  ModalDialog,
+  Sheet,
+  Stack,
+  Table,
+  Typography,
+} from "@mui/joy";
 import Img from "../../assets/sierra.png";
+
+import React from "react";
 
 const maquina = {
   name: 'SIERRA CIRCULAR 9" BOSCH 220V HD 2100 W GKS 235',
@@ -7,7 +23,24 @@ const maquina = {
   images: ["../../assets/SoloLogo.png"],
 };
 
+const today = new Date();
+const yyyy = today.getFullYear();
+const mm = String(today.getMonth() + 1).padStart(2, "0");
+const dd = String(today.getDate()).padStart(2, "0");
+const todayStr = `${yyyy}-${mm}-${dd}`;
+
+const oneWeekLater = new Date(today);
+oneWeekLater.setDate(today.getDate() + 7);
+
+const yyyy2 = oneWeekLater.getFullYear();
+const mm2 = String(oneWeekLater.getMonth() + 1).padStart(2, "0");
+const dd2 = String(oneWeekLater.getDate()).padStart(2, "0");
+const oneWeekLaterStr = `${yyyy2}-${mm2}-${dd2}`;
+
 function Product() {
+  const [open, setOpen] = React.useState(false);
+  const [endDate, setEndDate] = React.useState(null);
+
   return (
     <Sheet
       sx={{
@@ -55,9 +88,58 @@ function Product() {
           <Typography my={5} level="h3">
             $15.200 x dia
           </Typography>
-          <Button sx={{ width: "100%" }} size="lg" color="danger">
+          <Button
+            sx={{ width: "100%" }}
+            size="lg"
+            color="danger"
+            onClick={() => setOpen(true)}
+          >
             Alquilar
           </Button>
+          <Modal open={open} onClose={() => setOpen(false)}>
+            <ModalDialog>
+              <DialogContent>
+                Para alquilar vas a necesitar indicar la fecha de inicio, la
+                fecha final y la ubicacion.
+              </DialogContent>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  setOpen(false);
+                }}
+              >
+                <Stack spacing={2} direction="row">
+                  <FormControl>
+                    <FormLabel>Fecha de inicio</FormLabel>
+                    <Input
+                      type="date"
+                      slotProps={{
+                        input: {
+                          min: todayStr.toString(),
+                          max: endDate ? endDate : "",
+                        },
+                      }}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel>Fecha final</FormLabel>
+                    <Input
+                      type="date"
+                      slotProps={{
+                        input: {
+                          min: oneWeekLaterStr.toString(),
+                        },
+                      }}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                  </FormControl>
+                </Stack>
+                <Button type="submit" color="danger">
+                  Confirmar alquiler
+                </Button>
+              </form>
+            </ModalDialog>
+          </Modal>
         </Sheet>
       </Sheet>
 
