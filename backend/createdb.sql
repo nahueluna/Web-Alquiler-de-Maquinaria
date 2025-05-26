@@ -45,7 +45,6 @@ CREATE TABLE locations (
     city TEXT
 );
 
-
 CREATE TABLE machinery_units (
     id SERIAL PRIMARY KEY,
     serial_number TEXT UNIQUE NOT NULL,
@@ -62,4 +61,15 @@ CREATE TABLE machinery_location_history (
     assigned_at TIMESTAMP NOT NULL,
     unassigned_at TIMESTAMP NOT NULL,
     PRIMARY KEY (unit_id, location_id, assigned_at)
+);
+
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE machinery_categories (
+    model_id INTEGER NOT NULL REFERENCES machinery_models(id),
+    category_id INTEGER NOT NULL REFERENCES categories(id),
+    PRIMARY KEY (model_id, category_id)
 );

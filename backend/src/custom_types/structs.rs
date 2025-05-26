@@ -3,19 +3,46 @@ use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use validator::Validate;
+use chrono::NaiveDate;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct User {
     pub id: i32,
     pub email: String,
     pub name: String,
     pub surname: String,
-    //pub birthdate: NaiveDate,
-    //pub id_card: String,
-    //pub phone: Option<String>,
     pub psw_hash: String,
     pub salt: String,
     pub role: i16,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PubUser {
+    pub id: i32,
+    pub email: String,
+    pub name: String,
+    pub surname: String,
+    pub role: i16,
+}
+
+impl From<User> for PubUser {
+    fn from(user: User) -> Self {
+        PubUser {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            surname: user.surname,
+            role: user.role,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserInfo {
+    pub id: i32,
+    pub birthdate: NaiveDate,
+    pub id_card: String,
+    pub phone: Option<String>,
 }
 
 #[derive(Deserialize, Validate)]
@@ -45,6 +72,7 @@ pub struct Claims {
     pub user_id: i32,
     pub exp: usize, // expiration time (as UTC timestamp)
     pub role: i16,  // user role
+    pub is_refresh: bool //Whether it is an access or a refresh token
 }
 
 #[derive(Clone)]

@@ -1,4 +1,4 @@
-use chrono::{Datelike, NaiveDate, Utc};
+use chrono::{Datelike, NaiveDate, Utc, Duration};
 use hex;
 use lettre::message::{Mailbox, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
@@ -9,8 +9,9 @@ use sha2::{Digest, Sha256};
 use std::env;
 use tokio_postgres::NoTls;
 use deadpool_postgres::{Pool, Manager};
-use jsonwebtoken::{decode, DecodingKey, Validation, TokenData};
+use jsonwebtoken::{decode, DecodingKey, Validation, TokenData, encode, Header, EncodingKey};
 use crate::custom_types::{structs::Claims, enums::RunningEnv};
+use crate::constants::*;
 
 pub fn generate_random_string(lenght: usize) -> String {
     let random_string: String = rng()
@@ -99,4 +100,28 @@ pub fn validate_jwt(jwt: &str) -> Option<TokenData<Claims>> {
         &DecodingKey::from_secret(secret_key.as_ref()),
         &Validation::default(),
     ).ok()
+}
+
+pub fn generate_jwt(user_id: i32, role: i16, is_refresh: bool) -> Result<String, ()> {
+    let secret_key = env::var("JWT_SECRET_KEY").expect("JTW_SECRET_KEY must be set in the .env file");
+
+    let exp_option = if is_refresh {
+        Utc::now().checked_add_signed(Duration::days(REFRESH_EXPIRATION_DAYS))
+    } else {
+        Utc::now().checked_add_signed(Duration::minutes(ACCESS_EXPIRATION_MINUTES))
+    };
+
+    let exp = match exp_option {
+        Some(e) => e.timestamp() as usize,
+        None => return Err(()),
+    };
+
+    let claims = Claims {
+        user_id,
+        exp,
+        role,
+        is_refresh,
+    };
+
+    encode(&Header::default(), &claims, &EncodingKey::from_secret(secret_key.as_ref())).map_err(|_| ())
 }

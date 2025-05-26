@@ -31,3 +31,7 @@ pub async fn setup() {
 
     }).await;
 }
+
+pub fn backend_url(append: &str) -> String {
+    format!("{}{}",env::var("BACKEND_URL").expect("BACKEND_URL must be set in the .env file"), append)
+}

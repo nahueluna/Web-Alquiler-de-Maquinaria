@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::custom_types::enums::RunningEnv;
+    use crate::custom_types::{enums::RunningEnv, structs::{UserInfo, PubUser}};
     use crate::helpers::auth::{create_pool, send_mail, validate_jwt};
-    use crate::tests::helpers::setup;
+    use crate::tests::helpers::*;
     use chrono::Datelike;
     use reqwest::Client;
 
@@ -20,7 +20,7 @@ mod tests {
         // ----------- Successful client user creation
 
         let successful_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({"email": "user@example.com",
             "name": "alice",
             "surname": "wonderland",
@@ -52,7 +52,7 @@ mod tests {
         // ----------- Conflict due to existing email
 
         let repeated_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({"email": "user@example.com",
             "name": "alice",
             "surname": "wonderland",
@@ -82,7 +82,7 @@ mod tests {
         let birth_date = format!("01-01-{}", year);
 
         let forbidden_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({"email": "anotheruser@example.com",
             "name": "alice",
             "surname": "wonderland",
@@ -99,7 +99,7 @@ mod tests {
         // ----------- Bad request due to invalid email format
 
         let invalid_format_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({"email": "user@.com",
             "name": "alice",
             "surname": "wonderland",
@@ -116,7 +116,7 @@ mod tests {
         // ----------- Unprocessable entity
 
         let unprocessable_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({}))
             .send()
             .await
@@ -127,7 +127,7 @@ mod tests {
         // ----------- Bad request due to invalid birth date format
 
         let invalid_date_res = http_client
-            .post("http://localhost:8000/signup")
+            .post(backend_url("/signup"))
             .json(&serde_json::json!({"email": "anotheruser@example.com",
             "name": "alice",
             "surname": "wonderland",
@@ -155,7 +155,7 @@ mod tests {
 
         // Successful login
         let res = client
-            .post("http://localhost:8000/login")
+            .post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "login@example.com",
                 "password": "0iRxP5lD"
@@ -165,11 +165,27 @@ mod tests {
             .unwrap();
 
         assert_eq!(res.status(), 200);
-        let jwt_value = res.json::<serde_json::Value>().await.unwrap();
-        let jwt = jwt_value["access"].as_str().unwrap();
+        let cookies = res.headers()
+            .get_all("set-cookie")
+            .iter()
+            .map(|v| v.to_str().unwrap())
+            .collect::<Vec<_>>();
+        let refresh_cookie = cookies.iter().find(|c| c.starts_with("refresh_token=")).unwrap()
+            .split(';').next().and_then(|s| s.split('=').nth(1)).unwrap();
+        let claims = validate_jwt(&refresh_cookie.to_string()).unwrap().claims;
+        assert_eq!(10, claims.user_id);
+        assert_eq!(2, claims.role);
+        assert_eq!(true, claims.is_refresh);
+        let value = res.json::<serde_json::Value>().await.unwrap();
+        let jwt = value["access"].as_str().unwrap();
         let claims = validate_jwt(&jwt.to_string()).unwrap().claims;
         assert_eq!(10, claims.user_id);
         assert_eq!(2, claims.role);
+        let pub_user: PubUser = serde_json::from_value(value["pub_user"].clone()).unwrap();
+        let user_info: Option<UserInfo> = serde_json::from_value(value["user_info"].clone()).unwrap();
+        assert!(user_info.is_none());
+        assert_eq!(pub_user.id, 10);
+        assert_eq!(pub_user.role, 2);
 
         // Successful admin login
         let rows = db_client.query("SELECT * FROM codes_2fa WHERE id = $1;",
@@ -177,7 +193,7 @@ mod tests {
         assert_eq!(rows.len(), 0);
 
         let res = client
-            .post("http://localhost:8000/login")
+            .post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "admin@example.com",
                 "password": "password"
@@ -191,7 +207,7 @@ mod tests {
         assert_eq!(rows.len(), 1);
         let code1: i32 = rows.get(0).unwrap().get("code");
 
-        client.post("http://localhost:8000/login")
+        client.post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "admin@example.com",
                 "password": "password"
@@ -204,7 +220,7 @@ mod tests {
         assert_ne!(code1, code2);
 
         let res = client
-            .post("http://localhost:8000/login")
+            .post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "admin@example.com",
                 "password": "password",
@@ -212,15 +228,32 @@ mod tests {
             })).send().await.unwrap();
 
         assert_eq!(res.status(), 200);
-        let jwt_value = res.json::<serde_json::Value>().await.unwrap();
-        let jwt = jwt_value["access"].as_str().unwrap();
+        let cookies = res.headers()
+            .get_all("set-cookie")
+            .iter()
+            .map(|v| v.to_str().unwrap())
+            .collect::<Vec<_>>();
+        let refresh_cookie = cookies.iter().find(|c| c.starts_with("refresh_token=")).unwrap()
+            .split(';').next().and_then(|s| s.split('=').nth(1)).unwrap();
+        let claims = validate_jwt(&refresh_cookie.to_string()).unwrap().claims;
+        assert_eq!(11, claims.user_id);
+        assert_eq!(0, claims.role);
+        assert_eq!(true, claims.is_refresh);
+        let value = res.json::<serde_json::Value>().await.unwrap();
+        let jwt = value["access"].as_str().unwrap();
         let claims = validate_jwt(&jwt.to_string()).unwrap().claims;
         assert_eq!(11, claims.user_id);
         assert_eq!(0, claims.role);
+        let pub_user: PubUser = serde_json::from_value(value["pub_user"].clone()).unwrap();
+        let user_info: Option<UserInfo> = serde_json::from_value(value["user_info"].clone()).unwrap();
+        let user_info = user_info.unwrap();
+        assert_eq!(user_info.id, 11);
+        assert_eq!(pub_user.id, 11);
+        assert_eq!(pub_user.role, 0);
 
         // Unauthorized login due to wrong password
         let res = client
-            .post("http://localhost:8000/login")
+            .post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "login@example.com",
                 "password": "badpassword"
@@ -234,7 +267,7 @@ mod tests {
 
         // Unauthorized login due to wrong email
         let res = client
-            .post("http://localhost:8000/login")
+            .post(backend_url("/login"))
             .json(&serde_json::json!({
                 "email": "notanuser@example.com",
                 "password": "password123"

@@ -7,19 +7,10 @@ import Divider from "@mui/joy/Divider";
 import Typography from "@mui/joy/Typography";
 import React from "react";
 
-export default function MachineCard({
-  imageUrl,
-  model,
-  category,
-  price,
-  onClick,
-}) {
-  const [loading, setLoading] = React.useState(true);
-
+export default function MachineCardSkeleton() {
   return (
     <Card
       variant={"outlined"}
-      onClick={onClick}
       sx={{
         cursor: "pointer",
         transition: "transform 0.2s, box-shadow 0.2s",
@@ -32,14 +23,7 @@ export default function MachineCard({
     >
       <CardOverflow>
         <AspectRatio ratio="4/3">
-          <Skeleton loading={loading}>
-            <img
-              src={imageUrl}
-              loading="lazy"
-              alt=""
-              onLoad={() => setLoading(false)}
-            />
-          </Skeleton>
+          <Skeleton />
         </AspectRatio>
       </CardOverflow>
       <CardContent>
@@ -55,9 +39,11 @@ export default function MachineCard({
             lineHeight: 1.5,
           }}
         >
-          {model}
+          <Skeleton />
         </Typography>
-        <Typography level="body-sm">{category}</Typography>
+        <Typography level="body-sm">
+          <Skeleton />
+        </Typography>
       </CardContent>
       <CardOverflow variant="soft" sx={{ bgcolor: "background.level1" }}>
         <Divider inset="context" />
@@ -67,15 +53,17 @@ export default function MachineCard({
             textColor="text.secondary"
             sx={{ fontWeight: "md" }}
           >
-            ARS ${price}
-            <Typography
-              level="body-xs"
-              textColor="grey"
-              sx={{ fontWeight: "md" }}
-            >
-              {" "}
-              por día
-            </Typography>
+            <Skeleton>
+              ARS $
+              <Typography
+                level="body-xs"
+                textColor="grey"
+                sx={{ fontWeight: "md" }}
+              >
+                {" "}
+                por día
+              </Typography>
+            </Skeleton>
           </Typography>
         </CardContent>
       </CardOverflow>

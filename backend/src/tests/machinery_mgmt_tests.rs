@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::tests::helpers::setup;
+    use crate::tests::helpers::*;
     use reqwest::Client;
     use validator::ValidateLength;
 
@@ -12,7 +12,7 @@ mod tests {
         // ----------- Page 1, Page size 2, valid request without filters
 
         let basic_page1_res = http_client
-            .get("http://localhost:8000/explore")
+            .get(backend_url("/explore"))
             .query(&[("page", "1"), ("page_size", "2")])
             .send()
             .await
@@ -33,7 +33,7 @@ mod tests {
         // ----------- Page 2, Page size 2, valid request with filters
 
         let basic_page2_res = http_client
-            .get("http://localhost:8000/explore")
+            .get(backend_url("/explore"))
             .query(&[("page", "2"), ("page_size", "2")])
             .send()
             .await
@@ -54,7 +54,7 @@ mod tests {
         // ----------- Page default, Page size 5, valid request with search term, minimum price and order
 
         let basic_page2_res = http_client
-            .get("http://localhost:8000/explore")
+            .get(backend_url("/explore"))
             .query(&[
                 ("page", "1"),
                 ("page_size", "5"),
@@ -93,8 +93,8 @@ mod tests {
         let valid_machine_id = 1;
         let valid_response = http_client
             .get(format!(
-                "http://localhost:8000/machinery/{}",
-                valid_machine_id
+                "{}/{}",
+                backend_url("/machinery"), valid_machine_id
             ))
             .send()
             .await
@@ -121,10 +121,10 @@ mod tests {
 
         let invalid_machine_id = 9999;
         let invalid_response = http_client
-            .get(format!(
-                "http://localhost:8000/machinery/{}",
-                invalid_machine_id
-            ))
+           .get(format!(
+                "{}/{}",
+                backend_url("/machinery"), invalid_machine_id
+            )) 
             .send()
             .await
             .unwrap();
