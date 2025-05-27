@@ -6,6 +6,7 @@ import {
   Divider,
   FormControl,
   FormLabel,
+  Grid,
   Input,
   Link,
   Modal,
@@ -16,11 +17,12 @@ import {
   Table,
   Typography,
 } from "@mui/joy";
-import { useParams, Link as RouterLink } from "react-router-dom";
+import { useParams, Link as RouterLink, useNavigate } from "react-router-dom";
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import UserContext from "../../context/UserContext";
 import ProductSkeleton from "./ProductSkeleton";
+import MachineCard from "../Explore/MachineCard";
 
 const today = new Date();
 const yyyy = today.getFullYear();
@@ -41,7 +43,9 @@ function Product() {
   const [endDate, setEndDate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [machine, setMachine] = useState(null);
+  const [products, setProducts] = useState([]);
   const { user } = useContext(UserContext);
+  const nav = useNavigate();
 
   const { id } = useParams();
 
@@ -63,6 +67,20 @@ function Product() {
 
     fetchMachine();
   }, [id]);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const { data } = await axios.get(`http://localhost:8000/explore`);
+
+        setProducts(data.items.slice(0, 6));
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    fetchProducts();
+  }, []);
 
   return (
     <Sheet
@@ -228,23 +246,22 @@ function Product() {
             }}
           >
             <Typography level="h3">Otros productos</Typography>
-            {/* TODO: Use/make a slider for this */}
             <Sheet
               sx={{
                 display: "flex",
                 gap: 2,
               }}
             >
-              {/* TODO: Add product cards */}
-              {new Array(6).fill("").map((_, i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    width: "200px",
-                    aspectRatio: "1/1",
-                    backgroundColor: "red",
-                  }}
-                ></Box>
+              {products.map((machine) => (
+                <Grid key={machine.id}>
+                  <MachineCard
+                    imageUrl={machine.imageUrl}
+                    model={machine.model}
+                    category={machine.category}
+                    price={machine.price}
+                    onClick={() => nav(`/explore/${machine.id}`)}
+                  />
+                </Grid>
               ))}
             </Sheet>
           </Sheet>
