@@ -457,3 +457,29 @@ pub async fn change_password (
             Json(json!({"message": "Failed to change the password"}))).into_response();
     }
 }
+
+pub async fn logout (
+    State(state): State<AppState>,
+    Json(payload): Json<Access>,
+) -> Response {
+
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => return (StatusCode::UNAUTHORIZED,
+                    Json(json!({"message": "Invalid access token"}))).into_response(),
+    }.claims;
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
+    };
+
+    match client.execute("UPDATE users SET refresh = NULL
+        WHERE id = $1;", &[&claims.user_id]).await {
+        Ok(_) => return (StatusCode::OK,
+            Json(json!({"message": "Logout successfull"}))).into_response(),
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to delete the user's refresh token"}))).into_response(),
+    };
+}

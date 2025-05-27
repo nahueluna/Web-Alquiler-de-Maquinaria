@@ -3,6 +3,7 @@ use crate::helpers::auth::{create_pool, send_mail, validate_jwt, encode_password
 use crate::tests::helpers::*;
 use chrono::Datelike;
 use reqwest::Client;
+use tokio_postgres::Error;
 
 #[tokio::test]
 async fn test_create_client() {
@@ -429,4 +430,53 @@ async fn test_change_password() {
     };
 
     assert_eq!(user.psw_hash, encode_password("password", &user.salt));
+}
+
+#[tokio::test]
+async fn test_logout() {
+    setup().await;
+    let client = Client::new();
+
+    let pool = create_pool(RunningEnv::Testing);
+    let db_client = match pool.await.get().await {
+        Ok(c) => c,
+        Err(e) => panic!("Failed to connect to the database: {}", e),
+    };
+
+    // Successful login
+    let res = client
+        .post(backend_url("/login"))
+        .json(&serde_json::json!({
+            "email": "logout@example.com",
+            "password": "password"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+
+    //Check that the user now has a refresh token
+    let row = db_client.query_one("SELECT refresh FROM users WHERE email = $1;",
+            &[&"logout@example.com"]).await.unwrap();
+    let refresh: String = row.get("refresh");
+    assert!(!refresh.is_empty());
+
+    //Get the access token needed for logout
+    let value = res.json::<serde_json::Value>().await.unwrap();
+    let jwt = value["access"].as_str().unwrap();
+    //Logout
+    let res = client
+        .post(backend_url("/logout"))
+        .json(&serde_json::json!({
+            "access": jwt 
+        })).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"].as_str().unwrap(), "Logout successfull");
+
+    //Check that the user's refresh token was deleted
+    let row = db_client.query_one("SELECT refresh FROM users WHERE email = $1;",
+            &[&"logout@example.com"]).await.unwrap();
+
+    let refresh: Result<&str, Error> = row.try_get("refresh");
+    assert!(refresh.is_err());
 }

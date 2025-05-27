@@ -51,6 +51,7 @@ async fn main() {
         .route("/", get(root))
         .route("/signup", post(client_sign_up))
         .route("/login", post(login))
+        .route("/logout", post(logout))
         .route("/refresh", post(refresh))
         .route("/requestpswchange", post(request_psw_change))
         .route("/changepsw", post(change_password))
