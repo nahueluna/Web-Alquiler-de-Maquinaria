@@ -114,18 +114,7 @@ function ProductSkeleton() {
             display: "flex",
             gap: 2,
           }}
-        >
-          {new Array(6).fill("").map((_, i) => (
-            <Box
-              key={i}
-              sx={{
-                width: "200px",
-                aspectRatio: "1/1",
-                backgroundColor: "red",
-              }}
-            ></Box>
-          ))}
-        </Sheet>
+        ></Sheet>
       </Sheet>
     </>
   );
