@@ -35,6 +35,7 @@ function Product() {
   const [endDate, setEndDate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [machine, setMachine] = useState(null);
+  const [locations, setLocations] = useState(null);
   const [products, setProducts] = useState([]);
   const { user } = useContext(UserContext);
   const nav = useNavigate();
@@ -55,6 +56,7 @@ function Product() {
 
         console.log(data.machine);
         setMachine(data.machine);
+        setLocations(data.locations);
       } catch (error) {
         console.error(error);
       } finally {
