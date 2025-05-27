@@ -50,6 +50,11 @@ function Product() {
   const { id } = useParams();
 
   useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
     async function fetchMachine() {
       try {
         const { data } = await axios.get(
