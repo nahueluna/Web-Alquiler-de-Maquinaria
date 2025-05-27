@@ -17,7 +17,7 @@ import {
 const phoneRegex = /^[\d+\-\s]{8,17}$/;
 
 const Profile = () => {
-  const { user, isLoading } = useContext(UserContext);
+  const { user } = useContext(UserContext);
   const navigate = useNavigate();
   const [userData, setUserData] = useState({
     nombre: "",

@@ -13,6 +13,7 @@ import Terms from "../features/Terms/TermsPage";
 import TwoFactor from "../features/TwoFactorAuth/TwoFactor";
 import MainLayout from "../layout/MainLayout";
 import AddEmployee from "../features/AddEmployee/AddEmployee"
+import ProtectedRoute from "./ProtectedRoutes"
 
 export default function AppRoutes() {
   return (
@@ -25,10 +26,10 @@ export default function AppRoutes() {
         <Route path="/explore/:id" element={<Product />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/recover-password" element={<RecoverPassword />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile" element={ <ProtectedRoute> <Profile /> </ProtectedRoute> } />
+        <Route path="/dashboard" element={ <ProtectedRoute> <Dashboard /> </ProtectedRoute> } />
         <Route path="/changepsw/:code" element={<ChangePassword />} />
-        <Route path="/add-employee" element={<AddEmployee />} />
+        <Route path="/add-employee" element={<ProtectedRoute> <AddEmployee /> </ProtectedRoute>} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/two-factor" element={<TwoFactor />} />
