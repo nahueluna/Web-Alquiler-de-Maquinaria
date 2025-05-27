@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -11,12 +11,51 @@ import {
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+
 
 const ChangePassword = () => {
-  const { code } = useParams(); // Agarramos el código de la URL
+  const { code } = useParams();
+  const navigate = useNavigate();
+
   const [success, setSuccess] = useState(false);
+  const [codeValid, setCodeValid] = useState(false);
+  const [checkingCode, setCheckingCode] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!code) {
+      navigate("/home", { replace: true });
+      return;
+    }
+
+    const checkCode = async () => {
+      try {
+        const { data } = await axios.post(
+          "http://localhost:8000/checkchangepswcode",
+          { code },
+          { withCredentials: true }
+        );
+        setCodeValid(data.valid);
+        setErrorMsg(data.valid ? null : "Código inválido o expirado.");
+      } catch (error) {
+        setCodeValid(false);
+        setErrorMsg("Error al verificar el código.");
+      } finally {
+        setCheckingCode(false);
+      }
+    };
+
+    checkCode();
+  }, [code, navigate]);
+
+  // SI ES INVÁLIDO
+  useEffect(() => {
+    if (!checkingCode && !codeValid) {
+      navigate("/home", { replace: true });
+    }
+  }, [checkingCode, codeValid, navigate]);
 
   const formik = useFormik({
     initialValues: {
@@ -24,35 +63,37 @@ const ChangePassword = () => {
       confirmPassword: "",
     },
     validationSchema: Yup.object({
-      password: Yup.string()
-        .min(8, "Mínimo 8 caracteres")
-        .required("Requerido"),
+      password: Yup.string().min(8, "Mínimo 8 caracteres").required("Requerido"),
       confirmPassword: Yup.string()
         .oneOf([Yup.ref("password"), null], "Las contraseñas no coinciden")
         .required("Requerido"),
     }),
     onSubmit: async (values) => {
       try {
+        setLoading(true);
         const { data } = await axios.post(
           "http://localhost:8000/changepsw",
           {
-            code: code,
+            code,
             new_password: values.password,
           },
-          {
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
-        console.log("Respuesta del servidor:", data);
         setSuccess(true);
         setErrorMsg(null);
       } catch (error) {
         const mensaje = error.response?.data?.mensaje || "Error";
         setErrorMsg(mensaje);
         setSuccess(false);
+      } finally {
+        setLoading(false);
       }
     },
   });
+
+  // PARA QUE NO PARPADEE
+  if (checkingCode) return null;
+  if (!codeValid) return null;
 
   return (
     <Box
