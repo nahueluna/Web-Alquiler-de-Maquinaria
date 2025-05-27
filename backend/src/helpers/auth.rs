@@ -23,9 +23,9 @@ pub fn generate_random_string(lenght: usize) -> String {
     random_string
 }
 
-pub fn create_2fa_code() -> i32 {
+pub fn create_2fa_code() -> u32 {
     let mut rng = rand::rng();
-    rng.random_range(10000..1000000)
+    rng.random_range(0..1_000_000)
 }
 
 pub async fn create_pool(running_env: RunningEnv) -> Pool {
@@ -116,11 +116,14 @@ pub fn generate_jwt(user_id: i32, role: i16, is_refresh: bool) -> Result<String,
         None => return Err(()),
     };
 
+    let nonce = create_2fa_code();
+
     let claims = Claims {
         user_id,
         exp,
         role,
         is_refresh,
+        nonce,
     };
 
     encode(&Header::default(), &claims, &EncodingKey::from_secret(secret_key.as_ref())).map_err(|_| ())

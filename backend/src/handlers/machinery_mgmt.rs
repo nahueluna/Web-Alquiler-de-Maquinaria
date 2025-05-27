@@ -2,7 +2,6 @@ use crate::custom_types::enums::{OrderByField, OrderDirection};
 use crate::custom_types::structs::{AppState, CatalogParams, Location, MachineModel};
 use axum::{extract::Path, extract::State, http::StatusCode, Json};
 use axum_extra::extract::Query;
-use deadpool_postgres::Status;
 use serde_json::json;
 use tokio_postgres::types::ToSql;
 use validator::Validate;

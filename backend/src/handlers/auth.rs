@@ -200,10 +200,10 @@ pub async fn login(
                             Json(json!({"message": "The code provided is invalid"}))).into_response(),
             };
         } else {
-            let code = create_2fa_code();
+            let code = create_2fa_code() as i32;
             let subject = "Verificación en dos pasos - Bob el Alquilador";
             let body = format!(
-                "Hola, {}. Su código de verificación de dos pasos es: {}.\nSi solicitó más de un código, solo el último que haya recibido es válido.",
+                "Hola, {}. Su código de verificación de dos pasos es: {:06}.\nSi solicitó más de un código, solo el último que haya recibido es válido.",
                 pub_user.name, code
             );
 
@@ -239,6 +239,13 @@ pub async fn login(
         Ok(a) => a,
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({"message": "Failed create the JWT"}))).into_response(),
+    };
+
+    //Save the refresh
+    if client.execute("UPDATE users SET refresh = $1
+            WHERE id = $2;", &[&refresh, &pub_user.id]).await.is_err() {
+        return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to save the refresh token"}))).into_response();
     };
 
     let mut headers = HeaderMap::new();
@@ -277,6 +284,22 @@ pub async fn refresh(
             Json(json!({"message": "Invalid token type"}))).into_response();
     }
 
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
+    };
+
+    //If the token is valid but it was rotated, delete the current token
+    if client.query_one("SELECT * FROM users WHERE
+        id = $1 AND refresh = $2;"
+        ,&[&claims.user_id, &refresh_token]).await.is_err() {
+        let _ = client.execute("UPDATE users SET refresh = NULL
+        WHERE id = $1;", &[&claims.user_id]).await;
+        return (StatusCode::BAD_REQUEST,
+        Json(json!({"message": "Invalid refresh token"}))).into_response();
+    };
+
     let new_access = match generate_jwt(claims.user_id, claims.role, false) {
         Ok(a) => a,
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
@@ -286,6 +309,13 @@ pub async fn refresh(
         Ok(a) => a,
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({"message": "Failed create the JWT"}))).into_response(),
+    };
+
+    //Save the new refresh
+    if client.execute("UPDATE users SET refresh = $1
+            WHERE id = $2;", &[&new_refresh, &claims.user_id]).await.is_err() {
+        return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to save the refresh token"}))).into_response();
     };
 
     let mut headers = HeaderMap::new();

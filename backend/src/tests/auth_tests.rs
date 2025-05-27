@@ -293,12 +293,6 @@ async fn test_refresh() {
     setup().await;
     let client = Client::new();
 
-    let pool = create_pool(RunningEnv::Testing);
-    let db_client = match pool.await.get().await {
-        Ok(c) => c,
-        Err(e) => panic!("Failed to connect to the database: {}", e),
-    };
-
     // Successful login
     let res = client
         .post(backend_url("/login"))
@@ -309,16 +303,18 @@ async fn test_refresh() {
         .send()
         .await
         .unwrap();
-
-    let cookie_header = res.headers().get("set-cookie")
-        .unwrap().to_str().unwrap();
-
+    //Get cookie
+    let cookie_header1 = res.headers().get("set-cookie")
+        .unwrap().to_owned();
+    //Call refresh
     let refresh_res = client
         .post("http://localhost:8000/refresh")
-        .header("Cookie", cookie_header)
+        .header("Cookie", &cookie_header1)
         .send().await.unwrap();
+    let cookie_header2 = refresh_res.headers().get("set-cookie")
+        .unwrap().to_owned();
     assert_eq!(refresh_res.status(), 200);
-
+    //Check the new refresh
     let cookies = refresh_res.headers()
         .get_all("set-cookie")
         .iter()
@@ -335,12 +331,22 @@ async fn test_refresh() {
     let claims = validate_jwt(&jwt.to_string()).unwrap().claims;
     assert_eq!(12, claims.user_id);
     assert_eq!(2, claims.role);
-    let pub_user: PubUser = serde_json::from_value(value["pub_user"].clone()).unwrap();
-    let user_info: Option<UserInfo> = serde_json::from_value(value["user_info"].clone()).unwrap();
-    let user_info = user_info.unwrap();
-    assert_eq!(user_info.id, 12);
-    assert_eq!(pub_user.id, 12);
-    assert_eq!(pub_user.role, 2);
+    //Check the first refresh became invalid
+    let refresh_res = client
+        .post("http://localhost:8000/refresh")
+        .header("Cookie", cookie_header1)
+        .send().await.unwrap();
+    assert_eq!(refresh_res.status(), 400);
+    assert_eq!(refresh_res.json::<serde_json::Value>().await.unwrap()["message"].as_str().unwrap(), "Invalid refresh token");
+
+    //When refresh is called with a valid token that is not the newest
+    //It invalidates the newest, and the user need to login again
+    let refresh_res = client
+        .post("http://localhost:8000/refresh")
+        .header("Cookie", cookie_header2)
+        .send().await.unwrap();
+    assert_eq!(refresh_res.status(), 400);
+    assert_eq!(refresh_res.json::<serde_json::Value>().await.unwrap()["message"].as_str().unwrap(), "Invalid refresh token");
 }
 
 #[tokio::test]

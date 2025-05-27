@@ -10,7 +10,8 @@ CREATE TABLE users (
     surname varchar(100) NOT NULL,
     psw_hash varchar(64) UNIQUE NOT NULL,
     salt varchar(16) NOT NULL,
-    role smallint NOT NULL
+    role smallint NOT NULL,
+    refresh text NULL
 );
 
 CREATE TABLE user_info (

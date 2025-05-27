@@ -72,6 +72,7 @@ pub struct Claims {
     pub exp: usize,       // expiration time (as UTC timestamp)
     pub role: i16,        // user role
     pub is_refresh: bool, //Whether it is an access or a refresh token
+    pub nonce: u32,       //To ensure randomness
 }
 
 #[derive(Clone)]
@@ -82,6 +83,11 @@ pub struct AppState {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Email {
     pub email: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Access {
+    pub access: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
