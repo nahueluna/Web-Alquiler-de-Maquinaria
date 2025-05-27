@@ -15,24 +15,10 @@ import axios from "axios";
 import UserContext from "../../context/UserContext";
 import ProductSkeleton from "./ProductSkeleton";
 import MachineCard from "../Explore/MachineCard";
-
-const today = new Date();
-const yyyy = today.getFullYear();
-const mm = String(today.getMonth() + 1).padStart(2, "0");
-const dd = String(today.getDate()).padStart(2, "0");
-const todayStr = `${yyyy}-${mm}-${dd}`;
-
-const oneWeekLater = new Date(today);
-oneWeekLater.setDate(today.getDate() + 7);
-
-const yyyy2 = oneWeekLater.getFullYear();
-const mm2 = String(oneWeekLater.getMonth() + 1).padStart(2, "0");
-const dd2 = String(oneWeekLater.getDate()).padStart(2, "0");
-const oneWeekLaterStr = `${yyyy2}-${mm2}-${dd2}`;
+import RentalModal from "./Modal/RentalModal";
 
 function Product() {
   const [open, setOpen] = useState(false);
-  const [endDate, setEndDate] = useState(null);
   const [loading, setLoading] = useState(true);
   const [machine, setMachine] = useState(null);
   const [locations, setLocations] = useState(null);
@@ -153,50 +139,12 @@ function Product() {
                   para empezar a alquilar
                 </Typography>
               ) : null}
-              <Modal open={open} onClose={() => setOpen(false)}>
-                <ModalDialog>
-                  <DialogContent>
-                    Para alquilar vas a necesitar indicar la fecha de inicio, la
-                    fecha final y la ubicacion.
-                  </DialogContent>
-                  <form
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      setOpen(false);
-                    }}
-                  >
-                    <Stack spacing={2} direction="row">
-                      <FormControl>
-                        <FormLabel>Fecha de inicio</FormLabel>
-                        <Input
-                          type="date"
-                          slotProps={{
-                            input: {
-                              min: todayStr.toString(),
-                              max: endDate ? endDate : "",
-                            },
-                          }}
-                        />
-                      </FormControl>
-                      <FormControl>
-                        <FormLabel>Fecha final</FormLabel>
-                        <Input
-                          type="date"
-                          slotProps={{
-                            input: {
-                              min: oneWeekLaterStr.toString(),
-                            },
-                          }}
-                          onChange={(e) => setEndDate(e.target.value)}
-                        />
-                      </FormControl>
-                    </Stack>
-                    <Button type="submit" color="danger">
-                      Confirmar alquiler
-                    </Button>
-                  </form>
-                </ModalDialog>
-              </Modal>
+              {/* Modal */}
+              <RentalModal
+                open={open}
+                setOpen={setOpen}
+                locations={locations}
+              />
             </Sheet>
           </Sheet>
 
