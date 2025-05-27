@@ -115,7 +115,7 @@ function AddEmployee() {
         {renderInput('Teléfono (opcional)', 'telefono', 'text', false)}
 
         <Button type="submit" disabled={formik.isSubmitting}>
-          Registrarse
+          Registrar empleado
         </Button>
       </Box>
 
