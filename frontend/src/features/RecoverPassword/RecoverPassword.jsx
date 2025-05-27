@@ -15,13 +15,22 @@ import * as yup from "yup";
 const validationSchema = yup.object({
   email: yup
     .string()
-    .matches(/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/, 'Correo electrónico inválido')
-    .required('El correo es obligatorio')
+    .email('Correo electrónico inválido')
+    .test(
+      'is-valid-domain',
+      'Correo electrónico inválido',
+      (value) => {
+        if (!value) return false;
+        return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
+      }
+    )
+    .required('El correo es obligatorio'),
 });
 
 function RecoverPassword() {
   const [mensajeEnviado, setMensajeEnviado] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: "" });
 
   useEffect(() => {
     document.title = "Recuperar contraseña";
@@ -40,21 +49,21 @@ const formik = useFormik({
         { email: values.email },
         { withCredentials: true }
       );
-
-      if (response.status === 200) {
-        setMensajeEnviado(true);
-      }
+      setMensajeEnviado(true);
     } catch (error) {
       if (error.response) {
-        setErrorSnackbar({ open: true, message: error.response.data.message });
+        if (error.response.status === 400) {
+          setMensajeEnviado(true);
+        } else {
+          alert(error.response.data.message);
+        }
       } else {
-        console.error("Error al conectar con el backend:", error);
         alert("Error de red. No se pudo contactar al servidor.");
       }
     } finally {
       setLoading(false);
-      }
-    },
+    }
+  },
   });
 
   return (
