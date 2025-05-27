@@ -480,3 +480,33 @@ async fn test_logout() {
     let refresh: Result<&str, Error> = row.try_get("refresh");
     assert!(refresh.is_err());
 }
+
+#[tokio::test]
+async fn test_check_changepsw_code() {
+    setup().await;
+    let client = Client::new();
+
+    //Valid code
+    let res = client
+        .post(backend_url("/checkchangepswcode"))
+        .json(&serde_json::json!({
+            "code": "change_psw_code"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["valid"].as_bool().unwrap(), true);
+
+    //Invalid code
+    let res = client
+        .post(backend_url("/checkchangepswcode"))
+        .json(&serde_json::json!({
+            "code": "invalid_code"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["valid"].as_bool().unwrap(), false);
+}

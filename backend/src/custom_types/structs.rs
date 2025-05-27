@@ -97,6 +97,11 @@ pub struct ChangePsw {
     pub code: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CheckChangePswCode {
+    pub code: String,
+}
+
 #[derive(Deserialize, Default, Debug, Validate)]
 pub struct CatalogParams {
     pub search: Option<String>,

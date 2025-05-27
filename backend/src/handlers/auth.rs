@@ -483,3 +483,30 @@ pub async fn logout (
             Json(json!({"message": "Failed to delete the user's refresh token"}))).into_response(),
     };
 }
+
+pub async fn check_changepsw_code (
+    State(state): State<AppState>,
+    Json(payload): Json<CheckChangePswCode>,
+) -> Response {
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
+    };
+
+    match client
+        .query("SELECT * FROM change_psw_codes WHERE code = $1;",
+        &[&payload.code]).await {
+        Ok(rows) => {
+            if rows.len() == 1 {
+                return (StatusCode::OK,
+                Json(json!({"valid": true}))).into_response();
+            } else {
+                return (StatusCode::OK,
+                Json(json!({"valid": false}))).into_response();
+            }
+        },
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to search the code"}))).into_response(),
+    }
+}
