@@ -7,12 +7,16 @@ export default UserContext;
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
     const user = window.localStorage.getItem("user");
 
-    if (user) setUser(JSON.parse(user));
-  }, []);
+    if (user) {
+      setUser(JSON.parse(user));
+    }
+      setLoadingUser(false);
+    }, []);
 
   async function login(loginInfo) {
     const { data } = await axios.post(
@@ -53,6 +57,7 @@ export function UserProvider({ children }) {
         login,
         logout,
         refresh,
+        loadingUser
       }}
     >
       {children}
