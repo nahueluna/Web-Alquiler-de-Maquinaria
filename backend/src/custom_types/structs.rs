@@ -71,6 +71,21 @@ pub struct CreateRegularUser {
     pub phone: Option<String>,
 }
 
+#[derive(Deserialize, Validate)]
+pub struct CreateEmployee {
+    #[validate(email)]
+    pub email: String,
+    #[validate(length(min = 1))]
+    pub name: String,
+    #[validate(length(min = 1))]
+    pub surname: String,
+    pub birthdate: String,
+    #[validate(length(min = 1))]
+    pub id_card: String,
+    pub phone: Option<String>,
+    pub access: String,
+}
+
 #[derive(Deserialize)]
 pub struct LoginRequest {
     pub email: String,

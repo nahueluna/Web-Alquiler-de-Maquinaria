@@ -602,3 +602,86 @@ pub async fn delete_employee (
     };
 }
 
+pub async fn register_employee (
+    State(state): State<AppState>,
+    Json(payload): Json<CreateEmployee>,
+) -> Response {
+    if let Err(_) = payload.validate() {
+        return (StatusCode::BAD_REQUEST,
+            Json(json!({"message": "Invalid input data"}))).into_response();
+    }
+
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => return (StatusCode::UNAUTHORIZED,
+                    Json(json!({"message": "Invalid access token"}))).into_response(),
+    }.claims;
+
+    if claims.role != 0 {
+        return (StatusCode::FORBIDDEN,
+            Json(json!({"message": "The user is not an admin"}))).into_response();
+    }
+
+    let mut client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
+    };
+
+    let transaction = match client.transaction().await {
+        Ok(t) => t,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to create a DB transaction",}))).into_response(),
+    };
+
+    let password = generate_random_string(8);
+    let salt = generate_random_string(16);
+    let hashed_password = encode_password(&password, &salt);
+
+    let birthdate = match chrono::NaiveDate::parse_from_str(&payload.birthdate, "%d-%m-%Y") {
+        Ok(date) => date,
+        Err(_) => return (StatusCode::BAD_REQUEST,
+            Json(json!({"message": "Invalid birth date format"}))).into_response(),
+    };
+
+    if !is_adult(birthdate) {
+        return (StatusCode::FORBIDDEN,
+            Json(json!({"message": "User age is less than 18"}))).into_response();
+    }
+
+    let row = match transaction.query_one("INSERT INTO users (email, name, surname, psw_hash, salt, role, refresh)
+        VALUES ($1, $2, $3, $4, $5, 1, NULL) RETURNING id;",
+        &[&payload.email, &payload.name, &payload.surname, &hashed_password, &salt]).await {
+        Ok(r) => r,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to execute transaction"}))).into_response(),
+    };
+
+    let user_id: i32 = row.get("id");
+
+    if let Err(e) = transaction.execute("INSERT INTO user_info (id, birthdate, id_card, phone) VALUES ($1, $2, $3, $4);",
+        &[&user_id, &birthdate, &payload.id_card, &payload.phone]).await {
+        println!("{:?}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to execute transaction"}))).into_response();
+    }
+
+    let subject = "Contraseña generada para sistema de Bob el Alquilador";
+    let body = format!(
+        "Hola, {}. Tu contraseña es: {}. \nSi desea, puede cambiarla luego de iniciar sesión.",
+        payload.name, password
+    );
+
+    if send_mail(&payload.email, subject, &body).is_err() {
+        return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to send the email"}))).into_response();
+    }
+
+    match transaction.commit().await {
+        Ok(_) => return (StatusCode::OK,
+            Json(json!({"message": "Employee registered successfully"}))).into_response(),
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to commit transaction"}))).into_response(),
+    };
+}
+

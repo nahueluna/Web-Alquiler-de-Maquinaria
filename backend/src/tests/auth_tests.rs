@@ -512,7 +512,7 @@ async fn test_check_changepsw_code() {
 }
 
 #[tokio::test]
-async fn test_get_and_delete_employees() {
+async fn test_register_get_and_delete_employees() {
     setup().await;
     let client = Client::new();
 
@@ -554,7 +554,7 @@ async fn test_get_and_delete_employees() {
     let res = client
         .post(backend_url("/getemployees"))
         .json(&serde_json::json!({
-            "access": jwt 
+            "access": jwt
         })).send().await.unwrap();
     assert_eq!(res.status(), 200);
     let value = res.json::<serde_json::Value>().await.unwrap()["employees"].clone();
@@ -564,4 +564,38 @@ async fn test_get_and_delete_employees() {
     assert_eq!(employees[0].email, "frank@example.com");
     assert_eq!(employees[0].role, 1);
     assert_eq!(employees[0].id_card, "ID678901");
+
+    //Register new employee
+    let res = client
+        .post(backend_url("/registeremployee"))
+        .json(&serde_json::json!({
+            "email": "emp1@example.com",
+            "name": "James",
+            "surname": "Bond",
+            "birthdate": "02-02-2000",
+            "id_card": "GAAAAAA",
+            "phone": "GAAAAA",
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Employee registered successfully");
+
+    //get_employees
+    let res = client
+        .post(backend_url("/getemployees"))
+        .json(&serde_json::json!({
+            "access": jwt
+        })).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["employees"].clone();
+    let employees: Vec<PubUserWithInfo> = serde_json::from_value(value).unwrap();
+    //Increment if more employees are added to the test DB
+    assert_eq!(employees.len(), 2);
+    assert_eq!(employees[1].email, "emp1@example.com");
+    assert_eq!(employees[1].role, 1);
+    assert_eq!(employees[1].id_card, "GAAAAAA");
 }
