@@ -1,14 +1,30 @@
 import { Box, Button, FormLabel, Link, Sheet, Typography } from "@mui/joy";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import InputGroup from "./InputGroup";
 import Shield from "@mui/icons-material/Shield";
+import UserContext from "../../context/UserContext";
+import { Snackbar } from "@mui/material";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheck";
 
 function TwoFactor() {
-  // TODO: Check if the user should be here, if not redirect him to login
+  const { login, user, setUser } = useContext(UserContext);
+  const { state } = useLocation();
   const [code, setCode] = useState(new Array(6).fill(""));
   const [isComplete, setIsComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const refs = useRef([]);
+  const [openSnack, setOpenSnack] = useState(false);
+  const [status, setStatus] = useState({ isError: false, message: "" });
+  const nav = useNavigate();
+
+  // Redirect if the user is logged in or if there is no state from the login page
+  useEffect(() => {
+    if (user !== null || !state) {
+      nav("/");
+    }
+  }, [user, state]);
 
   useEffect(() => {
     if (code.every((x) => x !== "")) {
@@ -71,117 +87,157 @@ function TwoFactor() {
     }
   }
 
-  function handleVerify() {
-    // TODO:
+  async function handleVerify() {
     setIsLoading(true);
     editInputs(true);
-    setTimeout(() => {
+    try {
+      const user = await login({ ...state }, parseInt(code.join("")));
+
+      setStatus({
+        isError: false,
+        message: "Successfully logged in, redirecting in 5 seconds...",
+      });
+      setOpenSnack(true);
+      setTimeout(() => setUser(user), 5000);
+    } catch (error) {
+      console.error(error);
+      setStatus({ isError: true, message: error.response.data.message });
+      setOpenSnack(true);
+    } finally {
       setIsLoading(false);
       editInputs(false);
-    }, 2000);
+    }
   }
 
   return (
-    <Sheet
-      sx={{
-        display: "grid",
-        placeItems: "center",
-        minHeight: "100vh",
-        backgroundColor: {
-          sm: "#f4f4f4",
-        },
-      }}
-    >
-      {/* Container */}
+    <>
+      <Snackbar
+        variant="soft"
+        color={status.isError ? "danger" : "success"}
+        open={openSnack}
+        onClose={() => setOpenSnack(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        startDecorator={
+          status.isError ? (
+            <ErrorOutlineIcon />
+          ) : (
+            <PlaylistAddCheckCircleRoundedIcon />
+          )
+        }
+        endDecorator={
+          <Button
+            onClick={() => setOpenSnack(false)}
+            size="sm"
+            variant="soft"
+            color={status.isError ? "danger" : "success"}
+          >
+            Dismiss
+          </Button>
+        }
+      >
+        {status.message}
+      </Snackbar>
       <Sheet
         sx={{
-          boxShadow: {
-            xs: "none",
-            sm: "xl",
+          display: "grid",
+          placeItems: "center",
+          minHeight: "100vh",
+          backgroundColor: {
+            sm: "#f4f4f4",
           },
-          px: {
-            xs: 2,
-            sm: 5,
-          },
-          py: 5,
-          borderRadius: "md",
         }}
       >
-        <Box>
-          {/* Title and desc */}
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            <Shield
+        {/* Container */}
+        <Sheet
+          sx={{
+            boxShadow: {
+              xs: "none",
+              sm: "xl",
+            },
+            px: {
+              xs: 2,
+              sm: 5,
+            },
+            py: 5,
+            borderRadius: "md",
+          }}
+        >
+          <Box>
+            {/* Title and desc */}
+            <Box
               sx={{
-                fontSize: 60,
-                mb: 2,
-                backgroundColor: "#fbcece",
-                padding: 1,
-                borderRadius: 100,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
               }}
-              color="danger"
+            >
+              <Shield
+                sx={{
+                  fontSize: 60,
+                  mb: 2,
+                  backgroundColor: "#fbcece",
+                  padding: 1,
+                  borderRadius: 100,
+                }}
+                color="danger"
+              />
+              <Typography level="h2" textAlign="center" mb={0}>
+                Verificación de 2 pasos
+              </Typography>
+              <Typography
+                level="body-sm"
+                textAlign="center"
+                maxWidth={370}
+                mb={5}
+              >
+                Por tu seguridad, ingresa el codigo de 6 digitos que fue enviado
+                a tu email
+              </Typography>
+            </Box>
+
+            <FormLabel sx={{ fontSize: "lg", mb: 1 }}>
+              Codigo de verificacion
+            </FormLabel>
+            <InputGroup
+              code={code}
+              refs={refs}
+              onChange={handleChange}
+              onKeyDown={handleKeyDown}
             />
-            <Typography level="h2" textAlign="center" mb={0}>
-              Verificación de 2 pasos
-            </Typography>
-            <Typography
-              level="body-sm"
-              textAlign="center"
-              maxWidth={370}
-              mb={5}
-            >
-              Por tu seguridad, ingresa el codigo de 6 digitos que fue enviado a
-              tu email
-            </Typography>
-          </Box>
 
-          <FormLabel sx={{ fontSize: "lg", mb: 1 }}>
-            Codigo de verificacion
-          </FormLabel>
-          <InputGroup
-            code={code}
-            refs={refs}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-          />
-
-          {/* button and resend code */}
-          <Box
-            mt={1}
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Button
-              loading={isLoading}
-              disabled={!isComplete}
-              onClick={handleVerify}
+            {/* button and resend code */}
+            <Box
+              mt={1}
               sx={{
-                width: "100%",
-                py: 2,
-                my: 3,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
-              variant="solid"
-              color="danger"
             >
-              Verificar
-            </Button>
+              <Button
+                loading={isLoading}
+                disabled={!isComplete}
+                onClick={handleVerify}
+                sx={{
+                  width: "100%",
+                  py: 2,
+                  my: 3,
+                }}
+                variant="solid"
+                color="danger"
+              >
+                Verificar
+              </Button>
 
-            <Typography level="body-sm">
-              No recibiste el codigo? <Link>Reenviar codigo</Link>
-            </Typography>
+              <Typography level="body-sm">
+                No recibiste el codigo? <Link>Reenviar codigo</Link>
+              </Typography>
+            </Box>
           </Box>
-        </Box>
+        </Sheet>
       </Sheet>
-    </Sheet>
+    </>
   );
 }
 
