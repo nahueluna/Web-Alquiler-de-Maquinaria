@@ -1,7 +1,9 @@
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import AgricultureRoundedIcon from "@mui/icons-material/AgricultureRounded";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+
 import {
   Dropdown,
   Link,
@@ -40,17 +42,32 @@ function UserDrop() {
             Mis datos
           </Link>
         </MenuItem>
-        <MenuItem>
-          <AgricultureRoundedIcon />
-          <Link
-            underline="none"
-            textColor={"text.primary"}
-            component={RouterLink}
-            to="/rentals"
-          >
-            Mis alquileres
-          </Link>
-        </MenuItem>
+        {user.pub_user.role == 2 && (
+          <MenuItem>
+            <AgricultureRoundedIcon />
+            <Link
+              underline="none"
+              textColor={"text.primary"}
+              component={RouterLink}
+              to="/rentals"
+            >
+              Mis alquileres
+            </Link>
+          </MenuItem>
+        )}
+        {(user.pub_user.role == 0 || user.pub_user.role == 1) && (
+          <MenuItem>
+            <DashboardIcon />
+            <Link
+              underline="none"
+              textColor={"text.primary"}
+              component={RouterLink}
+              to="/dashboard"
+            >
+              Dashboard
+            </Link>
+          </MenuItem>
+        )}
         <ListDivider />
         <MenuItem>
           <LogoutRoundedIcon color="danger" />
