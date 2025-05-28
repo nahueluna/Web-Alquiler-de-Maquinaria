@@ -45,6 +45,18 @@ pub struct UserInfo {
     pub phone: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PubUserWithInfo {
+    pub id: i32,
+    pub email: String,
+    pub name: String,
+    pub surname: String,
+    pub role: i16,
+    pub birthdate: NaiveDate,
+    pub id_card: String,
+    pub phone: Option<String>,
+}
+
 #[derive(Deserialize, Validate)]
 pub struct CreateRegularUser {
     #[validate(email)]

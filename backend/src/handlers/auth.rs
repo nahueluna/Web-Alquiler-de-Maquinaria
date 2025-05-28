@@ -478,7 +478,7 @@ pub async fn logout (
     match client.execute("UPDATE users SET refresh = NULL
         WHERE id = $1;", &[&claims.user_id]).await {
         Ok(_) => return (StatusCode::OK,
-            Json(json!({"message": "Logout successfull"}))).into_response(),
+            Json(json!({"message": "Logout successful"}))).into_response(),
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({"message": "Failed to delete the user's refresh token"}))).into_response(),
     };
@@ -510,3 +510,47 @@ pub async fn check_changepsw_code (
             Json(json!({"message": "Failed to search the code"}))).into_response(),
     }
 }
+
+pub async fn get_employees (
+    State(state): State<AppState>,
+    Json(payload): Json<Access>,
+) -> Response {
+
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => return (StatusCode::UNAUTHORIZED,
+                    Json(json!({"message": "Invalid access token"}))).into_response(),
+    }.claims;
+
+    if claims.role != 0 {
+        return (StatusCode::FORBIDDEN,
+            Json(json!({"message": "The user is not an admin"}))).into_response();
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
+    };
+
+    match client.query("SELECT * FROM users JOIN user_info ON users.id = user_info.id
+        WHERE users.role = 1;", &[]).await {
+        Ok(rows) => {
+            let employees: Vec<PubUserWithInfo> = rows.iter().map(|row| PubUserWithInfo {
+                id: row.get("id"),
+                email: row.get("email"),
+                name: row.get("name"),
+                surname: row.get("surname"),
+                role: row.get("role"),
+                birthdate: row.get("birthdate"),
+                id_card: row.get("id_card"),
+                phone: row.get("phone"),
+            }).collect();
+            return (StatusCode::OK,
+            Json(json!({"employees": employees}))).into_response();
+        },
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to get the employees"}))).into_response(),
+    };
+}
+

@@ -56,6 +56,7 @@ async fn main() {
         .route("/requestpswchange", post(request_psw_change))
         .route("/changepsw", post(change_password))
         .route("/checkchangepswcode", post(check_changepsw_code))
+        .route("/getemployees", post(get_employees))
         .route("/explore", get(explore_catalog))
         .route("/machinery/{id}", get(select_machine))
         .layer(
