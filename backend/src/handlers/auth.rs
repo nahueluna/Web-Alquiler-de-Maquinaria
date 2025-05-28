@@ -554,3 +554,51 @@ pub async fn get_employees (
     };
 }
 
+pub async fn delete_employee (
+    State(state): State<AppState>,
+    Json(payload): Json<DeleteEmployee>,
+) -> Response {
+
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => return (StatusCode::UNAUTHORIZED,
+                    Json(json!({"message": "Invalid access token"}))).into_response(),
+    }.claims;
+
+    if claims.role != 0 {
+        return (StatusCode::FORBIDDEN,
+            Json(json!({"message": "The user is not an admin"}))).into_response();
+    }
+
+    let mut client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
+    };
+
+    let transaction = match client.transaction().await {
+        Ok(t) => t,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to create a DB transaction",}))).into_response(),
+    };
+
+    if  transaction.execute("DELETE FROM user_info WHERE id = $1",
+        &[&payload.id]).await.is_err() {
+        return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to execute transaction"}))).into_response();
+    }
+
+    if transaction.execute("DELETE FROM users WHERE id = $1 AND role = 1",
+        &[&payload.id]).await.is_err() {
+        return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to execute transaction"}))).into_response();
+    }
+
+    match transaction.commit().await {
+        Ok(_) => return (StatusCode::OK,
+            Json(json!({"message": "Employee deleted successfully"}))).into_response(),
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to commit transaction"}))).into_response(),
+    };
+}
+

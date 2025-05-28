@@ -102,6 +102,12 @@ pub struct Access {
     pub access: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeleteEmployee {
+    pub access: String,
+    pub id: i32,
+}
+
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct ChangePsw {
     #[validate(length(min = 8))]
