@@ -11,6 +11,7 @@ import {
 } from "@mui/joy";
 import { useFormik } from "formik";
 import * as yup from "yup";
+import { Alert } from "@mui/joy";
 
 const validationSchema = yup.object({
   email: yup
@@ -55,10 +56,16 @@ const formik = useFormik({
         if (error.response.status === 400) {
           setMensajeEnviado(true);
         } else {
-          alert(error.response.data.message);
-        }
+            setErrorSnackbar({
+            open: true,
+            message: error.response.data.message || "Error en el servidor.",
+        });
+      }
       } else {
-        alert("Error de red. No se pudo contactar al servidor.");
+          setErrorSnackbar({
+          open: true,
+          message: "Error. No se pudo contactar al servidor.",
+      });
       }
     } finally {
       setLoading(false);
@@ -127,6 +134,16 @@ const formik = useFormik({
             </Box>
           </form>
         )}
+        {errorSnackbar.open && (
+        <Alert
+          color="danger"
+          variant="soft"
+          sx={{ mt: 2 }}
+          onClose={() => setErrorSnackbar({ open: false, message: "" })}
+        >
+          {errorSnackbar.message}
+        </Alert>
+      )}
       </Box>
   );
 }
