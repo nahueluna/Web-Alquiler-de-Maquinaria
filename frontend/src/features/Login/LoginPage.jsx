@@ -56,6 +56,12 @@ export default function LoginPage() {
       try {
         const user = await login(values);
 
+        if (user?.message && user.message.includes("2FA")) {
+          return nav("/two-factor", {
+            state: values,
+          });
+        }
+
         setStatus({ isError: false, message: "Successfully logged in!" });
         setOpenSnack(true);
         setTimeout(() => setUser(user), 1000);
