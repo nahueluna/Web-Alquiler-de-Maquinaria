@@ -18,18 +18,18 @@ export function UserProvider({ children }) {
     setLoadingUser(false);
   }, []);
 
-  async function login(loginInfo) {
+  async function login(loginInfo, code = 0) {
     const { data } = await axios.post(
       "http://localhost:8000/login",
-      loginInfo,
+      code !== 0 ? { ...loginInfo, code } : loginInfo,
       {
         withCredentials: true,
       }
     );
 
-    console.log("User logged in", data);
-
-    saveLocalStorage("user", data);
+    if (!data?.message) {
+      saveLocalStorage("user", data);
+    }
 
     return data;
   }
