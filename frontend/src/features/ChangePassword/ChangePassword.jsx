@@ -53,7 +53,7 @@ const ChangePassword = () => {
   // SI ES INVÁLIDO
   useEffect(() => {
     if (!checkingCode && !codeValid) {
-      navigate("/home", { replace: true });
+      navigate("/*", { replace: true });
     }
   }, [checkingCode, codeValid, navigate]);
 

@@ -12,7 +12,7 @@ import RegisterPage from "../features/Register/RegisterPage";
 import Terms from "../features/Terms/TermsPage";
 import TwoFactor from "../features/TwoFactorAuth/TwoFactor";
 import MainLayout from "../layout/MainLayout";
-import AddEmployee from "../features/AddEmployee/AddEmployee"
+import AddEmployee from "../features/Dashboard/AddEmployee"
 import ProtectedRoute from "./ProtectedRoutes"
 
 export default function AppRoutes() {

@@ -3,7 +3,7 @@ import { FormControl, Input, Sheet } from "@mui/joy";
 import Button from "@mui/joy/Button";
 import { Stack } from "@mui/material";
 import { useState } from "react";
-import AddEmployee from "../AddEmployee/AddEmployee";
+import AddEmployee from "./AddEmployee";
 import EmployeesList from "./EmployeesList";
 
 const Employees = () => {

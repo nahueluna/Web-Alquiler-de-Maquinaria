@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Box, Button, Input, FormLabel, FormHelperText, Typography, Snackbar, Alert } from '@mui/joy';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import Stack from '@mui/joy/Stack';
 
-function AddEmployee() {
+function AddEmployee({ setRegisterForm }) {
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
     const formik = useFormik({
@@ -81,61 +82,78 @@ function AddEmployee() {
     );
   };
 
-  return (
-    <>
-      <Box
-        component="form"
-        onSubmit={formik.handleSubmit}
-        sx={{
-          maxWidth: 400,
-          mx: 'auto',
-          mt: 4,
-          mb: 4,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-          p: 4,
-          borderRadius: 'lg',
-          boxShadow: 'sm',
-          backgroundColor: 'background.surface',
-          border: '1px solid',
-          borderColor: 'neutral.outlinedBorder',
-        }}
-        noValidate
-      >
-        <Typography level="h3" component="h1" textAlign="center" mb={2}>
-          Registrar empleado
-        </Typography>
+return (
+  <>
+    <Box
+      component="form"
+      onSubmit={formik.handleSubmit}
+      sx={{
+        maxWidth: 600,
+        mx: 'auto',
+        mt: 4,
+        mb: 4,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        p: 3,
+        borderRadius: "sm",
+        backgroundColor: "background.surface",
+        border: "1px solid",
+        borderColor: "neutral.outlinedBorder",
+      }}
+      noValidate
+    >
+      <Typography level="h3" component="h3" textAlign="center" mb={1}>
+        Registrar empleado
+      </Typography>
 
-        {renderInput('Email', 'email', 'email', true)}
-        {renderInput('Nombre', 'nombre', 'text', true)}
-        {renderInput('Apellido', 'apellido', 'text', true)}
-        {renderInput('Fecha de nacimiento', 'fechaNacimiento', 'date', true)}
-        {renderInput('DNI', 'dni', 'text', true)}
-        {renderInput('Teléfono (opcional)', 'telefono', 'text', false)}
+      {renderInput('Email', 'email', 'email', true, { size: 'sm' })}
+      {renderInput('Nombre', 'nombre', 'text', true, { size: 'sm' })}
+      {renderInput('Apellido', 'apellido', 'text', true, { size: 'sm' })}
+      {renderInput('Fecha de nacimiento', 'fechaNacimiento', 'date', true, { size: 'sm' })}
+      {renderInput('DNI', 'dni', 'text', true, { size: 'sm' })}
+      {renderInput('Teléfono (opcional)', 'telefono', 'text', false, { size: 'sm' })}
 
-        <Button type="submit" disabled={formik.isSubmitting}>
+      <Stack direction="row" justifyContent="flex-start" spacing={1}>
+        <Button
+          type="submit"
+          size="sm"
+          color="danger"
+          variant="solid"
+          disabled={formik.isSubmitting}
+        >
           Registrar empleado
         </Button>
-      </Box>
+        <Button
+          size="sm"
+          variant="plain"
+            onClick={() => {
+              formik.resetForm();
+              setRegisterForm(false);
+            }}
+          >
+          Cancelar
+        </Button>
+      </Stack>
+    </Box>
 
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={3000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{
-          backgroundColor: 'transparent',
-          boxShadow: 'none',
-          padding: 0,
-        }}
-      >
-        <Alert color="success" variant="soft" onClose={handleCloseSnackbar}>
-          El empleado ha sido registrado correctamente.
-        </Alert>
-      </Snackbar>
-    </>
-  );
+    <Snackbar
+      open={openSnackbar}
+      autoHideDuration={3000}
+      onClose={handleCloseSnackbar}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      sx={{
+        backgroundColor: 'transparent',
+        boxShadow: 'none',
+        padding: 0,
+      }}
+    >
+      <Alert color="success" variant="soft" onClose={handleCloseSnackbar}>
+        El empleado ha sido registrado correctamente.
+      </Alert>
+    </Snackbar>
+  </>
+);
 }
 
 export default AddEmployee;
