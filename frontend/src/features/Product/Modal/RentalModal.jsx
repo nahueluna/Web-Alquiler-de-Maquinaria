@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import Check from "@mui/icons-material/Check";
 import Location from "./Location";
+import Duration from "./Duration";
 
 // const today = new Date();
 // const yyyy = today.getFullYear();
@@ -36,7 +37,7 @@ function RentalModal({ setOpen, open, locations }) {
       name: "Elegir ubicacion",
       component: <Location locations={locations} />,
     },
-    { name: "Elegir duracion", component: <div>test</div> },
+    { name: "Elegir duracion", component: <Duration /> },
     { name: "Realizar pago", component: "" },
   ];
 
