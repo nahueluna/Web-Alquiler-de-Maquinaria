@@ -42,37 +42,42 @@ export function UserProvider({ children }) {
     user.access = data.access;
 
     saveLocalStorage("user", user);
-    console.log("User refreshed", user);
+    setUser(user);
     return data;
   }
 
-  // TODO: Blacklist token
-
   async function logout() {
     try {
-      const user = JSON.parse(window.localStorage.getItem("user"));
-      const access = user.access;
-      console.log("user", user);
-      console.log("user.access", user.access);
+      const { data } = await axios.post(
+        "http://localhost:8000/logout",
+        {
+          access: user.access,
+        },
+        {
+          withCredentials: true,
+        }
+      );
 
-      if (access) {
-        const response = await axios.post(
+      console.log(data);
+    } catch (error) {
+      if (error.status === 401) {
+        // Not authorized
+        const { access } = await refresh(); // If the refresh token expires this will break
+        console.log(access);
+
+        await axios.post(
           "http://localhost:8000/logout",
-          { access },
+          {
+            access,
+          },
           {
             withCredentials: true,
           }
         );
-        console.log("exitoso", response.status);
       }
-
+    } finally {
       window.localStorage.removeItem("user");
       setUser(null);
-    } catch (error) {
-      console.error("Error al cerrar sesion:", error);
-      if (error.response) {
-        console.log(error.response.status);
-      }
     }
   }
 
