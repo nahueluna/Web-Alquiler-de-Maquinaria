@@ -1,7 +1,9 @@
-import ErrorOutline from "@mui/icons-material/ErrorOutline";
+import {
+  default as ErrorOutline,
+  default as ErrorOutlineIcon,
+} from "@mui/icons-material/ErrorOutline";
 import MailIcon from "@mui/icons-material/Mail";
 import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheck";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import {
   Button,
   Checkbox,
@@ -15,10 +17,10 @@ import {
   Stack,
   Typography,
 } from "@mui/joy";
+import axios from "axios";
 import { useFormik } from "formik";
 import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import axios from "axios";
 
 import * as yup from "yup";
 
@@ -27,7 +29,6 @@ const yyyy = today.getFullYear();
 const mm = String(today.getMonth() + 1).padStart(2, "0");
 const dd = String(today.getDate()).padStart(2, "0");
 const todayStr = `${yyyy}-${mm}-${dd}`;
-console.log(todayStr);
 
 const validationSchema = yup.object({
   nombre: yup
