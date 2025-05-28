@@ -55,6 +55,7 @@ async fn main() {
         .route("/refresh", post(refresh))
         .route("/requestpswchange", post(request_psw_change))
         .route("/changepsw", post(change_password))
+        .route("/changephone", post(change_phone))
         .route("/checkchangepswcode", post(check_changepsw_code))
         .route("/getemployees", post(get_employees))
         .route("/deletemployee", post(delete_employee))

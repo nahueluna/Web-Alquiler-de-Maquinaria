@@ -599,3 +599,37 @@ async fn test_register_get_and_delete_employees() {
     assert_eq!(employees[1].role, 1);
     assert_eq!(employees[1].id_card, "GAAAAAA");
 }
+
+#[tokio::test]
+async fn test_change_phone() {
+    setup().await;
+    let client = Client::new();
+
+    let pool = create_pool(RunningEnv::Testing);
+    let db_client = match pool.await.get().await {
+        Ok(c) => c,
+        Err(e) => panic!("Failed to connect to the database: {}", e),
+    };
+
+    //Dave has no number
+    db_client.query_one("SELECT * FROM users JOIN user_info
+        ON users.id = user_info.id WHERE email = $1 AND phone IS NULL;",
+            &[&"dave@example.com"]).await.unwrap();
+
+    let jwt = get_test_jwt("dave@example.com", false).await;
+    //Change phone number
+    let res = client
+        .post(backend_url("/changephone"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "phone": "newnumber"
+        })).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"].as_str().unwrap(), "Phone number changed successfully");
+
+    //Dave now has a number
+    db_client.query_one("SELECT * FROM users JOIN user_info
+        ON users.id = user_info.id WHERE email = $1 AND phone = $2;",
+            &[&"dave@example.com", &"newnumber"]).await.unwrap();
+}
+

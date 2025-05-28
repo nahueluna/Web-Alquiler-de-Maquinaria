@@ -685,3 +685,28 @@ pub async fn register_employee (
     };
 }
 
+pub async fn change_phone (
+    State(state): State<AppState>,
+    Json(payload): Json<ChangePhone>,
+) -> Response {
+
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => return (StatusCode::UNAUTHORIZED,
+                    Json(json!({"message": "Invalid access token"}))).into_response(),
+    }.claims;
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
+    };
+
+    match client.execute("UPDATE user_info SET phone = $1
+        WHERE id = $2;", &[&payload.phone, &claims.user_id]).await {
+        Ok(_) => return (StatusCode::OK,
+            Json(json!({"message": "Phone number changed successfully"}))).into_response(),
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to change the phone number"}))).into_response(),
+    };
+}

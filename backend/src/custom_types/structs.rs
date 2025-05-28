@@ -118,6 +118,12 @@ pub struct Access {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ChangePhone {
+    pub access: String,
+    pub phone: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DeleteEmployee {
     pub access: String,
     pub id: i32,
