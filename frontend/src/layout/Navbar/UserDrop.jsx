@@ -49,7 +49,7 @@ function UserDrop() {
               underline="none"
               textColor={"text.primary"}
               component={RouterLink}
-              to="/rentals"
+              to="/myrentals"
             >
               Mis alquileres
             </Link>
