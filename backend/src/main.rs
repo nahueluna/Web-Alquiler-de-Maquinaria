@@ -10,11 +10,11 @@ use helpers::auth::create_pool;
 use std::{env, sync::Arc};
 use tower_http::cors::CorsLayer;
 
+mod constants;
 mod custom_types;
 mod handlers;
 mod helpers;
 mod tests;
-mod constants;
 
 #[tokio::main]
 async fn main() {
@@ -59,7 +59,9 @@ async fn main() {
         .route("/getemployees", post(get_employees))
         .route("/deletemployee", post(delete_employee))
         .route("/explore", get(explore_catalog))
-        .route("/machinery/{id}", get(select_machine))
+        .route("/explore/{id}", get(select_machine))
+        .route("/explore/{id}/locations", get(get_machine_locations))
+        .route("/rental/availability", get(get_unavailable_dates))
         .layer(
             CorsLayer::new()
                 .allow_origin(vec![frontend_url.parse().unwrap()])
