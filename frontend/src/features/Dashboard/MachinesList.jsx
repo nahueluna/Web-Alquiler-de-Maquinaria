@@ -11,6 +11,8 @@ import {
   Sheet,
   Stack,
   Typography,
+  Select,
+  Option
 } from "@mui/joy";
 import { useState } from "react";
 
@@ -53,6 +55,8 @@ const machinesData = [
 export const MachinesList = () => {
   const [openFormId, setOpenFormId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [estado, setEstado] = useState("");
+  const [ubicacion, setUbicacion] = useState("");
 
   return (
     <Sheet
@@ -145,8 +149,28 @@ export const MachinesList = () => {
                     </Typography>
                     <Stack direction="row" spacing={2}>
                       <Input placeholder="ID" size="sm" />
-                      <Input placeholder="Estado" size="sm" />
-                      <Input placeholder="Ubicación" size="sm" />
+                    <Select
+                      placeholder="Estado"
+                      value={estado}
+                      onChange={(e, value) => setEstado(value)}
+                      sx={{ minWidth: 120 }}
+                      variant="outlined"
+                    >
+                      <Option value="Disponible">Disponible</Option>
+                      <Option value="En mantenimiento">En mantenimiento</Option>
+                      <Option value="No disponible">No disponible</Option>
+                    </Select>
+                    <Select
+                      placeholder="Ubicación"
+                      value={ubicacion}
+                      onChange={(e, value) => setUbicacion(value)}
+                      sx={{ minWidth: 130 }}
+                      variant="outlined"
+                    >
+                      <Option value="mar_del_plata">Mar del Plata</Option>
+                      <Option value="bahia_blanca">Bahía Blanca</Option>
+                      <Option value="caballito">Caballito</Option>
+                    </Select>
                       <Button size="sm" color="danger" variant="solid">
                         Guardar
                       </Button>
