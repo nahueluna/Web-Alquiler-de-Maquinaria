@@ -37,7 +37,9 @@ function Location({ dispatch, locations }) {
             }}
             loading="lazy"
             onLoad={() => setLoading(false)}
-            src={`https://www.google.com/maps/embed/v1/place?q=${selected.latitude},${selected.longitude}&key=AIzaSyAfqrTmt8MVY6dc-OeFt6hrIUeSATwo5pA`}
+            src={`https://www.google.com/maps/embed/v1/place?q=${
+              selected.latitude
+            },${selected.longitude}&key=${import.meta.env.VITE_MAPS}`}
           ></iframe>
         </Skeleton>
       </AspectRatio>
