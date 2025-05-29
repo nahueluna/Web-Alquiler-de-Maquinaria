@@ -13,6 +13,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@fontsource/inter": "^5.2.5",
+    "@mercadopago/sdk-react": "^1.0.3",
     "@mui/icons-material": "^7.1.0",
     "@mui/joy": "^5.0.0-beta.52",
     "@mui/material": "^7.1.0",
