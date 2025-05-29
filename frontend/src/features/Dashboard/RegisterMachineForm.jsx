@@ -10,7 +10,6 @@ import {
 } from "@mui/joy";
 
 import { useState } from "react";
-
 import MoneyInput from "../utils/MoneyInput";
 
 const RegisterMachineForm = ({ setRegisterForm }) => {
@@ -22,8 +21,9 @@ const RegisterMachineForm = ({ setRegisterForm }) => {
         p: 3,
         borderRadius: "sm",
         mb: 2,
-        minWidth: "400px",
-        maxWidth: "800px",
+        minWidth: 400,
+        maxWidth: 800,
+        width: 600,
       }}
     >
       <form
@@ -33,8 +33,8 @@ const RegisterMachineForm = ({ setRegisterForm }) => {
       >
         <Stack spacing={2}>
           <Typography level="h4">Registrar nuevo modelo</Typography>
-          <Stack direction="row" spacing={2}>
-            <FormControl>
+          <Stack direction="row" spacing={2} flexWrap="wrap">
+            <FormControl sx={{ flex: 1, minWidth: 150, maxWidth: 200 }}>
               <Input
                 name="marca"
                 placeholder="Marca"
@@ -42,7 +42,7 @@ const RegisterMachineForm = ({ setRegisterForm }) => {
                 sx={{ width: "100%" }}
               />
             </FormControl>
-            <FormControl>
+            <FormControl sx={{ flex: 1, minWidth: 150, maxWidth: 200 }}>
               <Input
                 name="modelo"
                 placeholder="Modelo"
@@ -50,17 +50,26 @@ const RegisterMachineForm = ({ setRegisterForm }) => {
                 sx={{ width: "100%" }}
               />
             </FormControl>
-            <FormControl>
-              <Input name="año" placeholder="Año" required />
+            <FormControl sx={{ flex: 1, minWidth: 100, maxWidth: 120 }}>
+              <Input
+                name="año"
+                placeholder="Año"
+                required
+                sx={{ width: "100%" }}
+              />
             </FormControl>
           </Stack>
-          <Stack direction="row" spacing={2}></Stack>
-          <Stack direction="row" spacing={2}>
-            <FormControl>
+          <Stack direction="row" spacing={2} flexWrap="wrap">
+            <FormControl sx={{ flex: 1, minWidth: 150, maxWidth: 200 }}>
               <MoneyInput />
             </FormControl>
-            <FormControl>
-              <Input name="etiqueta" placeholder="Etiqueta" required />
+            <FormControl sx={{ flex: 1, minWidth: 150, maxWidth: 200 }}>
+              <Input
+                name="etiqueta"
+                placeholder="Etiqueta"
+                required
+                sx={{ width: "100%" }}
+              />
             </FormControl>
           </Stack>
           <FormControl>
@@ -80,6 +89,7 @@ const RegisterMachineForm = ({ setRegisterForm }) => {
               name="descripcion"
               placeholder="Descripción general"
               required
+              sx={{ width: "100%" }}
             />
           </FormControl>
           <FormControl>
