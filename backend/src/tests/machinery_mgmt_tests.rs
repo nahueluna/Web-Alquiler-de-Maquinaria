@@ -270,11 +270,7 @@ mod tests {
 
         let valid_machine_id = 1;
         let valid_response = http_client
-            .get(format!(
-                "{}/{}",
-                backend_url("/machinery"),
-                valid_machine_id
-            ))
+            .get(format!("{}/{}", backend_url("/explore"), valid_machine_id))
             .send()
             .await
             .unwrap();
@@ -289,20 +285,13 @@ mod tests {
         assert_eq!(machine.get("model").unwrap(), "CAT320D");
         assert_eq!(machine.get("brand").unwrap(), "Caterpillar");
 
-        let locations = response_body["locations"].as_array().unwrap();
-
-        assert_eq!(locations.len(), 3);
-        assert_eq!(locations[0]["id"].as_i64().unwrap(), 1);
-
-        assert_eq!(locations[1]["city"].as_str().unwrap(), "La Plata");
-
         // ----------- Select a machine with an invalid ID
 
         let invalid_machine_id = 9999;
         let invalid_response = http_client
             .get(format!(
                 "{}/{}",
-                backend_url("/machinery"),
+                backend_url("/explore"),
                 invalid_machine_id
             ))
             .send()
@@ -310,5 +299,171 @@ mod tests {
             .unwrap();
 
         assert_eq!(invalid_response.status(), 404);
+    }
+
+    #[tokio::test]
+    async fn get_machine_locations() {
+        setup().await;
+        let http_client = Client::new();
+
+        // ----------- Get locations for a valid machine ID
+
+        let jwt = get_test_jwt("hank@example.com", false).await;
+
+        let valid_machine_id = 1;
+        let valid_response = http_client
+            .get(format!(
+                "{}/{}/locations",
+                backend_url("/explore"),
+                valid_machine_id
+            ))
+            .json(&serde_json::json!({
+                "access": jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(valid_response.status(), 200);
+
+        let response_body = valid_response.json::<serde_json::Value>().await.unwrap();
+
+        assert!(response_body["locations"].is_array());
+        assert!(!response_body["locations"].as_array().unwrap().is_empty());
+
+        assert_eq!(
+            response_body["locations"].as_array().unwrap()[0]["city"],
+            "Buenos Aires"
+        );
+
+        // ----------- Get locations for an invalid machine ID
+
+        let invalid_machine_id = 9999;
+        let invalid_response = http_client
+            .get(format!(
+                "{}/{}/locations",
+                backend_url("/explore"),
+                invalid_machine_id
+            ))
+            .json(&serde_json::json!({
+                "access": jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(invalid_response.status(), 404);
+
+        // ----------- Get locations with an invalid JWT
+
+        let invalid_jwt = "invalid.jwt.token";
+
+        let invalid_jwt_response = http_client
+            .get(format!(
+                "{}/{}/locations",
+                backend_url("/explore"),
+                valid_machine_id
+            ))
+            .json(&serde_json::json!({
+                "access": invalid_jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(invalid_jwt_response.status(), 401);
+
+        // ----------- Get locations with a JWT of a non-client user
+
+        let non_client_jwt = get_test_jwt("frank@example.com", false).await;
+
+        let non_client_response = http_client
+            .get(format!(
+                "{}/{}/locations",
+                backend_url("/explore"),
+                valid_machine_id
+            ))
+            .json(&serde_json::json!({
+                "access": non_client_jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(non_client_response.status(), 403);
+    }
+
+    #[tokio::test]
+    async fn test_check_availability() {
+        setup().await;
+        let http_client = Client::new();
+
+        let jwt = get_test_jwt("hank@example.com", false).await;
+
+        // ----------- Check availability for a valid machine ID and date range
+
+        let valid_machine_id = 4;
+        let valid_location_id = 2;
+        let valid_response = http_client
+            .get(backend_url("/rental/availability"))
+            .query(&[
+                ("model_id", &valid_machine_id.to_string()),
+                ("location_id", &valid_location_id.to_string()),
+            ])
+            .json(&serde_json::json!({
+                "access": jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(valid_response.status(), 200);
+
+        let response_body = valid_response.json::<serde_json::Value>().await.unwrap();
+
+        let dates = response_body["not_available_dates"].as_array().unwrap();
+
+        assert_eq!(dates.len(), 2);
+
+        // ----------- Check availability for an invalid machine ID
+
+        let invalid_machine_id = 9999;
+        let invalid_response = http_client
+            .get(backend_url("/rental/availability"))
+            .query(&[
+                ("model_id", &invalid_machine_id.to_string()),
+                ("location_id", &valid_location_id.to_string()),
+            ])
+            .json(&serde_json::json!({
+                "access": jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(invalid_response.status(), 200);
+
+        let response_body = invalid_response.json::<serde_json::Value>().await.unwrap();
+
+        assert_eq!(
+            response_body["not_available_dates"]
+                .as_array()
+                .unwrap()
+                .len(),
+            0
+        );
+
+        // ----------- Check availability with missing parameters
+
+        let missing_params_response = http_client
+            .get(backend_url("/rental/availability"))
+            .json(&serde_json::json!({
+                "access": jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(missing_params_response.status(), 400);
     }
 }

@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Box, Button, Input, FormLabel, FormHelperText, Typography, Snackbar, Alert } from '@mui/joy';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Stack from '@mui/joy/Stack';
+import UserContext from "../../context/UserContext"
+import axios from 'axios';
 
 function AddEmployee({ setRegisterForm }) {
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const { user } = useContext(UserContext);
+  const accessToken = user?.access || null;
+  const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: "" });
 
     const formik = useFormik({
     initialValues: {
@@ -48,13 +53,63 @@ function AddEmployee({ setRegisterForm }) {
         .matches(/^\d{8,17}$/, 'Teléfono debe tener entre 8 y 17 dígitos')
         .notRequired(),
     }),
-    onSubmit: (values, { setSubmitting, resetForm }) => {
-        setSubmitting(false);
-        setOpenSnackbar(true);
-        resetForm();
-        // ACÁ CONECTAR CON EL BACKEND
-    },
+onSubmit: async (values, { setSubmitting, resetForm }) => {
+  try {
+    const fechaSplit = values.fechaNacimiento.split('-');
+    const fechaFormateada = `${fechaSplit[2]}-${fechaSplit[1]}-${fechaSplit[0]}`;
+
+    const payload = {
+      email: values.email,
+      name: values.nombre,
+      surname: values.apellido,
+      birthdate: fechaFormateada,
+      id_card: values.dni,
+      phone: values.telefono || null,
+      access: user?.access || '',
+    };
+    console.log('Payload enviado:', JSON.stringify(payload, null, 2));
+    const response = await axios.post('http://localhost:8000/registeremployee', payload, {
+      withCredentials: true,
     });
+
+    if (response.status === 200) {
+      setOpenSnackbar(true);
+      resetForm();
+      setRegisterForm(false);
+    }
+  } catch (error) {
+    console.error('Error axios:', error);
+    let errorMsg = 'Error desconocido.';
+    if (error.response) {
+      switch (error.response.status) {
+        case 400:
+          errorMsg = 'Datos inválidos. Revisa el formulario.';
+          break;
+        case 401:
+          errorMsg = 'Token inválido. Por favor inicia sesión de nuevo.';
+          break;
+        case 403:
+          errorMsg = 'No tienes permisos para registrar empleados.';
+          break;
+        case 409:
+          errorMsg = 'El email ya está registrado.';
+          break;
+        case 500:
+          errorMsg = 'Error interno del servidor (posible DNI ya registrado).';
+          break;
+        default:
+          errorMsg = error.response.data.message || errorMsg;
+      }
+    } else {
+      errorMsg = 'No se pudo conectar con el servidor.';
+    }
+    setErrorSnackbar({ open: true, message: errorMsg });
+  } finally {
+    setSubmitting(false);
+  }
+},
+});
+
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === 'clickaway') return;
@@ -152,6 +207,24 @@ return (
         El empleado ha sido registrado correctamente.
       </Alert>
     </Snackbar>
+    <Snackbar
+  open={errorSnackbar.open}
+  onClose={() => setErrorSnackbar({ open: false, message: "" })}
+  message={errorSnackbar.message}
+  color={errorSnackbar.message.includes('correctamente') ? 'success' : 'danger'}
+  variant="soft"
+  autoHideDuration={3000}
+  sx={{
+    position: 'fixed',
+    bottom: 16,
+    left: '70%',
+    transform: 'translateX(-50%)',
+    zIndex: 9999,
+  }}
+>
+  {errorSnackbar.message}
+</Snackbar>
+
   </>
 );
 }

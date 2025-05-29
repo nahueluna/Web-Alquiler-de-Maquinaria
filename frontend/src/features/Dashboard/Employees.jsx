@@ -10,6 +10,7 @@ const Employees = () => {
   const [registerForm, setRegisterForm] = useState(false);
 
   return (
+    <>
     <Sheet sx={{ p: 2 }}>
       <Stack spacing={2} sx={{ width: "50%", minWidth: "500px" }}>
         <Stack direction="row" spacing={2}>
@@ -27,6 +28,7 @@ const Employees = () => {
         <EmployeesList />
       </Stack>
     </Sheet>
+    </>
   );
 };
 
