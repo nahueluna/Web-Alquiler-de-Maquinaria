@@ -23,7 +23,7 @@ function Product() {
   const [machine, setMachine] = useState(null);
   const [locations, setLocations] = useState(null);
   const [products, setProducts] = useState([]);
-  const { user } = useContext(UserContext);
+  const { user, refresh } = useContext(UserContext);
   const nav = useNavigate();
 
   const { id } = useParams();
@@ -123,7 +123,29 @@ function Product() {
                 sx={{ width: "100%" }}
                 size="lg"
                 color="danger"
-                onClick={() => setOpen(true)}
+                onClick={async () => {
+                  // TODO: Cleanup
+                  const {
+                    data: { locations },
+                  } = await axios
+                    .post(
+                      `http://localhost:8000/explore/${machine.id}/locations`,
+                      { access: user.access }
+                    )
+                    .catch(async () => {
+                      const { access } = await refresh();
+                      const res = await axios.post(
+                        `http://localhost:8000/explore/${machine.id}/locations`,
+                        {
+                          access,
+                        }
+                      );
+
+                      return res;
+                    });
+                  setLocations(locations);
+                  setOpen(true);
+                }}
                 disabled={!user}
               >
                 Alquilar
