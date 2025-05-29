@@ -78,8 +78,14 @@ function RentalModal({ setOpen, open, machine, locations }) {
     }
   }
 
-  function handleNext() {
-    console.log("Test", activeStep);
+  async function handleNext() {
+    if (activeStep === 1) {
+      setLoadingMl(true);
+      const { data } = await axios.post("http://localhost:3000/pago", state);
+
+      setMlId(data.id);
+      setLoadingMl(false);
+    }
     setActiveStep((prev) => prev + 1);
   }
 
@@ -148,9 +154,28 @@ function RentalModal({ setOpen, open, machine, locations }) {
           <Button onClick={handleBack} variant="plain" color="neutral">
             {activeStep === 0 ? "Cancelar" : "Atras"}
           </Button>
-          <Button onClick={handleNext} variant="solid" color="danger">
-            Siguiente
-          </Button>
+
+          {/* Show mp Wallet button when on the last step */}
+          {activeStep === 2 ? (
+            <Wallet
+              initialization={{ preferenceId: mlId }}
+              customization={{
+                theme: "dark",
+                customStyle: {
+                  hideValueProp: true,
+                },
+              }}
+            />
+          ) : (
+            <Button
+              loading={loadingMl}
+              onClick={handleNext}
+              variant="solid"
+              color="danger"
+            >
+              Siguiente
+            </Button>
+          )}
         </Box>
       </Sheet>
     </Modal>
