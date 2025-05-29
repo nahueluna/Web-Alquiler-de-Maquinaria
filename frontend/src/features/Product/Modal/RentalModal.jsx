@@ -125,7 +125,7 @@ function RentalModal({ setOpen, open, machine, locations }) {
                       : "danger"
                   }
                 >
-                  {activeStep <= i ? i + 1 : <Check />}
+                  {activeStep <= i ? i + 1 : <Check sx={{ fontSize: "lg" }} />}
                 </StepIndicator>
               }
               sx={[
