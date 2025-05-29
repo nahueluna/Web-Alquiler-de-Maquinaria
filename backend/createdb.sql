@@ -1,7 +1,8 @@
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 
-CREATE TYPE machine_status AS ENUM ('available', 'rented', 'maintenance');
+CREATE TYPE machine_status AS ENUM ('available', 'rented', 'maintenance', 'reserved');
+CREATE TYPE rental_status AS ENUM ('active', 'pending_payment', 'completed', 'cancelled', 'failed');
 
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -56,7 +57,6 @@ CREATE TABLE machinery_units (
     id SERIAL PRIMARY KEY,
     serial_number TEXT UNIQUE NOT NULL,
     status machine_status NOT NULL,
-    notes TEXT,
     assigned_at TIMESTAMP NOT NULL DEFAULT NOW(),
     model_id INTEGER NOT NULL REFERENCES machinery_models(id),
     location_id INTEGER NOT NULL REFERENCES locations(id)
@@ -79,4 +79,17 @@ CREATE TABLE machinery_categories (
     model_id INTEGER NOT NULL REFERENCES machinery_models(id),
     category_id INTEGER NOT NULL REFERENCES categories(id),
     PRIMARY KEY (model_id, category_id)
+);
+
+CREATE TABLE rentals (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    machine_id INTEGER NOT NULL REFERENCES machinery_units(id),
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    total_price REAL NOT NULL,
+    status rental_status NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    payment_id TEXT NULL
 );

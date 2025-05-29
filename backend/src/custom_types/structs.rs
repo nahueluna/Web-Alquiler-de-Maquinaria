@@ -196,7 +196,7 @@ pub struct Location {
 impl Location {
     pub fn build_from_row(row: &tokio_postgres::Row) -> Self {
         Location {
-            id: row.get("location_id"),
+            id: row.get("id"),
             latitude: row.get("latitude"),
             longitude: row.get("longitude"),
             street: row.get("street"),
@@ -204,4 +204,16 @@ impl Location {
             city: row.get("city"),
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ModelAndLocation {
+    pub model_id: i32,
+    pub location_id: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DateRange {
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
 }
