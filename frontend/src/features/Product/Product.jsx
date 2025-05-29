@@ -36,13 +36,10 @@ function Product() {
 
     async function fetchMachine() {
       try {
-        const { data } = await axios.get(
-          `http://localhost:8000/machinery/${id}`
-        );
+        const { data } = await axios.get(`http://localhost:8000/explore/${id}`);
 
         console.log(data.machine);
         setMachine(data.machine);
-        setLocations(data.locations);
       } catch (error) {
         console.error(error);
       } finally {
