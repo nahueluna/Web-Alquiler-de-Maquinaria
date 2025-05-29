@@ -6,28 +6,111 @@ import ListDivider from "@mui/joy/ListDivider";
 import ListItem from "@mui/joy/ListItem";
 import Stack from "@mui/joy/Stack";
 import Tooltip from "@mui/joy/Tooltip";
-import React from "react";
-
-const employees = [
-  {
-    name: "Juan",
-    surname: "Pérez",
-    email: "sadasda",
-  },
-  {
-    name: "Ana",
-    surname: "Gómez",
-    email: "dsadassdadas",
-  },
-];
+import Box from '@mui/joy/Box';
+import React, { useState, useEffect, useContext } from "react";
+import UserContext from "../../context/UserContext"
+import Snackbar from '@mui/joy/Snackbar';
+import axios from 'axios';
 
 const EmployeesList = () => {
-  const [open, setOpen] = React.useState(false);
-  const [selectedEmployee, setSelectedEmployee] = React.useState(null);
-  const handleConfirmedDelete = (employeeToDelete) => {
-    console.log(employeeToDelete);
-    // Conectar para eliminar empleado hola soy el ing ramos
-    setOpen(false);
+  //const [open, setOpen] = React.useState(false);
+  //const [selectedEmployee, setSelectedEmployee] = React.useState(null);
+  //const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: "" });
+  //const [loading, setLoading] = useState(false);
+  const { user } = useContext(UserContext);  // Obtenemos user del contexto
+  const accessToken = user?.access || null; // Obtenemos el token
+
+  const [employees, setEmployees] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: "" });
+  const [loading, setLoading] = useState(false);
+
+    const fetchEmployees = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/getemployees",
+        { access: accessToken },
+        { withCredentials: true }
+      );
+      if (response.status === 200) {
+        setEmployees(response.data.employees);
+      }
+    } catch (error) {
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            setErrorSnackbar({ open: true, message: "Token inválido. Por favor, inicia sesión de nuevo." });
+            break;
+          case 403:
+            setErrorSnackbar({ open: true, message: "No tienes permisos de administrador." });
+            break;
+          case 500:
+            setErrorSnackbar({ open: true, message: "Error interno del servidor." });
+            break;
+          default:
+            setErrorSnackbar({ open: true, message: error.response.data.message || "Error desconocido." });
+        }
+      } else {
+        setErrorSnackbar({ open: true, message: "No se pudo conectar con el servidor." });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchEmployees();
+    }
+  }, [accessToken]);
+
+  const handleDeleteClick = (employee) => {
+    setSelectedEmployee(employee);
+    setOpen(true);
+  };
+  
+  const handleConfirmedDelete = async () => {
+    if (!selectedEmployee) return;
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/deletemployee",
+        {
+          access: accessToken,
+          id: selectedEmployee.id,
+        },
+        { withCredentials: true }
+      );
+      if (response.status === 200) {
+        setEmployees((prev) =>
+          prev.filter((emp) => emp.id !== selectedEmployee.id)
+        );
+        setOpen(false);
+        setSelectedEmployee(null);
+      }
+    } catch (error) {
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            setErrorSnackbar({ open: true, message: "Token inválido. Por favor, inicia sesión de nuevo." });
+            break;
+          case 403:
+            setErrorSnackbar({ open: true, message: "No tienes permisos de administrador." });
+            break;
+          case 500:
+            setErrorSnackbar({ open: true, message: "Error interno o empleado no encontrado." });
+            break;
+          default:
+            setErrorSnackbar({ open: true, message: error.response.data.message || "Error desconocido." });
+        }
+      } else {
+        setErrorSnackbar({ open: true, message: "No se pudo conectar con el servidor." });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,7 +127,7 @@ const EmployeesList = () => {
             sx={{ borderRadius: "sm", width: "50%", minWidth: "500px" }}
           >
             {employees.map((employee, index) => (
-              <>
+              <Box key={index}>
                 <ListItem
                   endAction={
                     <Tooltip title="Eliminar empleado">
@@ -70,7 +153,7 @@ const EmployeesList = () => {
                   </Stack>
                 </ListItem>
                 {index < employees.length - 1 && <ListDivider />}
-              </>
+              </Box>
             ))}
           </List>
           <Modal
@@ -115,6 +198,23 @@ const EmployeesList = () => {
           </Modal>
         </>
       )}
+      <Snackbar
+        open={errorSnackbar.open}
+        onClose={() => setErrorSnackbar({ open: false, message: "" })}
+        message={errorSnackbar.message}
+        color="danger"
+        variant="soft"
+        autoHideDuration={3000}
+        sx={{
+          position: 'fixed',
+          bottom: 16,
+          left: '70%',
+          transform: 'translateX(-50%)',
+          zIndex: 9999,
+        }}
+        >
+          {errorSnackbar.message}
+      </Snackbar>
     </>
   );
 };
