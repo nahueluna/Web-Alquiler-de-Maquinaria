@@ -30,14 +30,16 @@ const Profile = () => {
 
   useEffect(() => {
     if (user) {
+      const phoneFromStorage = window.localStorage.getItem("userPhone");
       setUserData({
-        nombre: user.pub_user.name || "",
-        correo: user.pub_user.email || "",
-        telefono: user.user_info.phone || "",
-        dni: user.user_info.id_card || "",
-        nacimiento: user.user_info.birthdate || "",
-        esAdmin: user.pub_user.role === 1,
+        nombre: user.pub_user?.name || "",
+        correo: user.pub_user?.email || "",
+        telefono: phoneFromStorage || user.user_info?.phone || "",
+        dni: user.user_info?.id_card || "",
+        nacimiento: user.user_info?.birthdate || "",
+        rol: user?.pub_user?.role ?? 2
       });
+      console.log("USER COMPLETO", user);
     }
   }, [user]);
 
@@ -67,15 +69,47 @@ const Profile = () => {
           }
         ),
     }),
-    onSubmit: (values) => {
-      setUserData((prev) => ({
-        ...prev,
-        telefono: values.telefono,
-      }));
-      setEditMode(false);
-      setShowSaveSnackbar(true);
-    },
-  });
+      onSubmit: async (values, { setSubmitting }) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/changephone",
+        {
+          phone: values.telefono,
+          access: user?.access || "",
+        },
+        { withCredentials: true }
+      );
+
+      if (response.status === 200) {
+        setUserData((prev) => ({
+          ...prev,
+          telefono: values.telefono,
+        }));
+        window.localStorage.setItem("userPhone", values.telefono);
+        setEditMode(false);
+        setShowSaveSnackbar(true);
+      }
+    } catch (error) {
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            setErrorSnackbar({ open: true, message: "Token inválido. Por favor inicia sesión de nuevo." });
+            // Aquí podrías agregar lógica para forzar logout si quieres
+            break;
+          case 500:
+            setErrorSnackbar({ open: true, message: "Error interno del servidor. Intenta más tarde." });
+            break;
+          default:
+            setErrorSnackbar({ open: true, message: error.response.data.message || "Error desconocido." });
+        }
+      } else {
+        setErrorSnackbar({ open: true, message: "No se pudo conectar con el servidor." });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  },
+});
 
 const handleChangePassword = async () => {
   try {
@@ -185,7 +219,13 @@ const handleChangePassword = async () => {
       <Typography level="body-sm" sx={{ minWidth: 100, fontWeight: "md" }}>
         Rol:
       </Typography>
-      <Typography>{userData.esAdmin ? "Administrador" : "Usuario"}</Typography>
+      <Typography>
+        {userData.rol === 0
+          ? "Administrador"
+          : userData.rol === 1
+          ? "Empleado"
+          : "Cliente"}
+      </Typography>
     </Box>
 
     <Box
