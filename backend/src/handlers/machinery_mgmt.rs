@@ -1,7 +1,12 @@
 use crate::custom_types::enums::{OrderByField, OrderDirection};
-use crate::custom_types::structs::{AppState, CatalogParams, Location, MachineModel};
+use crate::custom_types::structs::{
+    Access, AppState, CatalogParams, DateRange, Location, MachineModel, ModelAndLocation,
+};
+use crate::helpers::auth::validate_jwt;
+use crate::helpers::machinery_mgmt::validate_client;
 use axum::{extract::Path, extract::State, http::StatusCode, Json};
 use axum_extra::extract::Query;
+use chrono::NaiveDate;
 use serde_json::json;
 use tokio_postgres::types::ToSql;
 use validator::Validate;
@@ -209,32 +214,17 @@ pub async fn select_machine(
     if let Ok(client) = state.pool.get().await {
         let machine_query = "SELECT * FROM machinery_models WHERE id = $1;";
 
-        let location_query =
-            "SELECT locations.id AS location_id, latitude, longitude, street, number, city 
-        FROM machinery_models INNER JOIN machinery_units 
-            ON machinery_models.id = machinery_units.model_id INNER JOIN locations 
-            ON machinery_units.location_id = locations.id 
-        WHERE machinery_models.id = $1;";
-
         match client.query_one(machine_query, &[&machine_id]).await {
-            Ok(machine_row) => match client.query(location_query, &[&machine_id]).await {
-                Ok(location_rows) => {
-                    let machine = MachineModel::build_from_row(&machine_row);
-                    let locations: Vec<Location> = location_rows
-                        .into_iter()
-                        .map(|r| Location::build_from_row(&r))
-                        .collect();
+            Ok(machine_row) => {
+                let machine = MachineModel::build_from_row(&machine_row);
 
-                    return (
-                        StatusCode::OK,
-                        Json(json!({
-                            "machine": machine,
-                            "locations": locations,
-                        })),
-                    );
-                }
-                Err(e) => eprintln!("Error querying locations: {:?}", e),
-            },
+                return (
+                    StatusCode::OK,
+                    Json(json!({
+                        "machine": machine,
+                    })),
+                );
+            }
 
             Err(e) => {
                 eprintln!("Error querying the machine: {:?}", e);
@@ -245,6 +235,131 @@ pub async fn select_machine(
                     })),
                 );
             }
+        }
+    }
+
+    return (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({
+            "message": "Error connecting to the database",
+        })),
+    );
+}
+
+pub async fn get_machine_locations(
+    State(state): State<AppState>,
+    Path(machine_id): Path<i32>,
+    Json(payload): Json<Access>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Some(invalid_response) = validate_client(&payload.access) {
+        return invalid_response;
+    }
+
+    if let Ok(client) = state.pool.get().await {
+        let locations_query = "
+            SELECT l.* FROM machinery_models mm
+            INNER JOIN machinery_units mu ON mm.id = mu.model_id 
+            INNER JOIN locations l ON mu.location_id = l.id
+            WHERE mm.id = $1;
+        ";
+
+        if let Ok(location_rows) = client.query(locations_query, &[&machine_id]).await {
+            if location_rows.is_empty() {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "message": "No locations found for this machine",
+                    })),
+                );
+            }
+
+            let locations: Vec<Location> = location_rows
+                .into_iter()
+                .map(|row| Location::build_from_row(&row))
+                .collect();
+
+            return (
+                StatusCode::OK,
+                Json(json!({
+                    "locations": locations,
+                })),
+            );
+        }
+    }
+
+    return (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({
+            "message": "Error connecting to the database",
+        })),
+    );
+}
+
+pub async fn get_unavailable_dates(
+    State(state): State<AppState>,
+    Query(query_params): Query<ModelAndLocation>,
+    Json(payload): Json<Access>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Some(invalid_response) = validate_client(&payload.access) {
+        return invalid_response;
+    }
+
+    if let Ok(client) = state.pool.get().await {
+        let not_available_dates_query = "
+            WITH relevant_units AS (SELECT mu.id
+                FROM machinery_units mu
+                WHERE mu.model_id = $1 AND mu.location_id = $2),
+            relevant_rentals AS (SELECT r.machine_id, r.start_date::date AS start_date, (r.end_date + INTERVAL '7 days')::date AS end_date
+                FROM rentals r
+                WHERE r.status IN ('active', 'pending_payment') AND r.machine_id IN (SELECT id FROM relevant_units)),
+            dates AS (SELECT generate_series(start_date, end_date, INTERVAL '1 day')::date AS day, machine_id
+                FROM relevant_rentals),
+            busy_days AS (SELECT day, COUNT(DISTINCT machine_id) AS busy_units
+                FROM dates
+                GROUP BY day),
+            fully_booked_days AS (SELECT day
+                FROM busy_days
+                WHERE busy_units = (SELECT COUNT(*) FROM relevant_units)),
+            grouped_periods AS (SELECT day, day - INTERVAL '1 day' * ROW_NUMBER() OVER (ORDER BY day) AS grp
+                FROM fully_booked_days),
+            merged_ranges AS (SELECT MIN(day) AS start_date, MAX(day) AS end_date
+                FROM grouped_periods
+                GROUP BY grp)
+            SELECT start_date, end_date
+            FROM merged_ranges
+            ORDER BY start_date;
+        ";
+
+        let machine_id = query_params.model_id;
+        let location_id = query_params.location_id;
+
+        if let Ok(rows) = client
+            .query(not_available_dates_query, &[&machine_id, &location_id])
+            .await
+        {
+            if rows.is_empty() {
+                return (
+                    StatusCode::OK,
+                    Json(json!({
+                        "not_available_dates": [],
+                    })),
+                );
+            }
+
+            let not_available_dates: Vec<DateRange> = rows
+                .into_iter()
+                .map(|row| DateRange {
+                    start_date: row.get("start_date"),
+                    end_date: row.get("end_date"),
+                })
+                .collect();
+
+            return (
+                StatusCode::OK,
+                Json(json!({
+                    "not_available_dates": not_available_dates,
+                })),
+            );
         }
     }
 
