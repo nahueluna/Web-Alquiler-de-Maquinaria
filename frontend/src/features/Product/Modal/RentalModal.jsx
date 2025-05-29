@@ -10,35 +10,64 @@ import {
   Stepper,
   Typography,
 } from "@mui/joy";
-import { useState } from "react";
+import { useState, useReducer } from "react";
 import Check from "@mui/icons-material/Check";
 import Location from "./Location";
 import Duration from "./Duration";
+import { initMercadoPago, Wallet } from "@mercadopago/sdk-react";
+import Summary from "./Summary";
+import axios from "axios";
 
-// const today = new Date();
-// const yyyy = today.getFullYear();
-// const mm = String(today.getMonth() + 1).padStart(2, "0");
-// const dd = String(today.getDate()).padStart(2, "0");
-// const todayStr = `${yyyy}-${mm}-${dd}`;
+initMercadoPago(import.meta.env.VITE_MP_PUBLIC);
 
-// const oneWeekLater = new Date(today);
-// oneWeekLater.setDate(today.getDate() + 7);
+function reducer(state, action) {
+  switch (action.type) {
+    case "setLocation":
+      return {
+        ...state,
+        selectedLocation: action.value,
+      };
 
-// const yyyy2 = oneWeekLater.getFullYear();
-// const mm2 = String(oneWeekLater.getMonth() + 1).padStart(2, "0");
-// const dd2 = String(oneWeekLater.getDate()).padStart(2, "0");
-// const oneWeekLaterStr = `${yyyy2}-${mm2}-${dd2}`;
+    case "setDates": {
+      let [start, end] = action.value;
+      let ms = new Date(end).getTime() - new Date(start).getTime();
+      let days = ms / (1000 * 60 * 60 * 24);
 
-function RentalModal({ setOpen, open, locations }) {
-  //   const [endDate, setEndDate] = useState(null);
+      return {
+        ...state,
+        dates: action.value,
+        days: days,
+      };
+    }
+
+    case "clear":
+      return {
+        machine: state.machine,
+        selectedLocation: {},
+        dates: [],
+        days: 0,
+      };
+  }
+}
+
+function RentalModal({ setOpen, open, machine, locations }) {
   const [activeStep, setActiveStep] = useState(0);
+  const [mlId, setMlId] = useState("");
+  const [loadingMl, setLoadingMl] = useState(false);
+  const [state, dispatch] = useReducer(reducer, {
+    machine,
+    selectedLocation: {},
+    dates: [],
+    days: 0,
+  });
+
   const steps = [
     {
       name: "Elegir ubicacion",
-      component: <Location locations={locations} />,
+      component: <Location dispatch={dispatch} locations={locations} />,
     },
-    { name: "Elegir duracion", component: <Duration /> },
-    { name: "Realizar pago", component: "" },
+    { name: "Elegir duracion", component: <Duration dispatch={dispatch} /> },
+    { name: "Realizar pago", component: <Summary info={state} /> },
   ];
 
   function handleBack() {

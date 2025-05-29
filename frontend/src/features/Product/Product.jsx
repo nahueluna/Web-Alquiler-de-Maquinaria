@@ -162,6 +162,7 @@ function Product() {
               <RentalModal
                 open={open}
                 setOpen={setOpen}
+                machine={machine}
                 locations={locations}
               />
             </Sheet>
