@@ -1,7 +1,7 @@
 import { FormControl, FormLabel, Input, Sheet } from "@mui/joy";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-function Duration() {
+function Duration({ dispatch }) {
   const [minEnd, setMinEnd] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -31,6 +31,10 @@ function Duration() {
     setEndValue(newValue);
     setMinEnd(newValue);
   }
+
+  useEffect(() => {
+    dispatch({ type: "setDates", value: [startValue.value, endValue] });
+  }, [startValue, endValue]);
 
   return (
     <Sheet

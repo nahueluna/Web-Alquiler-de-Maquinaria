@@ -1,7 +1,7 @@
 import { AspectRatio, Option, Select, Skeleton } from "@mui/joy";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-function Location({ locations }) {
+function Location({ dispatch, locations }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(locations[0]);
 
@@ -10,6 +10,10 @@ function Location({ locations }) {
     setLoading(true);
     setSelected(loc);
   }
+
+  useEffect(() => {
+    dispatch({ type: "setLocation", value: selected });
+  }, [selected]);
 
   return (
     <>
