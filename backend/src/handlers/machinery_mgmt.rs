@@ -243,7 +243,31 @@ pub async fn select_machine(
 
         match client.query_one(machine_query, &[&machine_id]).await {
             Ok(machine_row) => {
-                let machine = MachineModel::build_from_row(&machine_row);
+                let mut machine = MachineModel::build_from_row(&machine_row);
+
+                let category_query = "
+                    SELECT c.id AS category_id, c.name AS category_name 
+                    FROM categories c
+                    INNER JOIN machinery_categories mc ON c.id = mc.category_id
+                    WHERE mc.model_id = $1;
+                ";
+
+                if let Ok(category_rows) = client.query(category_query, &[&machine.id]).await {
+                    machine.categories = category_rows
+                        .into_iter()
+                        .map(|row| Category {
+                            id: row.get("category_id"),
+                            name: row.get("category_name"),
+                        })
+                        .collect();
+                } else {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({
+                            "message": "Se ha producido un error interno en el servidor",
+                        })),
+                    );
+                }
 
                 return (
                     StatusCode::OK,
@@ -258,7 +282,7 @@ pub async fn select_machine(
                 return (
                     StatusCode::NOT_FOUND,
                     Json(json!({
-                        "message": "Machine not found",
+                        "message": "No se ha encontrado la máquina solicitada",
                     })),
                 );
             }
@@ -268,7 +292,7 @@ pub async fn select_machine(
     return (
         StatusCode::INTERNAL_SERVER_ERROR,
         Json(json!({
-            "message": "Error connecting to the database",
+            "message": "Se ha producido un error interno en el servidor",
         })),
     );
 }
