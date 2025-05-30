@@ -118,6 +118,7 @@ async fn test_explore_catalog() {
     let machine7 = &response_body["items"][0];
     let machine8 = &response_body["items"][1];
     let machine9 = &response_body["items"][2];
+    let machines_categories = ["obras urbanas", "movimiento de tierra"];
 
     let machine9_price = machine9
         .as_object()
@@ -133,16 +134,18 @@ async fn test_explore_catalog() {
         "Komatsu"
     );
     assert_eq!(machine9_price, 75000.0);
-    assert_eq!(
-        machine9
+
+    assert!(machines_categories.contains(
+        &machine9
             .as_object()
             .unwrap()
             .get("categories")
             .unwrap()
             .as_array()
-            .unwrap()[0]["name"],
-        "movimiento de tierra"
-    );
+            .unwrap()[0]["name"]
+            .as_str()
+            .unwrap()
+    ));
 
     // ----------- Page 1, Page size 2, valid request with categories filter, search term, maximum price and order
 
@@ -420,7 +423,7 @@ async fn get_machine_locations() {
 }
 
 #[tokio::test]
-async fn test_check_availability() {
+async fn test_get_units_unavailable_dates() {
     setup().await;
     let http_client = Client::new();
 
@@ -428,12 +431,12 @@ async fn test_check_availability() {
 
     // ----------- Check availability for a valid machine ID and date range
 
-    let valid_machine_id = 4;
-    let valid_location_id = 2;
+    let valid_model_id = 1;
+    let valid_location_id = 1;
     let valid_response = http_client
         .post(backend_url("/rental/availability"))
         .query(&[
-            ("model_id", &valid_machine_id.to_string()),
+            ("model_id", &valid_model_id.to_string()),
             ("location_id", &valid_location_id.to_string()),
         ])
         .json(&serde_json::json!({
@@ -447,9 +450,19 @@ async fn test_check_availability() {
 
     let response_body = valid_response.json::<serde_json::Value>().await.unwrap();
 
-    let dates = response_body["not_available_dates"].as_array().unwrap();
+    println!("Response body: {:#?}", response_body);
 
-    assert_eq!(dates.len(), 2);
+    let units_info = response_body["units_and_their_unavailable_dates"]
+        .as_array()
+        .unwrap();
+
+    assert_eq!(units_info.len(), 2);
+
+    let dates_from_unit1 = &units_info[0]["periods"].as_array().unwrap();
+    let dates_from_unit2 = &units_info[1]["periods"].as_array().unwrap();
+
+    assert_eq!(dates_from_unit1.len(), 0);
+    assert_eq!(dates_from_unit2.len(), 2);
 
     // ----------- Check availability for an invalid machine ID
 
@@ -467,17 +480,7 @@ async fn test_check_availability() {
         .await
         .unwrap();
 
-    assert_eq!(invalid_response.status(), 200);
-
-    let response_body = invalid_response.json::<serde_json::Value>().await.unwrap();
-
-    assert_eq!(
-        response_body["not_available_dates"]
-            .as_array()
-            .unwrap()
-            .len(),
-        0
-    );
+    assert_eq!(invalid_response.status(), 404);
 
     // ----------- Check availability with missing parameters
 

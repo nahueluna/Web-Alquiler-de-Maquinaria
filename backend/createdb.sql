@@ -86,6 +86,7 @@ CREATE TABLE machinery_categories (
 CREATE TABLE rentals (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
+    employee_id INTEGER NOT NULL REFERENCES users(id),
     machine_id INTEGER NOT NULL REFERENCES machinery_units(id),
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,

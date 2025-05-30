@@ -221,6 +221,17 @@ pub struct ModelAndLocation {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct UnitDatesInfo {
+    machines_info: Vec<UnitAndDates>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UnitAndDates {
+    pub unit_id: i32,
+    pub periods: Vec<DateRange>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DateRange {
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,

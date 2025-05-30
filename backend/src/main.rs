@@ -64,7 +64,7 @@ async fn main() {
         .route("/explore", get(explore_catalog))
         .route("/explore/{id}", get(select_machine))
         .route("/explore/{id}/locations", post(get_machine_locations))
-        .route("/rental/availability", post(get_unavailable_dates))
+        .route("/rental/availability", post(get_units_unavailable_dates))
         .route("/rental/new", post(new_rental))
         .route("/newmodel", post(new_model)
             .layer(DefaultBodyLimit::max(20*1024*1024))) //20MB for images

@@ -30,11 +30,11 @@ INSERT INTO change_psw_codes (id, code) VALUES
 
 -- Insert sample data into the machinery_models table
 INSERT INTO machinery_models (name, brand, model, year, policy, description, price) VALUES
-('Excavadora hidráulica', 'Caterpillar', 'CAT320D', 2020, 'Cancelación con 48h de anticipación', 'Excavadora para trabajos pesados', 150000.00),
-('Retroexcavadora', 'John Deere', '310SL', 2019, 'Sin devolución', 'Ideal para zonas urbanas', 95000.00),
-('Cargadora frontal', 'Komatsu', 'WA270', 2021, 'Cancelación sin costo 24h antes', 'Cargadora con gran potencia', 120000.00),
-('Miniexcavadora', 'Bobcat', 'E35', 2022, 'Cancelación parcial con retención del 20%', 'Compacta para espacios reducidos', 75000.00),
-('Grúa torre', 'Liebherr', 'EC-B', 2023, 'No reembolsable', 'Grúa de gran altura', 200000.00);
+('Excavadora hidráulica', 'Caterpillar', 'CAT320D', 2020, 'No se realizan reembolsos por cancelaciones.', 'Excavadora para trabajos pesados', 150000.00),
+('Retroexcavadora', 'John Deere', '310SL', 2019, 'No se realizan reembolsos por cancelaciones.', 'Ideal para zonas urbanas', 95000.00),
+('Cargadora frontal', 'Komatsu', 'WA270', 2021, 'Se aplica un reembolso parcial según el tiempo de aviso previo.', 'Cargadora con gran potencia', 120000.00),
+('Miniexcavadora', 'Bobcat', 'E35', 2022, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Compacta para espacios reducidos', 75000.00),
+('Grúa torre', 'Liebherr', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00);
 
 -- Insert sample data into the locations table
 INSERT INTO locations (latitude, longitude, street, number, city) VALUES
@@ -48,7 +48,7 @@ INSERT INTO machinery_units (serial_number, status, assigned_at, model_id, locat
 -- Modelo 1 (Caterpillar)
 ('CAT-001', 'available', NOW() - INTERVAL '100 days', 1, 1),
 ('CAT-002', 'rented', NOW() - INTERVAL '20 days', 1, 2),
-('CAT-003', 'maintenance', NOW() - INTERVAL '5 days', 1, 3),
+('CAT-003', 'maintenance', NOW() - INTERVAL '5 days', 1, 1),
 
 -- Modelo 2 (John Deere)
 ('JD-001', 'available', NOW() - INTERVAL '50 days', 2, 1),
@@ -117,49 +117,39 @@ INSERT INTO machinery_categories (model_id, category_id) VALUES
 (5, 4);
 
 -- Insert sample data into the rentals table
--- completed | 01/12/2024 - 10/12/2024 | Máquina ID 2 (CAT-002 - Caterpillar) | Usuario ID 2
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (2, 2, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 5000.00, 'completed');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (4, 2, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 5000.00, 'completed', 2);
 
--- completed | 01/01/2025 - 10/01/2025 | Máquina ID 5 (JD-002 - John Deere) | Usuario ID 6
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (6, 5, NOW() - INTERVAL '148 days', NOW() - INTERVAL '139 days', 4300.00, 'completed');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (8, 5, NOW() - INTERVAL '148 days', NOW() - INTERVAL '139 days', 4300.00, 'completed', 2);
 
--- active | 25/05/2025 - 05/06/2025 | Máquina ID 6 (JD-003 - John Deere) | Usuario ID 10
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (10, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 4100.00, 'active');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 4100.00, 'active', 2);
 
--- active | 28/05/2025 - 10/06/2025 | Máquina ID 9 (KM-002 - Komatsu) | Usuario ID 14
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (14, 9, NOW(), NOW() + INTERVAL '13 days', 3950.00, 'active');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (4, 9, NOW(), NOW() + INTERVAL '13 days', 3950.00, 'active', 2);
 
--- pending_payment | 15/06/2025 - 25/06/2025 | Máquina ID 3 (CAT-003 - Caterpillar) | Usuario ID 4
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (4, 3, NOW() + INTERVAL '18 days', NOW() + INTERVAL '28 days', 6200.00, 'pending_payment');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (9, 3, NOW() + INTERVAL '18 days', NOW() + INTERVAL '28 days', 6200.00, 'pending_payment', 2);
 
--- pending_payment | 20/06/2025 - 27/06/2025 | Máquina ID 7 (KM-003 - Komatsu) | Usuario ID 11
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (11, 7, NOW() + INTERVAL '23 days', NOW() + INTERVAL '30 days', 4000.00, 'pending_payment');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (9, 7, NOW() + INTERVAL '23 days', NOW() + INTERVAL '30 days', 4000.00, 'pending_payment', 6);
 
--- pending_payment | 22/06/2025 - 29/06/2025 | Máquina ID 8 (BC-001 - Bobcat) | Usuario ID 12
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (12, 8, NOW() + INTERVAL '15 days', NOW() + INTERVAL '29 days', 4300.00, 'pending_payment');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (10, 8, NOW() + INTERVAL '15 days', NOW() + INTERVAL '29 days', 4300.00, 'pending_payment', 6);
 
--- cancelled | 01/06/2025 - 10/06/2025 | Máquina ID 2 (CAT-002 - Caterpillar) | Usuario ID 8
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (8, 2, NOW() + INTERVAL '4 days', NOW() + INTERVAL '13 days', 5500.00, 'cancelled');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (10, 2, NOW() + INTERVAL '4 days', NOW() + INTERVAL '13 days', 5500.00, 'cancelled', 6);
 
--- cancelled | 01/06/2025 - 08/06/2025 | Máquina ID 3 (CAT-003 - Caterpillar) | Usuario ID 9
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (9, 3, NOW() + INTERVAL '4 days', NOW() + INTERVAL '11 days', 5800.00, 'cancelled');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (10, 3, NOW() + INTERVAL '4 days', NOW() + INTERVAL '11 days', 5800.00, 'active', 6);
 
--- failed | 03/06/2025 - 10/06/2025 | Máquina ID 1 (CAT-001 - Caterpillar) | Usuario ID 13
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (13, 1, NOW() + INTERVAL '6 days', NOW() + INTERVAL '13 days', 4600.00, 'failed');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (10, 1, NOW() + INTERVAL '6 days', NOW() + INTERVAL '13 days', 4600.00, 'failed', 6);
 
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (4, 10, NOW() + INTERVAL '8 days', NOW() + INTERVAL '18 days', 6000.00, 'active', 2);
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (1, 10, NOW() + INTERVAL '8 days', NOW() + INTERVAL '18 days', 6000.00, 'active');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
+VALUES (9, 10, NOW() + INTERVAL '28 days', NOW() + INTERVAL '38 days', 6000.00, 'pending_payment', 6);
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
-VALUES (2, 10, NOW() + INTERVAL '28 days', NOW() + INTERVAL '38 days', 6000.00, 'pending_payment');
