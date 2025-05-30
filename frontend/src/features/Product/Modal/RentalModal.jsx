@@ -10,13 +10,14 @@ import {
   Stepper,
   Typography,
 } from "@mui/joy";
-import { useState, useReducer } from "react";
+import { useState, useReducer, useContext } from "react";
 import Check from "@mui/icons-material/Check";
 import Location from "./Location";
 import Duration from "./Duration";
 import { initMercadoPago, Wallet } from "@mercadopago/sdk-react";
 import Summary from "./Summary";
 import axios from "axios";
+import UserContext from "../../../context/UserContext";
 
 initMercadoPago(import.meta.env.VITE_MP_PUBLIC);
 
@@ -51,6 +52,7 @@ function reducer(state, action) {
 }
 
 function RentalModal({ setOpen, open, machine, locations }) {
+  const { user, refresh } = useContext(UserContext);
   const [activeStep, setActiveStep] = useState(0);
   const [mlId, setMlId] = useState("");
   const [loadingMl, setLoadingMl] = useState(false);
@@ -158,6 +160,32 @@ function RentalModal({ setOpen, open, machine, locations }) {
           {/* Show mp Wallet button when on the last step */}
           {activeStep === 2 ? (
             <Wallet
+              // Create rental on the backend when the button is pressed
+              onSubmit={async () => {
+                const body = {
+                  machineId: state.machine.id,
+                  startDate: state.dates[0].split("-").reverse().join(""),
+                  endDate: state.dates[1].split("-").reverse().join(""),
+                };
+
+                console.log(body);
+                const { data } = await axios
+                  .post("http://localhost:8000/rentals/new", {
+                    ...body,
+                    access: user.access,
+                  })
+                  .catch(async () => {
+                    const { access } = await refresh();
+                    const res = await axios.post(
+                      "http://localhost:8000/rentals/new",
+                      { ...body, access }
+                    );
+
+                    return res;
+                  });
+
+                console.log(data);
+              }}
               initialization={{ preferenceId: mlId }}
               customization={{
                 theme: "dark",
