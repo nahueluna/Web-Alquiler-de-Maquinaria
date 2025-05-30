@@ -1,11 +1,12 @@
 use crate::custom_types::enums::{OrderByField, OrderDirection};
 use crate::custom_types::structs::{
-    Access, AppState, CatalogParams, DateRange, Location, MachineModel, ModelAndLocation,
+    Access, AppState, CatalogParams, Category, DateRange, Location, MachineModel, ModelAndLocation,
 };
 use crate::helpers::machinery_mgmt::validate_client;
 use axum::{extract::Path, extract::State, http::StatusCode, Json};
 use axum_extra::extract::Query;
 use serde_json::json;
+use std::collections::HashMap;
 use tokio_postgres::types::ToSql;
 use validator::Validate;
 
@@ -82,7 +83,6 @@ pub async fn explore_catalog(
             join_clauses
                 .push("INNER JOIN machinery_categories mc ON mm.id = mc.model_id".to_string());
             join_clauses.push("INNER JOIN categories c ON mc.category_id = c.id".to_string());
-
             let category_placeholders: Vec<String> = categories
                 .iter()
                 .map(|_| {
@@ -135,11 +135,12 @@ pub async fn explore_catalog(
         let all_joins = join_clauses.join(" ");
 
         let select_query = format!(
-            "SELECT DISTINCT mm.* FROM machinery_models mm {} {} {} LIMIT ${} OFFSET ${};",
+            "SELECT DISTINCT mm.* FROM machinery_models mm 
+            {} {} {} LIMIT ${} OFFSET ${};",
             all_joins, where_clause, order_clause, limit_param_idx, offset_param_idx
         );
 
-        let count_query = if join_clauses.is_empty() {
+        let count_query = if categories.is_empty() {
             format!("SELECT COUNT(*) FROM machinery_models mm {};", where_clause)
         } else {
             format!(
@@ -171,10 +172,38 @@ pub async fn explore_catalog(
 
                 match client.query(&select_query, select_params.as_slice()).await {
                     Ok(machinery_rows) => {
-                        let machinery_list: Vec<MachineModel> = machinery_rows
-                            .into_iter()
-                            .map(|row| MachineModel::build_from_row(&row))
+                        let mut machinery_list: Vec<MachineModel> = machinery_rows
+                            .iter()
+                            .map(|row| MachineModel::build_from_row(row))
                             .collect();
+
+                        for machine in machinery_list.iter_mut() {
+                            let category_query = "
+                                SELECT c.id AS category_id, c.name AS category_name 
+                                FROM categories c
+                                INNER JOIN machinery_categories mc ON c.id = mc.category_id
+                                WHERE mc.model_id = $1;
+                            ";
+
+                            if let Ok(category_rows) =
+                                client.query(category_query, &[&machine.id]).await
+                            {
+                                machine.categories = category_rows
+                                    .into_iter()
+                                    .map(|row| Category {
+                                        id: row.get("category_id"),
+                                        name: row.get("category_name"),
+                                    })
+                                    .collect();
+                            } else {
+                                return (
+                                    StatusCode::INTERNAL_SERVER_ERROR,
+                                    Json(json!({
+                                        "message": "Se ha producido un error interno en el servidor",
+                                    })),
+                                );
+                            }
+                        }
 
                         return (
                             StatusCode::OK,
@@ -200,7 +229,7 @@ pub async fn explore_catalog(
     return (
         StatusCode::INTERNAL_SERVER_ERROR,
         Json(json!({
-            "message": "Error connecting to the database",
+            "message": "Se ha producido un error interno en el servidor",
         })),
     );
 }

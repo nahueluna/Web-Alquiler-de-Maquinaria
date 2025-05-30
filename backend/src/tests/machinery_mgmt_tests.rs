@@ -312,7 +312,7 @@ mod tests {
 
         let valid_machine_id = 1;
         let valid_response = http_client
-            .get(format!(
+            .post(format!(
                 "{}/{}/locations",
                 backend_url("/explore"),
                 valid_machine_id
@@ -340,7 +340,7 @@ mod tests {
 
         let invalid_machine_id = 9999;
         let invalid_response = http_client
-            .get(format!(
+            .post(format!(
                 "{}/{}/locations",
                 backend_url("/explore"),
                 invalid_machine_id
@@ -359,7 +359,7 @@ mod tests {
         let invalid_jwt = "invalid.jwt.token";
 
         let invalid_jwt_response = http_client
-            .get(format!(
+            .post(format!(
                 "{}/{}/locations",
                 backend_url("/explore"),
                 valid_machine_id
@@ -378,7 +378,7 @@ mod tests {
         let non_client_jwt = get_test_jwt("frank@example.com", false).await;
 
         let non_client_response = http_client
-            .get(format!(
+            .post(format!(
                 "{}/{}/locations",
                 backend_url("/explore"),
                 valid_machine_id
@@ -405,7 +405,7 @@ mod tests {
         let valid_machine_id = 4;
         let valid_location_id = 2;
         let valid_response = http_client
-            .get(backend_url("/rental/availability"))
+            .post(backend_url("/rental/availability"))
             .query(&[
                 ("model_id", &valid_machine_id.to_string()),
                 ("location_id", &valid_location_id.to_string()),
@@ -429,7 +429,7 @@ mod tests {
 
         let invalid_machine_id = 9999;
         let invalid_response = http_client
-            .get(backend_url("/rental/availability"))
+            .post(backend_url("/rental/availability"))
             .query(&[
                 ("model_id", &invalid_machine_id.to_string()),
                 ("location_id", &valid_location_id.to_string()),
@@ -456,7 +456,7 @@ mod tests {
         // ----------- Check availability with missing parameters
 
         let missing_params_response = http_client
-            .get(backend_url("/rental/availability"))
+            .post(backend_url("/rental/availability"))
             .json(&serde_json::json!({
                 "access": jwt
             }))
