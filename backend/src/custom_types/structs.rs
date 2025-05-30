@@ -166,6 +166,7 @@ pub struct MachineModel {
     pub policy: String,
     pub description: String,
     pub price: f32,
+    pub categories: Vec<Category>,
 }
 
 impl MachineModel {
@@ -179,8 +180,15 @@ impl MachineModel {
             policy: row.get("policy"),
             description: row.get("description"),
             price: row.get("price"),
+            categories: Vec::new(),
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct Category {
+    pub id: i32,
+    pub name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
