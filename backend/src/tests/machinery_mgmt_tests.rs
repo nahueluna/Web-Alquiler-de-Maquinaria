@@ -29,6 +29,16 @@ mod tests {
 
         assert_eq!(machine1.as_object().unwrap().get("id").unwrap(), 1);
         assert_eq!(machine2.as_object().unwrap().get("model").unwrap(), "310SL");
+        assert_eq!(
+            machine2
+                .as_object()
+                .unwrap()
+                .get("categories")
+                .unwrap()
+                .as_array()
+                .unwrap()[0]["name"],
+            "obras urbanas"
+        );
 
         // ----------- Page 2, Page size 2, valid request without filters
 
@@ -121,6 +131,16 @@ mod tests {
             "Komatsu"
         );
         assert_eq!(machine9_price, 75000.0);
+        assert_eq!(
+            machine9
+                .as_object()
+                .unwrap()
+                .get("categories")
+                .unwrap()
+                .as_array()
+                .unwrap()[0]["name"],
+            "movimiento de tierra"
+        );
 
         // ----------- Page 1, Page size 2, valid request with categories filter, search term, maximum price and order
 
@@ -284,6 +304,10 @@ mod tests {
         assert_eq!(machine.get("id").unwrap(), 1);
         assert_eq!(machine.get("model").unwrap(), "CAT320D");
         assert_eq!(machine.get("brand").unwrap(), "Caterpillar");
+        assert_eq!(
+            machine.get("categories").unwrap().as_array().unwrap()[0]["name"],
+            "construccion pesada"
+        );
 
         // ----------- Select a machine with an invalid ID
 
@@ -312,7 +336,7 @@ mod tests {
 
         let valid_machine_id = 1;
         let valid_response = http_client
-            .get(format!(
+            .post(format!(
                 "{}/{}/locations",
                 backend_url("/explore"),
                 valid_machine_id
@@ -340,7 +364,7 @@ mod tests {
 
         let invalid_machine_id = 9999;
         let invalid_response = http_client
-            .get(format!(
+            .post(format!(
                 "{}/{}/locations",
                 backend_url("/explore"),
                 invalid_machine_id
@@ -359,7 +383,7 @@ mod tests {
         let invalid_jwt = "invalid.jwt.token";
 
         let invalid_jwt_response = http_client
-            .get(format!(
+            .post(format!(
                 "{}/{}/locations",
                 backend_url("/explore"),
                 valid_machine_id
@@ -378,7 +402,7 @@ mod tests {
         let non_client_jwt = get_test_jwt("frank@example.com", false).await;
 
         let non_client_response = http_client
-            .get(format!(
+            .post(format!(
                 "{}/{}/locations",
                 backend_url("/explore"),
                 valid_machine_id
@@ -405,7 +429,7 @@ mod tests {
         let valid_machine_id = 4;
         let valid_location_id = 2;
         let valid_response = http_client
-            .get(backend_url("/rental/availability"))
+            .post(backend_url("/rental/availability"))
             .query(&[
                 ("model_id", &valid_machine_id.to_string()),
                 ("location_id", &valid_location_id.to_string()),
@@ -429,7 +453,7 @@ mod tests {
 
         let invalid_machine_id = 9999;
         let invalid_response = http_client
-            .get(backend_url("/rental/availability"))
+            .post(backend_url("/rental/availability"))
             .query(&[
                 ("model_id", &invalid_machine_id.to_string()),
                 ("location_id", &valid_location_id.to_string()),
@@ -456,7 +480,7 @@ mod tests {
         // ----------- Check availability with missing parameters
 
         let missing_params_response = http_client
-            .get(backend_url("/rental/availability"))
+            .post(backend_url("/rental/availability"))
             .json(&serde_json::json!({
                 "access": jwt
             }))
