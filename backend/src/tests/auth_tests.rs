@@ -48,6 +48,25 @@ async fn test_create_client() {
 
     assert_eq!(email, "user@example.com");
 
+
+    // ----------- Used id_card
+
+    let successful_res = http_client
+        .post(backend_url("/signup"))
+        .json(&serde_json::json!({"email": "user2@example.com",
+        "name": "Jamie",
+        "surname": "Kent",
+        "birth_date": "02-01-2000",
+        "id_card": "12345678",
+        "phone": "1234567898",
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(successful_res.status(), 409);
+    assert_eq!(successful_res.json::<serde_json::Value>().await.unwrap()["message"].as_str().unwrap(), "A user with this information already exists");
+
     // ----------- Conflict due to existing email
 
     let repeated_res = http_client
@@ -262,7 +281,7 @@ async fn test_client_login() {
         .unwrap();
 
     assert_eq!(res.status(), 400);
-    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "The password is invalid");
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Invalid credentials");
 
     // Unauthorized login due to wrong email
     let res = client
@@ -276,7 +295,7 @@ async fn test_client_login() {
         .unwrap();
 
     assert_eq!(res.status(), 400);
-    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "The user does not exist");
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Invalid credentials");
 }
 
 #[tokio::test]
@@ -598,6 +617,44 @@ async fn test_register_get_and_delete_employees() {
     assert_eq!(employees[1].email, "emp1@example.com");
     assert_eq!(employees[1].role, 1);
     assert_eq!(employees[1].id_card, "GAAAAAA");
+
+    //Used email
+    let res = client
+        .post(backend_url("/registeremployee"))
+        .json(&serde_json::json!({
+            "email": "emp1@example.com",
+            "name": "James",
+            "surname": "Bond",
+            "birthdate": "02-02-2000",
+            "id_card": "NEWIDHELLO",
+            "phone": "GAAAAA",
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 409);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "A user with this information already exists");
+
+    //Used id_card
+    let res = client
+        .post(backend_url("/registeremployee"))
+        .json(&serde_json::json!({
+            "email": "emp1@example.com",
+            "name": "James",
+            "surname": "Bond",
+            "birthdate": "02-02-2000",
+            "id_card": "GAAAAAA",
+            "phone": "GAAAAA",
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 409);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "A user with this information already exists");
 }
 
 #[tokio::test]

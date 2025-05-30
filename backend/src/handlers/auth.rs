@@ -9,6 +9,7 @@ use serde_json::json;
 use rand::RngCore;
 use hex;
 use std::env;
+use tokio_postgres::error::SqlState;
 use crate::custom_types::structs::*;
 use crate::helpers::auth::*;
 use crate::constants::CHANGE_PSW_CODE_EXP_MINS;
@@ -46,94 +47,89 @@ pub async fn client_sign_up(
     }
 
     if let Ok(mut client) = state.pool.get().await {
-        if let Ok(rows) = client
-            .query("SELECT * FROM users WHERE email = $1;", &[&payload.email])
-            .await
-        {
-            if !rows.is_empty() {
-                return (
-                    StatusCode::CONFLICT,
-                    Json(json!({
-                        "message": "Email is already registered",
-                    })),
-                );
-            }
-
-            let birth_date =
-                match chrono::NaiveDate::parse_from_str(&payload.birth_date, "%d-%m-%Y") {
-                    Ok(date) => date,
-                    Err(_) => {
-                        return (
-                            StatusCode::BAD_REQUEST,
-                            Json(json!({
-                                "message": "Invalid birth date format",
-                            })),
-                        );
-                    }
-                };
-
-            if !is_adult(birth_date) {
-                return (
-                    StatusCode::FORBIDDEN,
-                    Json(json!({
-                        "message": "User age is less than 18",
-                    })),
-                );
-            }
-
-            let transaction = match client.transaction().await {
-                Ok(t) => t,
-                Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"message": "Failed to create a DB transaction",}))),
+        let birth_date =
+            match chrono::NaiveDate::parse_from_str(&payload.birth_date, "%d-%m-%Y") {
+                Ok(date) => date,
+                Err(_) => {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(json!({
+                            "message": "Invalid birth date format",
+                        })),
+                    );
+                }
             };
 
-            let password = generate_random_string(8);
-            let salt = generate_random_string(16);
-            let hashed_password = encode_password(&password, &salt);
-
-            let role: i16 = 2; // 2 = client user role
-
-            let users_t = transaction.execute(
-                    "INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES ($1, $2, $3, $4, $5, $6, 'active');",
-                    &[&payload.email,&payload.name,&payload.surname,
-                      &hashed_password,&salt,&role,],).await;
-
-            let clients_t = transaction.execute(
-                    "INSERT INTO user_info (id, birthdate, id_card, phone) VALUES (currval('users_id_seq'), $1, $2, $3)",
-                    &[&birth_date, &payload.id_card, &payload.phone],
-                    ).await;
-
-            if users_t.is_ok() && clients_t.is_ok() {
-                let subject = "Contraseña generada para sistema de Bob el Alquilador";
-                let body = format!(
-                    "Hola, {}. Tu contraseña es: {}. \nSi desea, puede cambiarla luego de iniciar sesión.",
-                    payload.name, password
-                );
-
-                let send_mail_res = send_mail(&payload.email, subject, &body);
-                if send_mail_res.is_ok() {
-                    match transaction.commit().await {
-                        Ok(_) => return (StatusCode::CREATED,
-                        Json(json!({"message": "Client user successfully registered"}))),
-                        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"message": "Failed to commit DB transaction",}))),
-                    };
-                } else {
-                    return (StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"message": "Failed to send the email"})));
-                }
-            } else {
-                return (StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({"message": "Failed to save the new user"})));
-            }
+        if !is_adult(birth_date) {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "message": "User age is less than 18",
+                })),
+            );
         }
+
+        let transaction = match client.transaction().await {
+            Ok(t) => t,
+            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Failed to create a DB transaction",}))),
+        };
+
+        let password = generate_random_string(8);
+        let salt = generate_random_string(16);
+        let hashed_password = encode_password(&password, &salt);
+
+
+        if let Err(e) = transaction.execute(
+               "INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES ($1, $2, $3, $4, $5, 2, 'active');",
+                &[&payload.email,&payload.name,&payload.surname,
+                  &hashed_password,&salt]).await {
+            if let Some(db_err) = e.as_db_error() {
+                if db_err.code() == &SqlState::UNIQUE_VIOLATION && db_err.message().contains("email") {
+                    return (StatusCode::CONFLICT,
+                        Json(json!({"message": "A user with this information already exists"})));
+                    }
+            }
+            return (StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to execute transaction"})));
+        }
+
+        if let Err(e) = transaction.execute(
+                "INSERT INTO user_info (id, birthdate, id_card, phone) VALUES (currval('users_id_seq'), $1, $2, $3)",
+                &[&birth_date, &payload.id_card, &payload.phone],
+                ).await {
+            if let Some(db_err) = e.as_db_error() {
+                if db_err.code() == &SqlState::UNIQUE_VIOLATION && db_err.message().contains("id_card") {
+                    return (StatusCode::CONFLICT,
+                        Json(json!({"message": "A user with this information already exists"})));
+                    }
+            }
+            return (StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to execute transaction"})));
+        }
+
+        let subject = "Contraseña generada para sistema de Bob el Alquilador";
+        let body = format!(
+            "Hola, {}. Tu contraseña es: {}. \nSi desea, puede cambiarla luego de iniciar sesión.",
+            payload.name, password
+        );
+
+        let send_mail_res = send_mail(&payload.email, subject, &body);
+        if send_mail_res.is_ok() {
+            match transaction.commit().await {
+                Ok(_) => return (StatusCode::CREATED,
+                Json(json!({"message": "Client user successfully registered"}))),
+                Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to commit DB transaction",}))),
+            };
+        } else {
+            return (StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to send the email"})));
+        }
+    } else {
+        (StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({"message": "Error connecting to database"})))
     }
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        Json(json!({
-            "message": "Error connecting to database",
-        })),
-    )
 }
 
 // This handler checks if the email and password are correct
@@ -153,7 +149,7 @@ pub async fn login(
         &[&payload.email]).await {
         Ok(r) => r,
         Err(_) => return (StatusCode::BAD_REQUEST,
-                    Json(json!({"message": "The user does not exist"}))).into_response(),
+                    Json(json!({"message": "Invalid credentials"}))).into_response(),
     };
 
     let user = User {
@@ -167,7 +163,7 @@ pub async fn login(
     };
 
     if encode_password(&payload.password, &user.salt) != user.psw_hash {
-        return (StatusCode::BAD_REQUEST, Json(json!({"message": "The password is invalid"}))).into_response();
+        return (StatusCode::BAD_REQUEST, Json(json!({"message": "Invalid credentials"}))).into_response();
     }
 
     let pub_user = PubUser::from(user);
@@ -177,8 +173,8 @@ pub async fn login(
         let row = match client
             .query_one("SELECT * FROM user_info WHERE id = $1;", &[&pub_user.id]).await {
             Ok(r) => r,
-            Err(_) => return (StatusCode::BAD_REQUEST,
-                        Json(json!({"message": "The user does not exist"}))).into_response(),
+            Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({"message": "An unexpected error has occurred"}))).into_response(),
         };
         Some(UserInfo {
             id: row.get("id"),
@@ -637,15 +633,29 @@ pub async fn register_employee (
         VALUES ($1, $2, $3, $4, $5, 1, NULL, 'active') RETURNING id;",
         &[&payload.email, &payload.name, &payload.surname, &hashed_password, &salt]).await {
         Ok(r) => r,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"message": "Failed to execute transaction"}))).into_response(),
+        Err(e) => {
+            if let Some(db_err) = e.as_db_error() {
+                if db_err.code() == &SqlState::UNIQUE_VIOLATION && db_err.message().contains("email") {
+                    return (StatusCode::CONFLICT,
+                        Json(json!({"message": "A user with this information already exists"}))).into_response();
+                    }
+            }
+            return (StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to execute transaction"}))).into_response();
+        }
     };
 
     let user_id: i32 = row.get("id");
 
-    if let Err(e) = transaction.execute("INSERT INTO user_info (id, birthdate, id_card, phone) VALUES ($1, $2, $3, $4);",
+    if let Err(e) = transaction.execute("INSERT INTO user_info (id, birthdate, id_card, phone)
+        VALUES ($1, $2, $3, $4);",
         &[&user_id, &birthdate, &payload.id_card, &payload.phone]).await {
-        println!("{:?}", e);
+        if let Some(db_err) = e.as_db_error() {
+            if db_err.code() == &SqlState::UNIQUE_VIOLATION && db_err.message().contains("id_card") {
+                return (StatusCode::CONFLICT,
+                    Json(json!({"message": "A user with this information already exists"}))).into_response();
+                }
+        }
         return (StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({"message": "Failed to execute transaction"}))).into_response();
     }
