@@ -1,12 +1,13 @@
 use crate::custom_types::enums::{OrderByField, OrderDirection};
 use crate::custom_types::structs::{
     Access, AppState, CatalogParams, Category, DateRange, Location, MachineModel, ModelAndLocation,
+    NewRental, UnitAndDates,
 };
 use crate::helpers::machinery_mgmt::validate_client;
 use axum::{extract::Path, extract::State, http::StatusCode, Json};
 use axum_extra::extract::Query;
+use headers::Date;
 use serde_json::json;
-use std::collections::HashMap;
 use tokio_postgres::types::ToSql;
 use validator::Validate;
 
@@ -20,7 +21,7 @@ pub async fn explore_catalog(
         return (
             StatusCode::BAD_REQUEST,
             Json(json!({
-                "message": "Invalid input data",
+                "message": "Ingreso de información inválida",
             })),
         );
     }
@@ -71,7 +72,7 @@ pub async fn explore_catalog(
                 return (
                     StatusCode::BAD_REQUEST,
                     Json(json!({
-                        "message": "Minimum price cannot be greater than maximum price",
+                        "message": "El precio mínimo no puede ser mayor que el máximo",
                     })),
                 );
             }
@@ -319,7 +320,7 @@ pub async fn get_machine_locations(
                 return (
                     StatusCode::NOT_FOUND,
                     Json(json!({
-                        "message": "No locations found for this machine",
+                        "message": "No se han encontrado ubicaciones para la máquina solicitada",
                     })),
                 );
             }
@@ -341,12 +342,12 @@ pub async fn get_machine_locations(
     return (
         StatusCode::INTERNAL_SERVER_ERROR,
         Json(json!({
-            "message": "Error connecting to the database",
+            "message": "Se ha producido un error interno en el servidor",
         })),
     );
 }
 
-pub async fn get_unavailable_dates(
+pub async fn get_units_unavailable_dates(
     State(state): State<AppState>,
     Query(query_params): Query<ModelAndLocation>,
     Json(payload): Json<Access>,
@@ -356,59 +357,71 @@ pub async fn get_unavailable_dates(
     }
 
     if let Ok(client) = state.pool.get().await {
-        let not_available_dates_query = "
-            WITH relevant_units AS (SELECT mu.id
-                FROM machinery_units mu
-                WHERE mu.model_id = $1 AND mu.location_id = $2),
-            relevant_rentals AS (SELECT r.machine_id, r.start_date::date AS start_date, (r.end_date + INTERVAL '7 days')::date AS end_date
-                FROM rentals r
-                WHERE r.status IN ('active', 'pending_payment') AND r.machine_id IN (SELECT id FROM relevant_units)),
-            dates AS (SELECT generate_series(start_date, end_date, INTERVAL '1 day')::date AS day, machine_id
-                FROM relevant_rentals),
-            busy_days AS (SELECT day, COUNT(DISTINCT machine_id) AS busy_units
-                FROM dates
-                GROUP BY day),
-            fully_booked_days AS (SELECT day
-                FROM busy_days
-                WHERE busy_units = (SELECT COUNT(*) FROM relevant_units)),
-            grouped_periods AS (SELECT day, day - INTERVAL '1 day' * ROW_NUMBER() OVER (ORDER BY day) AS grp
-                FROM fully_booked_days),
-            merged_ranges AS (SELECT MIN(day) AS start_date, MAX(day) AS end_date
-                FROM grouped_periods
-                GROUP BY grp)
-            SELECT start_date, end_date
-            FROM merged_ranges
-            ORDER BY start_date;
+        let machine_units_query = "
+            SELECT mu.id 
+            FROM machinery_units mu
+            INNER JOIN machinery_models mm ON mu.model_id = mm.id
+            INNER JOIN locations l ON mu.location_id = l.id
+            WHERE mm.id = $1 AND mu.location_id = $2;
         ";
 
-        let machine_id = query_params.model_id;
+        let model_id = query_params.model_id;
         let location_id = query_params.location_id;
 
-        if let Ok(rows) = client
-            .query(not_available_dates_query, &[&machine_id, &location_id])
+        if let Ok(machine_units) = client
+            .query(machine_units_query, &[&model_id, &location_id])
             .await
         {
-            if rows.is_empty() {
+            if machine_units.is_empty() {
                 return (
-                    StatusCode::OK,
+                    StatusCode::NOT_FOUND,
                     Json(json!({
-                        "not_available_dates": [],
+                        "message": "No se han encontrado unidades de la máquina en la ubicación solicitada",
                     })),
                 );
             }
 
-            let not_available_dates: Vec<DateRange> = rows
-                .into_iter()
-                .map(|row| DateRange {
-                    start_date: row.get("start_date"),
-                    end_date: row.get("end_date"),
-                })
-                .collect();
+            let unit_ids: Vec<i32> = machine_units.iter().map(|row| row.get(0)).collect();
+
+            let unavailable_dates_query = "
+                SELECT start_date, (end_date + INTERVAL '7 days')::date AS end_date
+                FROM rentals r 
+                WHERE r.status IN ('active', 'pending_payment') AND (machine_id = $1);
+            ";
+
+            let mut machines_info: Vec<UnitAndDates> = Vec::new();
+
+            for unit_id in &unit_ids {
+                let machine_unit_info = if let Ok(date_rows) =
+                    client.query(unavailable_dates_query, &[&unit_id]).await
+                {
+                    let unavailable_periods = date_rows
+                        .iter()
+                        .map(|row| DateRange {
+                            start_date: row.get("start_date"),
+                            end_date: row.get("end_date"),
+                        })
+                        .collect();
+
+                    UnitAndDates {
+                        unit_id: *unit_id,
+                        periods: unavailable_periods,
+                    }
+                } else {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({
+                            "message": "Se ha producido un error interno en el servidor",
+                        })),
+                    );
+                };
+                machines_info.push(machine_unit_info);
+            }
 
             return (
                 StatusCode::OK,
                 Json(json!({
-                    "not_available_dates": not_available_dates,
+                    "units_and_their_unavailable_dates": machines_info,
                 })),
             );
         }
@@ -417,7 +430,16 @@ pub async fn get_unavailable_dates(
     return (
         StatusCode::INTERNAL_SERVER_ERROR,
         Json(json!({
-            "message": "Error connecting to the database",
+            "message": "Se ha producido un error interno en el servidor",
         })),
     );
+}
+
+pub async fn new_rental(
+    State(_state): State<AppState>,
+    Json(payload): Json<NewRental>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    println!("{:?}", payload);
+
+    (StatusCode::OK, Json(json!({"message": "successful"})))
 }

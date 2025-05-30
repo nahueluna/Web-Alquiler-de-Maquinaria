@@ -63,7 +63,7 @@ async fn main() {
         .route("/explore", get(explore_catalog))
         .route("/explore/{id}", get(select_machine))
         .route("/explore/{id}/locations", post(get_machine_locations))
-        .route("/rental/availability", post(get_unavailable_dates))
+        .route("/rental/availability", post(get_units_unavailable_dates))
         .route("/rental/new", post(new_rental))
         .layer(
             CorsLayer::new()
