@@ -48,7 +48,7 @@ INSERT INTO machinery_units (serial_number, status, assigned_at, model_id, locat
 -- Modelo 1 (Caterpillar)
 ('CAT-001', 'available', NOW() - INTERVAL '100 days', 1, 1),
 ('CAT-002', 'rented', NOW() - INTERVAL '20 days', 1, 2),
-('CAT-003', 'maintenance', NOW() - INTERVAL '5 days', 1, 3),
+('CAT-003', 'maintenance', NOW() - INTERVAL '5 days', 1, 1),
 
 -- Modelo 2 (John Deere)
 ('JD-001', 'available', NOW() - INTERVAL '50 days', 2, 1),
@@ -142,7 +142,7 @@ INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, sta
 VALUES (10, 2, NOW() + INTERVAL '4 days', NOW() + INTERVAL '13 days', 5500.00, 'cancelled', 6);
 
 INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (10, 3, NOW() + INTERVAL '4 days', NOW() + INTERVAL '11 days', 5800.00, 'cancelled', 6);
+VALUES (10, 3, NOW() + INTERVAL '4 days', NOW() + INTERVAL '11 days', 5800.00, 'active', 6);
 
 INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
 VALUES (10, 1, NOW() + INTERVAL '6 days', NOW() + INTERVAL '13 days', 4600.00, 'failed', 6);
