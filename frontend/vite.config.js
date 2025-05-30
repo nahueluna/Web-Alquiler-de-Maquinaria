@@ -3,9 +3,8 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
-
   server: {
     host: true,
-    allowedHosts: [import.meta.env.NGROK],
+    allowedHosts: [process.env.VITE_NGROK],
   },
 });
