@@ -1,13 +1,6 @@
-use crate::custom_types::enums::{OrderByField, OrderDirection};
-use crate::custom_types::structs::{
-    Access, AppState, CatalogParams, Location, MachineModel, ModelAndLocation,
-};
 use crate::helpers::auth::validate_jwt;
-use axum::{extract::Path, extract::State, http::StatusCode, Json};
-use axum_extra::extract::Query;
+use axum::{http::StatusCode, Json};
 use serde_json::json;
-use tokio_postgres::types::ToSql;
-use validator::Validate;
 
 pub fn validate_client(access_token: &str) -> Option<(StatusCode, Json<serde_json::Value>)> {
     let claims = match validate_jwt(&access_token) {

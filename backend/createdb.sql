@@ -1,6 +1,7 @@
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 
+CREATE TYPE user_status AS ENUM ('active', 'deleted');
 CREATE TYPE machine_status AS ENUM ('available', 'rented', 'maintenance', 'reserved');
 CREATE TYPE rental_status AS ENUM ('active', 'pending_payment', 'completed', 'cancelled', 'failed');
 
@@ -12,7 +13,8 @@ CREATE TABLE users (
     psw_hash varchar(64) UNIQUE NOT NULL,
     salt varchar(16) NOT NULL,
     role smallint NOT NULL,
-    refresh text NULL
+    refresh text NULL,
+    status user_status NOT NULL
 );
 
 CREATE TABLE user_info (

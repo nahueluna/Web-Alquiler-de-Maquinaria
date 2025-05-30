@@ -1,19 +1,19 @@
-INSERT INTO users (email, name, surname, psw_hash, salt, role) VALUES
-('alice@example.com', 'Alice', 'Johnson', 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0', 'abc123def456ghi7', 0),
-('bob@example.com', 'Bob', 'Smith', 'b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0a1', 'bcd234efg567hij8', 1),
-('carol@example.com', 'Carol', 'White', 'c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0a1b2', 'cde345fgh678ijk9', 0),
-('dave@example.com', 'Dave', 'Brown', 'd4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3', 'def456ghi789jkl0', 2),
-('emma@example.com', 'Emma', 'Davis', 'e5f67890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4', 'efg567hij890klm1', 0),
-('frank@example.com', 'Frank', 'Miller', 'f67890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5', 'fgh678ijk901lmn2', 1),
-('grace@example.com', 'Grace', 'Wilson', '67890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f', 'ghi789jkl012mno3', 0),
-('hank@example.com', 'Hank', 'Moore', '7890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f6', 'hij890klm123nop4', 2),
-('ivy@example.com', 'Ivy', 'Taylor', '890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f67', 'ijk901lmn234opq5', 2),
-('login@example.com', 'Ivy', 'Taylor', '9c819791b519290f435a8fcf896b2125274350636b220106f8629f6eedb3ea7d', 'PC8cXiOnFZO8Radu', 2),
-('admin@example.com', 'admin', 'admin', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 0),
-('refresh@example.com', 'refresh', 'refresh', '69aa8cddc392e17d03008aa250cae723ee7402524007124e8190aaec5c7311e0', '1234123412341234', 2),
-('pswchange@example.com', 'psw', 'change', 'change', 'psw', 0),
-('logout@example.com', 'log', 'out', '0df0d73a572d94bf79da609a4b37a4dd7a308c9debf51197a2e1eaa5b616a8a1', '1111111111111111', 2),
-('admin2@example.com', 'admin', '2', '9c82435c63a8d9c0afee889440e9b5c75c0b72cc717230a1dab6f0db35a7e2eb', '1212121212121212', 0);
+INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES
+('alice@example.com', 'Alice', 'Johnson', 'a1b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0', 'abc123def456ghi7', 0, 'active'),
+('bob@example.com', 'Bob', 'Smith', 'b2c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0a1', 'bcd234efg567hij8', 1, 'active'),
+('carol@example.com', 'Carol', 'White', 'c3d4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0a1b2', 'cde345fgh678ijk9', 0, 'active'),
+('dave@example.com', 'Dave', 'Brown', 'd4e5f67890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3', 'def456ghi789jkl0', 2, 'active'),
+('emma@example.com', 'Emma', 'Davis', 'e5f67890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4', 'efg567hij890klm1', 0, 'active'),
+('frank@example.com', 'Frank', 'Miller', 'f67890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5', 'fgh678ijk901lmn2', 1, 'active'),
+('grace@example.com', 'Grace', 'Wilson', '67890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f', 'ghi789jkl012mno3', 0, 'active'),
+('hank@example.com', 'Hank', 'Moore', '7890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f6', 'hij890klm123nop4', 2, 'active'),
+('ivy@example.com', 'Ivy', 'Taylor', '890123456789abcdef0123456789abcdef0123456789abcdef0a1b2c3d4e5f67', 'ijk901lmn234opq5', 2, 'active'),
+('login@example.com', 'Ivy', 'Taylor', '9c819791b519290f435a8fcf896b2125274350636b220106f8629f6eedb3ea7d', 'PC8cXiOnFZO8Radu', 2, 'active'),
+('admin@example.com', 'admin', 'admin', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 0, 'active'),
+('refresh@example.com', 'refresh', 'refresh', '69aa8cddc392e17d03008aa250cae723ee7402524007124e8190aaec5c7311e0', '1234123412341234', 2, 'active'),
+('pswchange@example.com', 'psw', 'change', 'change', 'psw', 0, 'active'),
+('logout@example.com', 'log', 'out', '0df0d73a572d94bf79da609a4b37a4dd7a308c9debf51197a2e1eaa5b616a8a1', '1111111111111111', 2, 'active'),
+('admin2@example.com', 'admin', '2', '9c82435c63a8d9c0afee889440e9b5c75c0b72cc717230a1dab6f0db35a7e2eb', '1212121212121212', 0, 'active');
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),

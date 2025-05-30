@@ -2,11 +2,9 @@ use crate::custom_types::enums::{OrderByField, OrderDirection};
 use crate::custom_types::structs::{
     Access, AppState, CatalogParams, DateRange, Location, MachineModel, ModelAndLocation,
 };
-use crate::helpers::auth::validate_jwt;
 use crate::helpers::machinery_mgmt::validate_client;
 use axum::{extract::Path, extract::State, http::StatusCode, Json};
 use axum_extra::extract::Query;
-use chrono::NaiveDate;
 use serde_json::json;
 use tokio_postgres::types::ToSql;
 use validator::Validate;

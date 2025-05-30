@@ -94,7 +94,7 @@ pub async fn client_sign_up(
             let role: i16 = 2; // 2 = client user role
 
             let users_t = transaction.execute(
-                    "INSERT INTO users (email, name, surname, psw_hash, salt, role) VALUES ($1, $2, $3, $4, $5, $6);",
+                    "INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES ($1, $2, $3, $4, $5, $6, 'active');",
                     &[&payload.email,&payload.name,&payload.surname,
                       &hashed_password,&salt,&role,],).await;
 
@@ -149,7 +149,8 @@ pub async fn login(
     };
 
     let row = match client
-        .query_one("SELECT * FROM users WHERE email = $1;", &[&payload.email]).await {
+        .query_one("SELECT * FROM users WHERE email = $1 AND status = 'active';",
+        &[&payload.email]).await {
         Ok(r) => r,
         Err(_) => return (StatusCode::BAD_REQUEST,
                     Json(json!({"message": "The user does not exist"}))).into_response(),
@@ -534,7 +535,7 @@ pub async fn get_employees (
     };
 
     match client.query("SELECT * FROM users JOIN user_info ON users.id = user_info.id
-        WHERE users.role = 1;", &[]).await {
+        WHERE users.role = 1 AND status = 'active';", &[]).await {
         Ok(rows) => {
             let employees: Vec<PubUserWithInfo> = rows.iter().map(|row| PubUserWithInfo {
                 id: row.get("id"),
@@ -570,35 +571,18 @@ pub async fn delete_employee (
             Json(json!({"message": "The user is not an admin"}))).into_response();
     }
 
-    let mut client = match state.pool.get().await {
+    let client = match state.pool.get().await {
         Ok(c) => c,
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({"message": "Failed to connect to the DB"}))).into_response(),
     };
 
-    let transaction = match client.transaction().await {
-        Ok(t) => t,
-        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"message": "Failed to create a DB transaction",}))).into_response(),
-    };
-
-    if  transaction.execute("DELETE FROM user_info WHERE id = $1",
-        &[&payload.id]).await.is_err() {
-        return (StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"message": "Failed to execute transaction"}))).into_response();
-    }
-
-    if transaction.execute("DELETE FROM users WHERE id = $1 AND role = 1",
-        &[&payload.id]).await.is_err() {
-        return (StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"message": "Failed to execute transaction"}))).into_response();
-    }
-
-    match transaction.commit().await {
+    match client.execute("UPDATE users SET status = 'deleted' WHERE id = $1 AND role = 1",
+        &[&payload.id]).await {
         Ok(_) => return (StatusCode::OK,
             Json(json!({"message": "Employee deleted successfully"}))).into_response(),
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"message": "Failed to commit transaction"}))).into_response(),
+            Json(json!({"message": "Failed to delete employee"}))).into_response(),
     };
 }
 
@@ -649,8 +633,8 @@ pub async fn register_employee (
             Json(json!({"message": "User age is less than 18"}))).into_response();
     }
 
-    let row = match transaction.query_one("INSERT INTO users (email, name, surname, psw_hash, salt, role, refresh)
-        VALUES ($1, $2, $3, $4, $5, 1, NULL) RETURNING id;",
+    let row = match transaction.query_one("INSERT INTO users (email, name, surname, psw_hash, salt, role, refresh, status)
+        VALUES ($1, $2, $3, $4, $5, 1, NULL, 'active') RETURNING id;",
         &[&payload.email, &payload.name, &payload.surname, &hashed_password, &salt]).await {
         Ok(r) => r,
         Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR,
@@ -712,7 +696,7 @@ pub async fn change_phone (
 }
 
 pub async fn new_rental (
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
     Json(payload): Json<NewRental>,
 ) -> Response {
     println!("{:?}", payload);
