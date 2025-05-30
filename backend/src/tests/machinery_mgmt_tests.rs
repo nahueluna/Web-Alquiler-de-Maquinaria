@@ -29,6 +29,16 @@ mod tests {
 
         assert_eq!(machine1.as_object().unwrap().get("id").unwrap(), 1);
         assert_eq!(machine2.as_object().unwrap().get("model").unwrap(), "310SL");
+        assert_eq!(
+            machine2
+                .as_object()
+                .unwrap()
+                .get("categories")
+                .unwrap()
+                .as_array()
+                .unwrap()[0]["name"],
+            "obras urbanas"
+        );
 
         // ----------- Page 2, Page size 2, valid request without filters
 
@@ -121,6 +131,16 @@ mod tests {
             "Komatsu"
         );
         assert_eq!(machine9_price, 75000.0);
+        assert_eq!(
+            machine9
+                .as_object()
+                .unwrap()
+                .get("categories")
+                .unwrap()
+                .as_array()
+                .unwrap()[0]["name"],
+            "movimiento de tierra"
+        );
 
         // ----------- Page 1, Page size 2, valid request with categories filter, search term, maximum price and order
 
@@ -284,6 +304,10 @@ mod tests {
         assert_eq!(machine.get("id").unwrap(), 1);
         assert_eq!(machine.get("model").unwrap(), "CAT320D");
         assert_eq!(machine.get("brand").unwrap(), "Caterpillar");
+        assert_eq!(
+            machine.get("categories").unwrap().as_array().unwrap()[0]["name"],
+            "construccion pesada"
+        );
 
         // ----------- Select a machine with an invalid ID
 
