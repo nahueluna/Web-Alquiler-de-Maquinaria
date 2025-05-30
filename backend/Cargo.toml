@@ -19,7 +19,9 @@ rand = "0.9.1"
 hex = "0.4.3"
 sha2 = "0.10.9"
 validator = { version = "0.20.0", features = ["derive"] }
-tower-http = { version = "0.6.4", features = ["cors"] }
+tower-http = { version = "0.6.4", features = ["cors", "limit"] }
 deadpool-postgres = "0.14.1"
 axum-extra = { version = "0.10.1", features = ["typed-header", "query"] }
 headers = "0.4.0"
+image = { version = "0.25.6", features = ["webp"] }
+base64 = "0.22.1"

@@ -3,6 +3,7 @@ use crate::custom_types::structs::AppState;
 use axum::{
     routing::{get, post},
     Router,
+    extract::DefaultBodyLimit,
 };
 use dotenvy::dotenv;
 use handlers::{auth::*, machinery_mgmt::*};
@@ -65,6 +66,8 @@ async fn main() {
         .route("/explore/{id}/locations", post(get_machine_locations))
         .route("/rental/availability", post(get_unavailable_dates))
         .route("/rental/new", post(new_rental))
+        .route("/newmodel", post(new_model)
+            .layer(DefaultBodyLimit::max(20*1024*1024))) //20MB for images
         .layer(
             CorsLayer::new()
                 .allow_origin(vec![frontend_url.parse().unwrap()])
