@@ -64,6 +64,7 @@ async fn main() {
         .route("/explore/{id}", get(select_machine))
         .route("/explore/{id}/locations", post(get_machine_locations))
         .route("/rental/availability", get(get_unavailable_dates))
+        .route("/rental/new", post(new_rental))
         .layer(
             CorsLayer::new()
                 .allow_origin(vec![frontend_url.parse().unwrap()])

@@ -217,3 +217,11 @@ pub struct DateRange {
     pub start_date: NaiveDate,
     pub end_date: NaiveDate,
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct NewRental {
+    pub start_date: String,
+    pub end_date: String,
+    pub machine_id: i32,
+    pub access: String,
+}

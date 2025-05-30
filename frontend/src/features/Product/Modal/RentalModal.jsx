@@ -163,21 +163,21 @@ function RentalModal({ setOpen, open, machine, locations }) {
               // Create rental on the backend when the button is pressed
               onSubmit={async () => {
                 const body = {
-                  machineId: state.machine.id,
-                  startDate: state.dates[0].split("-").reverse().join(""),
-                  endDate: state.dates[1].split("-").reverse().join(""),
+                  machine_id: state.machine.id,
+                  start_date: state.dates[0].split("-").reverse().join(""),
+                  end_date: state.dates[1].split("-").reverse().join(""),
                 };
 
                 console.log(body);
                 const { data } = await axios
-                  .post("http://localhost:8000/rentals/new", {
+                  .post("http://localhost:8000/rental/new", {
                     ...body,
                     access: user.access,
                   })
                   .catch(async () => {
                     const { access } = await refresh();
                     const res = await axios.post(
-                      "http://localhost:8000/rentals/new",
+                      "http://localhost:8000/rental/new",
                       { ...body, access }
                     );
 
@@ -186,7 +186,7 @@ function RentalModal({ setOpen, open, machine, locations }) {
 
                 console.log(data);
               }}
-              initialization={{ preferenceId: mlId }}
+              initialization={{ preferenceId: mlId, redirectMode: "blank" }}
               customization={{
                 theme: "dark",
                 customStyle: {

@@ -710,3 +710,12 @@ pub async fn change_phone (
             Json(json!({"message": "Failed to change the phone number"}))).into_response(),
     };
 }
+
+pub async fn new_rental (
+    State(state): State<AppState>,
+    Json(payload): Json<NewRental>,
+) -> Response {
+    println!("{:?}", payload);
+
+    (StatusCode::OK,Json(json!({"message": "successful"}))).into_response()
+}
