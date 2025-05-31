@@ -1,6 +1,9 @@
 #[cfg(test)]
 mod tests {
+    use crate::custom_types::enums::RunningEnv;
+    use crate::helpers::auth::create_pool;
     use crate::tests::helpers::*;
+    use chrono::Utc;
     use reqwest::Client;
     use validator::ValidateLength;
 
@@ -448,8 +451,6 @@ mod tests {
 
         let response_body = valid_response.json::<serde_json::Value>().await.unwrap();
 
-        println!("Response body: {:#?}", response_body);
-
         let units_info = response_body["units_and_their_unavailable_dates"]
             .as_array()
             .unwrap();
@@ -492,5 +493,310 @@ mod tests {
             .unwrap();
 
         assert_eq!(missing_params_response.status(), 400);
+    }
+
+    #[tokio::test]
+    async fn test_new_rental() {
+        setup().await;
+        let http_client = Client::new();
+
+        let pool = create_pool(RunningEnv::Testing);
+        let db_client = match pool.await.get().await {
+            Ok(c) => c,
+            Err(e) => panic!("Failed to connect to the database: {}", e),
+        };
+
+        let jwt = get_test_jwt("hank@example.com", false).await;
+
+        // ----------- Create a new rental with valid data
+
+        let start_date = Utc::now()
+            .checked_add_signed(chrono::Duration::days(5))
+            .unwrap()
+            .date_naive();
+        let end_date = start_date
+            .checked_add_signed(chrono::Duration::days(7))
+            .unwrap();
+
+        let new_rental = serde_json::json!({
+            "machine_id": 1,
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_price": 1_050_000.0,
+            "access": jwt
+        });
+
+        let valid_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&new_rental)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(valid_response.status(), 201);
+
+        let response_body = valid_response.json::<serde_json::Value>().await.unwrap();
+
+        let rental_id = response_body["rental_id"].as_i64().unwrap() as i32;
+
+        match db_client
+            .query_one("SELECT * FROM rentals r WHERE r.id = $1;", &[&rental_id])
+            .await
+        {
+            Ok(row) => {
+                assert_eq!(row.get::<_, i32>("machine_id"), 1);
+                assert_eq!(row.get::<_, i32>("user_id"), 8);
+                assert_eq!(row.get::<_, f32>("total_price"), 1_050_000.0);
+                assert_eq!(row.get::<_, chrono::NaiveDate>("start_date"), start_date);
+                assert_eq!(row.get::<_, chrono::NaiveDate>("end_date"), end_date);
+            }
+            Err(e) => {
+                panic!("Failed to query the database: {}", e);
+            }
+        }
+
+        // ----------- Create a new rental with valid data but different user and machine
+
+        let new_user_jwt = get_test_jwt("ivy@example.com", false).await;
+
+        let new_rental_user = serde_json::json!({
+            "machine_id": 4,
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_price": 665_000.0,
+            "access": new_user_jwt
+        });
+
+        let new_user_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&new_rental_user)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(new_user_response.status(), 201);
+
+        let new_user_response_body = new_user_response.json::<serde_json::Value>().await.unwrap();
+
+        let new_user_rental_id = new_user_response_body["rental_id"].as_i64().unwrap() as i32;
+
+        match db_client
+            .query_one(
+                "SELECT * FROM rentals r WHERE r.id = $1;",
+                &[&new_user_rental_id],
+            )
+            .await
+        {
+            Ok(row) => {
+                assert_eq!(row.get::<_, i32>("machine_id"), 4);
+                assert_eq!(row.get::<_, i32>("user_id"), 9);
+                assert_eq!(row.get::<_, f32>("total_price"), 665_000.0);
+                assert_eq!(row.get::<_, chrono::NaiveDate>("start_date"), start_date);
+                assert_eq!(row.get::<_, chrono::NaiveDate>("end_date"), end_date);
+            }
+            Err(e) => {
+                panic!("Failed to query the database: {}", e);
+            }
+        }
+
+        // ----------- Create a new rental with missing parameters
+
+        let missing_params_rental = serde_json::json!({
+            "machine_id": 1,
+            "start_date": start_date,
+            "end_date": end_date,
+            // "total_price" is missing
+            "access": jwt
+        });
+
+        let missing_params_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&missing_params_rental)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(missing_params_response.status(), 422);
+
+        // ----------- Create a new rental with invalid data (end date before start date)
+
+        let invalid_end_date = start_date
+            .checked_sub_signed(chrono::Duration::days(1))
+            .unwrap();
+
+        let invalid_rental = serde_json::json!({
+            "machine_id": 1,
+            "start_date": start_date,
+            "end_date": invalid_end_date,
+            "total_price": 1_050_000.0,
+            "access": jwt
+        });
+
+        let invalid_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&invalid_rental)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(invalid_response.status(), 400);
+
+        // ----------- Create a new rental with period minor than 7 days
+
+        let short_rental_end_date = start_date
+            .checked_add_signed(chrono::Duration::days(6))
+            .unwrap();
+
+        let short_rental = serde_json::json!({
+            "machine_id": 1,
+            "start_date": start_date,
+            "end_date": short_rental_end_date,
+            "total_price": 1_050_000.0,
+            "access": jwt
+        });
+
+        let short_rental_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&short_rental)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(short_rental_response.status(), 400);
+
+        // ----------- Create a new rental with an invalid JWT
+
+        let invalid_jwt = "invalid.jwt.token";
+
+        let invalid_jwt_rental = serde_json::json!({
+            "machine_id": 1,
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_price": 1_050_000.0,
+            "access": invalid_jwt
+        });
+
+        let invalid_jwt_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&invalid_jwt_rental)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(invalid_jwt_response.status(), 401);
+
+        // ----------- Create a new rental with a JWT of a non-client user
+
+        let non_client_jwt = get_test_jwt("bob@example.com", false).await;
+
+        let non_client_rental = serde_json::json!({
+            "machine_id": 1,
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_price": 1_050_000.0,
+            "access": non_client_jwt
+        });
+
+        let non_client_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&non_client_rental)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(non_client_response.status(), 403);
+
+        // ----------- Create a new rental with a machine ID that does not exist
+
+        let non_existing_machine_id = 9999;
+
+        let non_existing_machine_rental = serde_json::json!({
+            "machine_id": non_existing_machine_id,
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_price": 1_050_000.0,
+            "access": jwt
+        });
+
+        let non_existing_machine_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&non_existing_machine_rental)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(non_existing_machine_response.status(), 404);
+
+        // ----------- Create a new rental with negative total price
+
+        let negative_price_rental = serde_json::json!({
+            "machine_id": 1,
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_price": -1000.0,
+            "access": jwt
+        });
+
+        let negative_price_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&negative_price_rental)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(negative_price_response.status(), 400);
+
+        // ----------- Create a new rental with a total price that does not match the expected price
+
+        let another_start_date = start_date
+            .checked_add_signed(chrono::Duration::days(20))
+            .unwrap();
+
+        let another_end_date = another_start_date
+            .checked_add_signed(chrono::Duration::days(7))
+            .unwrap();
+
+        let wrong_price_rental = serde_json::json!({
+            "machine_id": 1,
+            "start_date": another_start_date,
+            "end_date": another_end_date,
+            "total_price": 500_000.0, // This should be 1_050_000.0 based on the rental period
+            "access": jwt
+        });
+
+        let wrong_price_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&wrong_price_rental)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(wrong_price_response.status(), 400);
+
+        // ----------- Create a new rental with a machine that is already rented for the requested period
+
+        let overlapping_start_date = start_date
+            .checked_add_signed(chrono::Duration::days(1))
+            .unwrap();
+        let overlapping_end_date = end_date
+            .checked_add_signed(chrono::Duration::days(1))
+            .unwrap();
+
+        let overlapping_rental = serde_json::json!({
+            "machine_id": 1,
+            "start_date": overlapping_start_date,
+            "end_date": overlapping_end_date,
+            "total_price": 1_050_000.0,
+            "access": jwt
+        });
+
+        let overlapping_response = http_client
+            .post(backend_url("/rental/new"))
+            .json(&overlapping_rental)
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(overlapping_response.status(), 409);
     }
 }

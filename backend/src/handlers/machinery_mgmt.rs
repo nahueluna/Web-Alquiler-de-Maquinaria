@@ -1,11 +1,14 @@
+use core::num;
+
 use crate::custom_types::enums::{OrderByField, OrderDirection};
 use crate::custom_types::structs::{
     Access, AppState, CatalogParams, Category, DateRange, Location, MachineModel, ModelAndLocation,
     NewRental, UnitAndDates,
 };
-use crate::helpers::machinery_mgmt::validate_client;
+use crate::helpers::machinery_mgmt::{date_is_overlap, get_claims_from_token, validate_client};
 use axum::{extract::Path, extract::State, http::StatusCode, Json};
 use axum_extra::extract::Query;
+use deadpool_postgres::Status;
 use headers::Date;
 use serde_json::json;
 use tokio_postgres::types::ToSql;
@@ -436,10 +439,157 @@ pub async fn get_units_unavailable_dates(
 }
 
 pub async fn new_rental(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Json(payload): Json<NewRental>,
 ) -> (StatusCode, Json<serde_json::Value>) {
-    println!("{:?}", payload);
+    if let Some(invalid_response) = validate_client(&payload.access) {
+        return invalid_response;
+    }
 
-    (StatusCode::OK, Json(json!({"message": "successful"})))
+    let token_claims = match get_claims_from_token(&payload.access) {
+        Some(claims) => claims,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    };
+
+    if let Err(_) = payload.validate() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "message": "Ingreso de información inválida",
+            })),
+        );
+    }
+
+    if let Ok(client) = state.pool.get().await {
+        let machine_id = payload.machine_id;
+        let user_id = token_claims.user_id;
+        let start_date = payload.start_date;
+        let end_date = payload.end_date;
+        let total_price = payload.total_price;
+
+        let unavailable_dates_query = "
+            SELECT start_date, (end_date + INTERVAL '7 days')::date AS end_date
+            FROM rentals r 
+            WHERE r.status IN ('active', 'pending_payment') AND (machine_id = $1);
+        ";
+
+        let unavailable_dates = match client.query(unavailable_dates_query, &[&machine_id]).await {
+            Ok(rows) => rows
+                .iter()
+                .map(|row| DateRange {
+                    start_date: row.get("start_date"),
+                    end_date: row.get("end_date"),
+                })
+                .collect::<Vec<DateRange>>(),
+            Err(_) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({
+                        "message": "Se ha producido un error interno en el servidor",
+                    })),
+                );
+            }
+        };
+
+        let is_overlap = unavailable_dates.iter().any(|period| {
+            date_is_overlap(start_date, end_date, period.start_date, period.end_date)
+        });
+
+        let duration_days = (end_date - start_date).num_days();
+
+        if end_date < start_date || duration_days < 7 {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "message": "El período indicado no es válido.
+                        Debe ser al menos 7 días y la fecha de fin no puede ser anterior a la de inicio.",
+                })),
+            );
+        }
+
+        if is_overlap {
+            return (
+                StatusCode::CONFLICT,
+                Json(json!({
+                    "message": "Las fechas de inicio y fin se superponen con un alquiler existente",
+                })),
+            );
+        }
+
+        let price_query = "
+            SELECT price FROM machinery_models mm 
+            INNER JOIN machinery_units mu 
+            ON mm.id = mu.model_id
+            WHERE mu.id = $1;
+        ";
+
+        let price_row = match client.query_one(price_query, &[&machine_id]).await {
+            Ok(row) => row,
+            Err(_) => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({
+                        "message": "No se ha encontrado la máquina solicitada",
+                    })),
+                );
+            }
+        };
+
+        let machine_price: f32 = price_row.get("price");
+        let number_of_days = (end_date - start_date).num_days() as f32;
+
+        if total_price != number_of_days * machine_price {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "message": "El precio total no es correcto",
+                })),
+            );
+        }
+
+        let user_query = "SELECT * FROM users WHERE id = $1;";
+
+        if let Err(_) = client.query_one(user_query, &[&user_id]).await {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "message": "No se ha encontrado al usuario. Verifique su acceso.",
+                })),
+            );
+        };
+
+        let insert_query = "
+            INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
+            VALUES ($1, $2, $3, $4, $5, 'pending_payment')
+            RETURNING id;
+        ";
+
+        if let Ok(rent_row) = client
+            .query_one(
+                insert_query,
+                &[&user_id, &machine_id, &start_date, &end_date, &total_price],
+            )
+            .await
+        {
+            let rental_id: i32 = rent_row.get(0);
+            return (
+                StatusCode::CREATED,
+                Json(json!({
+                    "rental_id": rental_id,
+                })),
+            );
+        }
+    }
+
+    return (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({
+            "message": "Se ha producido un error interno en el servidor",
+        })),
+    );
 }
