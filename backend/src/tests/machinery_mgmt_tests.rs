@@ -977,7 +977,7 @@ mod tests {
 
         let valid_rental_id = 5;
         let valid_response = http_client
-            .post(backend_url("/payment/success"))
+            .post(backend_url("/payment/check"))
             .query(&[("payment_id", "2424235352"), ("status", "approved")])
             .json(&serde_json::json!({
                 "rental_id": valid_rental_id,
@@ -1001,7 +1001,7 @@ mod tests {
         let invalid_rental_id = 9999;
 
         let invalid_response = http_client
-            .post(backend_url("/payment/success"))
+            .post(backend_url("/payment/check"))
             .query(&[("payment_id", "2424235352"), ("status", "approved")])
             .json(&serde_json::json!({
                 "rental_id": invalid_rental_id,
@@ -1018,7 +1018,7 @@ mod tests {
         let failed_rental_id = 6;
 
         let failed_response = http_client
-            .post(backend_url("/payment/success"))
+            .post(backend_url("/payment/check"))
             .query(&[("payment_id", "2424235352"), ("status", "rejected")])
             .json(&serde_json::json!({
                 "rental_id": failed_rental_id,
@@ -1034,7 +1034,7 @@ mod tests {
 
         let another_status_rental_id = 7;
         let another_status_response = http_client
-            .post(backend_url("/payment/success"))
+            .post(backend_url("/payment/check"))
             .query(&[("payment_id", "2424235352"), ("status", "pending")])
             .json(&serde_json::json!({
                 "rental_id": another_status_rental_id,
