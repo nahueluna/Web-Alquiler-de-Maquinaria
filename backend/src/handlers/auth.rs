@@ -327,7 +327,7 @@ pub async fn login(State(state): State<AppState>, Json(payload): Json<LoginReque
     headers.insert(
         header::SET_COOKIE,
         HeaderValue::from_str(&format!(
-            "refresh_token={}; HttpOnly; SameSite=Lax; Path=/refresh",
+            "refresh_token={}; HttpOnly; SameSite=None; Secure; Path=/refresh",
             refresh
         ))
         .unwrap(),
@@ -451,7 +451,7 @@ pub async fn refresh(
     headers.insert(
         header::SET_COOKIE,
         HeaderValue::from_str(&format!(
-            "refresh_token={}; HttpOnly; SameSite=Lax; Path=/refresh",
+            "refresh_token={}; HttpOnly; SameSite=None; Secure; Path=/refresh",
             new_refresh
         ))
         .unwrap(),
