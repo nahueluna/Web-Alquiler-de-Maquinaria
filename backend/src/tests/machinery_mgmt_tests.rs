@@ -965,4 +965,85 @@ mod tests {
 
         assert_eq!(overlapping_response.status(), 409);
     }
+
+    #[tokio::test]
+    async fn test_check_rental_payment() {
+        setup().await;
+        let http_client = Client::new();
+
+        let jwt = get_test_jwt("hank@example.com", false).await;
+
+        // ----------- Check payment for a valid rental ID
+
+        let valid_rental_id = 5;
+        let valid_response = http_client
+            .post(backend_url("/payment/success"))
+            .query(&[("payment_id", "2424235352"), ("status", "approved")])
+            .json(&serde_json::json!({
+                "rental_id": valid_rental_id,
+                "access": jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(valid_response.status(), 200);
+
+        let response_body = valid_response.json::<serde_json::Value>().await.unwrap();
+
+        assert_eq!(
+            response_body["message"].as_str().unwrap(),
+            "El alquiler ha sido aprobado y el usuario ha sido notificado"
+        );
+
+        // ---------- Check payment for an invalid rental ID
+
+        let invalid_rental_id = 9999;
+
+        let invalid_response = http_client
+            .post(backend_url("/payment/success"))
+            .query(&[("payment_id", "2424235352"), ("status", "approved")])
+            .json(&serde_json::json!({
+                "rental_id": invalid_rental_id,
+                "access": jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(invalid_response.status(), 404);
+
+        // ----------- Check payment with failed status
+
+        let failed_rental_id = 6;
+
+        let failed_response = http_client
+            .post(backend_url("/payment/success"))
+            .query(&[("payment_id", "2424235352"), ("status", "rejected")])
+            .json(&serde_json::json!({
+                "rental_id": failed_rental_id,
+                "access": jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(failed_response.status(), 502);
+
+        // ----------- Check payment with another status
+
+        let another_status_rental_id = 7;
+        let another_status_response = http_client
+            .post(backend_url("/payment/success"))
+            .query(&[("payment_id", "2424235352"), ("status", "pending")])
+            .json(&serde_json::json!({
+                "rental_id": another_status_rental_id,
+                "access": jwt
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(another_status_response.status(), 409);
+    }
 }

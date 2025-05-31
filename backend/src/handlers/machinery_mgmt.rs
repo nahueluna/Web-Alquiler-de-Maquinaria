@@ -1,10 +1,7 @@
 use core::num;
 
-use crate::custom_types::enums::{OrderByField, OrderDirection};
-use crate::custom_types::structs::{
-    Access, AppState, CatalogParams, Category, DateRange, Location, MachineModel, ModelAndLocation,
-    NewModel, NewRental, UnitAndDates,
-};
+use crate::custom_types::enums::{OrderByField, OrderDirection, PaymentStatus};
+use crate::custom_types::structs::*;
 use crate::helpers::{
     auth::*,
     machinery_mgmt::{date_is_overlap, get_claims_from_token, validate_client},
@@ -792,8 +789,208 @@ pub async fn new_rental(
                 StatusCode::CREATED,
                 Json(json!({
                     "rental_id": rental_id,
+                    "user_id": user_id,
                 })),
             );
+        }
+    }
+
+    return (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({
+            "message": "Se ha producido un error interno en el servidor",
+        })),
+    );
+}
+
+pub async fn check_rental_payment(
+    State(state): State<AppState>,
+    query_params: Query<CheckPayment>,
+    Json(payload): Json<RentalIdAndToken>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Some(invalid_response) = validate_client(&payload.access) {
+        return invalid_response;
+    }
+
+    let claims = match get_claims_from_token(&payload.access) {
+        Some(c) => c,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    };
+
+    if let Ok(client) = state.pool.get().await {
+        let rental_id = payload.rental_id;
+        let payment_id = &query_params.payment_id;
+        let user_id = claims.user_id;
+        let payment_status = &query_params.status;
+
+        match payment_status {
+            PaymentStatus::Approved => {
+                let approved_query = "
+                    UPDATE rentals 
+                    SET status = 'active', payment_id = $1
+                    WHERE id = $2 AND status = 'pending_payment';
+                ";
+
+                match client
+                    .execute(approved_query, &[&payment_id, &rental_id])
+                    .await
+                {
+                    Ok(rows_updated) => {
+                        if rows_updated == 0 {
+                            return (
+                                StatusCode::NOT_FOUND,
+                                Json(json!({
+                                    "message": "No se ha encontrado el alquiler pendiente de pago",
+                                })),
+                            );
+                        }
+
+                        if let Ok(user_row) = client
+                            .query_one("SELECT * FROM users WHERE id = $1;", &[&user_id])
+                            .await
+                        {
+                            let get_rental_query = "
+                            SELECT r.*, l.street, l.number, l.city, mm.brand, mm.name, mm.model 
+                            FROM rentals r
+                            INNER JOIN machinery_units mu ON r.machine_id = mu.id
+                            INNER JOIN machinery_models mm ON mu.model_id = mm.id
+                            INNER JOIN locations l ON mu.location_id = l.id
+                            WHERE r.id = $1;
+                        ";
+
+                            match client.query_one(get_rental_query, &[&rental_id]).await {
+                                Ok(rental_row) => {
+                                    let rent = RentalInfo {
+                                        id: rental_id,
+                                        machine_brand: rental_row.get("brand"),
+                                        machine_name: rental_row.get("name"),
+                                        machine_model: rental_row.get("model"),
+                                        start_date: rental_row.get("start_date"),
+                                        end_date: rental_row.get("end_date"),
+                                        city: rental_row.get("city"),
+                                        street: rental_row.get("street"),
+                                        number: rental_row.get("number"),
+                                        payment_id: payment_id.to_string(),
+                                    };
+
+                                    let formatted_start =
+                                        rent.start_date.format("%d/%m/%Y").to_string();
+                                    let formatted_end =
+                                        rent.end_date.format("%d/%m/%Y").to_string();
+
+                                    let user_email: String = user_row.get("email");
+                                    let user_name: String = user_row.get("name");
+
+                                    let subject = format!(
+                                        "Alquiler n° {} aprobado - Bob el Alquilador",
+                                        rental_id
+                                    );
+                                    let body = format!(
+                                        "Hola {},\n\n\
+                                    Tu alquiler ha sido aprobado.\n\n\
+                                    \n\
+                                    Detalles del Alquiler:\n\
+                                    \n\n\
+                                    Número de alquiler:\t\t\t {}\n\
+                                    Período:\t\t\t {} - {}\n\
+                                    Máquina:\t\t\t {} {} {}\n\
+                                    Ubicación:\t\t\t {}, {}, {}\n\
+                                    Identificador del pago:\t\t\t {}\n\n\
+                                    \n\n\
+                                    Gracias por confiar en nosotros.\n\n\
+                                    Saludos cordiales,\n\
+                                    El equipo de Bob el Alquilador\n",
+                                        user_name,
+                                        rental_id,
+                                        formatted_start,
+                                        formatted_end,
+                                        rent.machine_name,
+                                        rent.machine_brand,
+                                        rent.machine_model,
+                                        rent.city,
+                                        rent.street,
+                                        rent.number,
+                                        rent.payment_id,
+                                    );
+
+                                    match send_mail(&user_email, &subject, &body) {
+                                        Ok(_) => {
+                                            return (
+                                                StatusCode::OK,
+                                                Json(json!({
+                                                    "message": "El alquiler ha sido aprobado y el usuario ha sido notificado",
+                                                })),
+                                            );
+                                        }
+                                        Err(_) => {
+                                            return (
+                                                StatusCode::INTERNAL_SERVER_ERROR,
+                                                Json(json!({
+                                                    "message": "Se ha producido un error al enviar la notificación al usuario",
+                                                })),
+                                            );
+                                        }
+                                    }
+                                }
+                                Err(_) => {
+                                    return (
+                                        StatusCode::INTERNAL_SERVER_ERROR,
+                                        Json(json!({
+                                            "message": "Se ha producido un error al obtener los datos del alquiler",
+                                        })),
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(json!({
+                                "message": "Se ha producido un error al actualizar el estado del alquiler",
+                            })),
+                        );
+                    }
+                }
+            }
+            PaymentStatus::Rejected => {
+                let rejected_query = "
+                    UPDATE rentals 
+                    SET status = 'failed' 
+                    WHERE id = $1 AND status = 'pending_payment';
+                ";
+
+                if let Ok(rows_updated) = client.execute(rejected_query, &[&rental_id]).await {
+                    if rows_updated == 0 {
+                        return (
+                            StatusCode::NOT_FOUND,
+                            Json(json!({
+                                "message": "No se ha encontrado el alquiler pendiente de pago",
+                            })),
+                        );
+                    } else {
+                        return (
+                            StatusCode::BAD_GATEWAY,
+                            Json(json!({
+                                "message": "Ha ocurrido un error en el pago por lo que no se pudo realizar el alquiler.",
+                            })),
+                        );
+                    }
+                }
+            }
+            _ => {
+                return (
+                    StatusCode::CONFLICT,
+                    Json(json!({
+                        "message": "El pago no ha sido aprobado ni rechazado",
+                    })),
+                );
+            }
         }
     }
 
