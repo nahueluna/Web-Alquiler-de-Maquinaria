@@ -117,39 +117,54 @@ INSERT INTO machinery_categories (model_id, category_id) VALUES
 (5, 4);
 
 -- Insert sample data into the rentals table
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (4, 2, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 5000.00, 'completed', 2);
+INSERT INTO rentals (
+    user_id, machine_id, start_date, end_date, total_price, status,
+    retirement_employee_id, return_employee_id, retirement_date, return_date, payment_id
+)
+VALUES (
+    4, 2, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 5000.00, 'completed',
+    2, 6, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 'PAY_00001'
+);
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (8, 5, NOW() - INTERVAL '148 days', NOW() - INTERVAL '139 days', 4300.00, 'completed', 2);
+INSERT INTO rentals (
+    user_id, machine_id, start_date, end_date, total_price, status,
+    retirement_employee_id, return_employee_id, retirement_date, return_date, payment_id
+)
+VALUES (
+    8, 5, NOW() - INTERVAL '148 days', NOW() - INTERVAL '139 days', 4300.00, 'completed',
+    6, 2, NOW() - INTERVAL '148 days', NOW() - INTERVAL '139 days', 'PAY_00002'
+);
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 4100.00, 'active', 2);
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status,
+    retirement_employee_id, retirement_date, payment_id)
+VALUES (4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 4100.00, 'active', 2, NOW() - INTERVAL '3 days', 'PAY_00003');
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (4, 9, NOW(), NOW() + INTERVAL '13 days', 3950.00, 'active', 2);
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
+VALUES (4, 9, NOW(), NOW() + INTERVAL '13 days', 3950.00, 'active');
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (9, 3, NOW() + INTERVAL '18 days', NOW() + INTERVAL '28 days', 6200.00, 'pending_payment', 2);
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
+VALUES (9, 3, NOW() + INTERVAL '18 days', NOW() + INTERVAL '28 days', 6200.00, 'pending_payment');
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (9, 7, NOW() + INTERVAL '23 days', NOW() + INTERVAL '30 days', 4000.00, 'pending_payment', 6);
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
+VALUES (9, 7, NOW() + INTERVAL '23 days', NOW() + INTERVAL '30 days', 4000.00, 'pending_payment');
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (10, 8, NOW() + INTERVAL '15 days', NOW() + INTERVAL '29 days', 4300.00, 'pending_payment', 6);
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
+VALUES (10, 8, NOW() + INTERVAL '15 days', NOW() + INTERVAL '29 days', 4300.00, 'pending_payment');
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (10, 2, NOW() + INTERVAL '4 days', NOW() + INTERVAL '13 days', 5500.00, 'cancelled', 6);
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
+VALUES (10, 2, NOW() + INTERVAL '4 days', NOW() + INTERVAL '13 days', 5500.00, 'cancelled');
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (10, 3, NOW() + INTERVAL '4 days', NOW() + INTERVAL '11 days', 5800.00, 'active', 6);
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
+VALUES (10, 3, NOW() + INTERVAL '4 days', NOW() + INTERVAL '11 days', 5800.00, 'active');
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (10, 1, NOW() + INTERVAL '6 days', NOW() + INTERVAL '13 days', 4600.00, 'failed', 6);
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
+VALUES (10, 1, NOW() + INTERVAL '6 days', NOW() + INTERVAL '13 days', 4600.00, 'failed');
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (4, 10, NOW() + INTERVAL '8 days', NOW() + INTERVAL '18 days', 6000.00, 'active', 2);
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
+VALUES (4, 10, NOW() + INTERVAL '8 days', NOW() + INTERVAL '18 days', 6000.00, 'active');
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, employee_id)
-VALUES (9, 10, NOW() + INTERVAL '28 days', NOW() + INTERVAL '38 days', 6000.00, 'pending_payment', 6);
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status)
+VALUES (9, 10, NOW() + INTERVAL '28 days', NOW() + INTERVAL '38 days', 6000.00, 'pending_payment');
+
+
 
