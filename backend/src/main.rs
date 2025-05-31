@@ -66,6 +66,7 @@ async fn main() {
         .route("/explore/{id}/locations", post(get_machine_locations))
         .route("/rental/availability", post(get_units_unavailable_dates))
         .route("/rental/new", post(new_rental))
+        .route("/newunit", post(new_unit))
         .route(
             "/newmodel",
             post(new_model).layer(DefaultBodyLimit::max(20 * 1024 * 1024)),

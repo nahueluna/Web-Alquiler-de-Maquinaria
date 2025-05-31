@@ -13,7 +13,8 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES
 ('refresh@example.com', 'refresh', 'refresh', '69aa8cddc392e17d03008aa250cae723ee7402524007124e8190aaec5c7311e0', '1234123412341234', 2, 'active'),
 ('pswchange@example.com', 'psw', 'change', 'change', 'psw', 0, 'active'),
 ('logout@example.com', 'log', 'out', '0df0d73a572d94bf79da609a4b37a4dd7a308c9debf51197a2e1eaa5b616a8a1', '1111111111111111', 2, 'active'),
-('admin2@example.com', 'admin', '2', '9c82435c63a8d9c0afee889440e9b5c75c0b72cc717230a1dab6f0db35a7e2eb', '1212121212121212', 0, 'active');
+('admin2@example.com', 'admin', '2', '9c82435c63a8d9c0afee889440e9b5c75c0b72cc717230a1dab6f0db35a7e2eb', '1212121212121212', 0, 'active'),
+('check_change_psw_code@example.com', 'jamie', 'hi', '2c82435c63a8d9c0afee889440e9b5c75c0b72cc717230a1dab6f0db35a7e2eb', '1212121212121212', 0, 'active');
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),
@@ -26,7 +27,8 @@ INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (14, '1993-06-30', '123122', '555-7890');
 
 INSERT INTO change_psw_codes (id, code) VALUES
-(13, 'change_psw_code');
+(13, 'change_psw_code'),
+(16, 'change_psw_code2');
 
 -- Insert sample data into the machinery_models table
 INSERT INTO machinery_models (name, brand, model, year, policy, description, price) VALUES

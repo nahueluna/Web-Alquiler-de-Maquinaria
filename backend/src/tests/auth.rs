@@ -509,7 +509,7 @@ async fn test_check_changepsw_code() {
     let res = client
         .post(backend_url("/checkchangepswcode"))
         .json(&serde_json::json!({
-            "code": "change_psw_code"
+            "code": "change_psw_code2"
         }))
         .send()
         .await

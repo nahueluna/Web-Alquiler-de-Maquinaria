@@ -261,6 +261,14 @@ pub struct NewModel {
     pub access: String,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct NewUnit {
+    pub serial_number: String,
+    pub model_id: i32,
+    pub location_id: i32,
+    pub access: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CheckPayment {
     pub payment_id: String,

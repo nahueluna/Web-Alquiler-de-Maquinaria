@@ -1,5 +1,3 @@
-use core::num;
-
 use crate::custom_types::enums::{OrderByField, OrderDirection, PaymentStatus};
 use crate::custom_types::structs::*;
 use crate::helpers::{
@@ -16,12 +14,10 @@ use axum::{
 use axum_extra::extract::Query;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
-use deadpool_postgres::Status;
-use headers::Date;
 use image::ImageFormat;
 use serde_json::json;
 use std::{fs::File, io::BufWriter, path::PathBuf};
-use tokio_postgres::types::ToSql;
+use tokio_postgres::{types::ToSql, error::SqlState};
 use validator::Validate;
 
 #[axum::debug_handler]
@@ -1000,4 +996,84 @@ pub async fn check_rental_payment(
             "message": "Se ha producido un error interno en el servidor",
         })),
     );
+}
+
+pub async fn new_unit(State(state): State<AppState>, Json(payload): Json<NewUnit>) -> Response {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            )
+                .into_response()
+        }
+    }
+    .claims;
+
+    if claims.role != 0 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Not enough permissions"})),
+        )
+            .into_response();
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response()
+        }
+    };
+
+    match client.execute("INSERT INTO machinery_units
+        (serial_number, status, model_id, location_id)
+        VALUES ($1, 'available', $2, $3) RETURNING id;",
+            &[
+                &payload.serial_number,
+                &payload.model_id,
+                &payload.location_id,
+            ],
+        )
+        .await
+    {
+        Ok(_) =>
+            return (
+                StatusCode::CREATED,
+                Json(json!({"message": "Unit created successfully"})),
+            )
+                .into_response(),
+        Err(e) => {
+            let mut status_code = StatusCode::INTERNAL_SERVER_ERROR;
+            let mut message = "Failed to save unit";
+            if let Some(db_err) = e.as_db_error() {
+                match db_err.code() {
+                    &SqlState::UNIQUE_VIOLATION  => {
+                        status_code = StatusCode::BAD_REQUEST;
+                        message = "The serial_number is already registered";
+                    },
+                    &SqlState::FOREIGN_KEY_VIOLATION => {
+                        let detail = db_err.message().to_lowercase();
+                        if detail.contains("model_id") {
+                            status_code = StatusCode::BAD_REQUEST;
+                            message = "model_id is invalid";
+                        } else if detail.contains("location") {
+                            status_code = StatusCode::BAD_REQUEST;
+                            message = "location_id is invalid";
+                        }
+                    },
+                    _ => {},
+                }
+            }
+            return (
+                status_code,
+                Json(json!({"message": message})),
+            )
+                .into_response();
+        },
+    };
 }
