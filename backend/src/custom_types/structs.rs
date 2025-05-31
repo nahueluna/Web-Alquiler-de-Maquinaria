@@ -1,4 +1,4 @@
-use super::enums::{OrderByField, OrderDirection};
+use super::enums::{OrderByField, OrderDirection, PaymentStatus};
 use chrono::NaiveDate;
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
@@ -259,4 +259,30 @@ pub struct NewModel {
     pub categories: Vec<String>,
     pub images: Vec<String>, //base64 encoded strings
     pub access: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CheckPayment {
+    pub payment_id: String,
+    pub status: PaymentStatus,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RentalIdAndToken {
+    pub rental_id: i32,
+    pub access: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RentalInfo {
+    pub id: i32,
+    pub machine_brand: String,
+    pub machine_model: String,
+    pub machine_name: String,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub city: String,
+    pub street: String,
+    pub number: String,
+    pub payment_id: String,
 }

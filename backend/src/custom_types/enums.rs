@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub enum RunningEnv {
     Production,
@@ -17,4 +17,12 @@ pub enum OrderByField {
 pub enum OrderDirection {
     Asc,
     Desc,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PaymentStatus {
+    Approved,
+    Pending,
+    Rejected,
 }
