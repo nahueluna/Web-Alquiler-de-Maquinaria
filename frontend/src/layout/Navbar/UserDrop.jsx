@@ -13,14 +13,20 @@ import {
   MenuItem,
 } from "@mui/joy";
 import { useContext } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import UserContext from "../../context/UserContext";
 
 function UserDrop() {
+  const navigate = useNavigate();
   const { user, logout } = useContext(UserContext);
   const {
     pub_user: { name },
   } = user;
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   return (
     <Dropdown>
@@ -75,7 +81,10 @@ function UserDrop() {
             underline="none"
             textColor={"text.primary"}
             component={RouterLink}
-            onClick={logout}
+            onClick={(e) => {
+              e.preventDefault();
+              handleLogout();
+            }}
           >
             Cerrar sesion
           </Link>

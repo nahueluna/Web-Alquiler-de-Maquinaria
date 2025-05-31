@@ -1,5 +1,5 @@
 import { Box, Button, Input, Link, Sheet } from "@mui/joy";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 import SoloLogo from "../../assets/SoloLogo.png";
 import { useEffect, useState, useContext } from "react";
 import Nav from "./Nav";
@@ -12,6 +12,7 @@ const Navbar = () => {
   const [hideNav, setHideNav] = useState(false);
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     function scrollNavbar() {
@@ -25,10 +26,13 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", scrollNavbar);
   }, []);
 
+  const params = new URLSearchParams(location.search);
+  const initialSearch = params.get("q") || "";
+
   // Configuración de Formik y Yup para el buscador
   const formik = useFormik({
-    initialValues: { search: "" },
-    validationSchema: Yup.object({
+    initialValues: { search: initialSearch },
+    validationSchema: Yup.string({
       search: Yup.string().required("Por favor ingresa un término de búsqueda"),
     }),
     onSubmit: (values) => {
@@ -39,6 +43,7 @@ const Navbar = () => {
         navigate("/explore");
       }
     },
+    enableReinitialize: true
   });
 
   return (

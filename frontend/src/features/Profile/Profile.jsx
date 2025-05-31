@@ -19,6 +19,7 @@ const phoneRegex = /^[\d+\-\s]{8,17}$/;
 const Profile = () => {
   const { user } = useContext(UserContext);
   const navigate = useNavigate();
+  const [loadingPasswordChange, setLoadingPasswordChange] = useState(false);
   const [userData, setUserData] = useState({
     nombre: "",
     correo: "",
@@ -113,6 +114,7 @@ const Profile = () => {
 
 const handleChangePassword = async () => {
   try {
+    setLoadingPasswordChange(true);
     const response = await axios.post(
       "http://localhost:8000/requestpswchange",
       { email: userData.correo },
@@ -121,6 +123,7 @@ const handleChangePassword = async () => {
 
     if (response.status === 200) {
       setShowChangePasswordSnackbar(true); // Si funca...
+      setLoadingPasswordChange(false);
     }
   } catch (error) {
     if (error.response) {
@@ -131,6 +134,7 @@ const handleChangePassword = async () => {
       console.error("Error al conectar con el backend:", error);
       alert("Error de red. No se pudo contactar al servidor.");
       }
+      setLoadingPasswordChange(false);
     }
   };
 
@@ -235,7 +239,7 @@ const handleChangePassword = async () => {
         alignItems: "center",
       }}
     >
-      <Button variant="outlined" color="neutral" onClick={handleChangePassword}>
+      <Button variant="outlined" color="neutral" onClick={handleChangePassword} loading={loadingPasswordChange} disabled={loadingPasswordChange}>
         Cambiar contraseña
       </Button>
 

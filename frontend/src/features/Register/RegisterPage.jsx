@@ -145,6 +145,7 @@ const RegisterPage = () => {
         color={status.isError ? "danger" : "success"}
         open={openSnack}
         onClose={() => setOpenSnack(false)}
+        autoHideDuration={3000}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         startDecorator={
           status.isError ? (
