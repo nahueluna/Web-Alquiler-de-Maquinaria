@@ -1,8 +1,8 @@
-use crate::custom_types::enums::RunningEnv;
+use crate::custom_types::{enums::RunningEnv, structs::MyRentalInfo};
 use crate::helpers::auth::create_pool;
 use crate::tests::helpers::*;
 use base64::{engine::general_purpose::STANDARD, Engine};
-use chrono::Utc;
+use chrono::{Utc, NaiveDate};
 use reqwest::Client;
 use std::{fs::File, io::Read};
 use validator::ValidateLength;
@@ -1192,5 +1192,81 @@ async fn test_new_unit() {
             .as_str()
             .unwrap(),
         "Not enough permissions"
+    );
+}
+
+#[tokio::test]
+async fn test_get_my_rentals() {
+    setup().await;
+    let client = Client::new();
+
+    //Get the access token (id 8)
+    let jwt = get_test_jwt("hank@example.com", false).await;
+    //get_employees
+    let res = client
+        .post(backend_url("/myrentals"))
+        .json(&serde_json::json!({
+            "access": jwt
+        })).send().await.unwrap();
+
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["rentals"].clone();
+    let rentals: Vec<MyRentalInfo> = serde_json::from_value(value).unwrap();
+
+    assert_eq!(rentals.len(), 1);
+    let rental = &rentals[0];
+
+    assert_eq!(rental.rental_id, 2);
+    assert_eq!(rental.return_date, Some(NaiveDate::from_ymd_opt(2025, 1, 12).unwrap()));
+    assert_eq!(rental.retirement_date, Some(NaiveDate::from_ymd_opt(2025, 1, 3).unwrap()));
+    assert_eq!(rental.start_date, NaiveDate::from_ymd_opt(2025, 1, 3).unwrap());
+    assert_eq!(rental.end_date, NaiveDate::from_ymd_opt(2025, 1, 12).unwrap());
+    assert_eq!(rental.total_price, 4300.0);
+    assert_eq!(rental.status, "completed");
+    assert_eq!(rental.unit_id, 5);
+    assert_eq!(rental.unit_serial_number, "JD-002");
+    assert_eq!(rental.model_id, 2);
+    assert_eq!(rental.model_name, "Retroexcavadora");
+    assert_eq!(rental.model_brand, "John Deere");
+    assert_eq!(rental.model_model, "310SL");
+    assert_eq!(rental.model_year, 2019);
+    assert_eq!(rental.model_policy, "No se realizan reembolsos por cancelaciones.");
+    assert_eq!(rental.model_description, "Ideal para zonas urbanas");
+
+    //Try to access as an admin
+    let jwt = get_test_jwt("admin@example.com", false).await;
+    let res = client
+        .post(backend_url("/myrentals"))
+        .json(&serde_json::json!({
+            "access": jwt,
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 403);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "The user is not a client"
+    );
+
+    //Invalid token
+    let res = client
+        .post(backend_url("/myrentals"))
+        .json(&serde_json::json!({
+            "access": "thisisnotavalidtoken"
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 401);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "Invalid access token"
     );
 }

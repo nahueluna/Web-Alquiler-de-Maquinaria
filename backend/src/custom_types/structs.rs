@@ -1,5 +1,5 @@
 use super::enums::{OrderByField, OrderDirection, PaymentStatus};
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveDateTime};
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -167,6 +167,28 @@ pub struct MachineModel {
     pub description: String,
     pub price: f32,
     pub categories: Vec<Category>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MyRentalInfo {
+    pub rental_id: i32,
+    pub return_date: Option<NaiveDate>,
+    pub retirement_date: Option<NaiveDate>,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub total_price: f32,
+    pub status: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub unit_id: i32,
+    pub unit_serial_number: String,
+    pub model_id: i32,
+    pub model_name: String,
+    pub model_brand: String,
+    pub model_model: String,
+    pub model_year: i32,
+    pub model_policy: String,
+    pub model_description: String,
 }
 
 impl MachineModel {

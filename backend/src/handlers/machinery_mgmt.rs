@@ -1077,3 +1077,99 @@ pub async fn new_unit(State(state): State<AppState>, Json(payload): Json<NewUnit
         },
     };
 }
+
+pub async fn get_my_rentals(State(state): State<AppState>, Json(payload): Json<Access>) -> Response {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            )
+                .into_response()
+        }
+    }
+    .claims;
+
+    if claims.role != 2 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "The user is not a client"})),
+        )
+            .into_response();
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response()
+        }
+    };
+
+    match client
+        .query(
+            "SELECT
+            rentals.id AS rental_id,
+            rentals.return_date,
+            rentals.retirement_date,
+            rentals.start_date,
+            rentals.end_date,
+            rentals.total_price,
+            rentals.status::TEXT,
+            rentals.created_at,
+            rentals.updated_at,
+            machinery_units.id AS unit_id,
+            machinery_units.serial_number AS unit_serial_number,
+            machinery_models.id AS model_id,
+            machinery_models.name AS model_name,
+            machinery_models.brand AS model_brand,
+            machinery_models.model AS model_model,
+            machinery_models.year AS model_year,
+            machinery_models.policy AS model_policy,
+            machinery_models.description AS model_description
+        FROM rentals
+        JOIN machinery_units ON rentals.machine_id = machinery_units.id
+        JOIN machinery_models ON machinery_units.model_id = machinery_models.id
+        WHERE rentals.user_id = $1;",
+        &[&claims.user_id],)
+        .await
+    {
+        Ok(rows) => {
+            let employees: Vec<MyRentalInfo> = rows
+                .iter()
+                .map(|row| MyRentalInfo {
+                    rental_id: row.get("rental_id"),
+                    return_date: row.get("return_date"),
+                    retirement_date: row.get("retirement_date"),
+                    start_date: row.get("start_date"),
+                    end_date: row.get("end_date"),
+                    total_price: row.get("total_price"),
+                    status: row.get("status"),
+                    created_at: row.get("created_at"),
+                    updated_at: row.get("updated_at"),
+                    unit_id: row.get("unit_id"),
+                    unit_serial_number: row.get("unit_serial_number"),
+                    model_id: row.get("model_id"),
+                    model_name: row.get("model_name"),
+                    model_brand: row.get("model_brand"),
+                    model_model: row.get("model_model"),
+                    model_year: row.get("model_year"),
+                    model_policy: row.get("model_policy"),
+                    model_description: row.get("model_description"),
+                })
+                .collect();
+            return (StatusCode::OK, Json(json!({"rentals": employees}))).into_response();
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to get the rentals"})),
+            )
+                .into_response()
+        }
+    };
+}
