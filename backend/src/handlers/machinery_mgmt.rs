@@ -3,14 +3,27 @@ use core::num;
 use crate::custom_types::enums::{OrderByField, OrderDirection};
 use crate::custom_types::structs::{
     Access, AppState, CatalogParams, Category, DateRange, Location, MachineModel, ModelAndLocation,
-    NewRental, UnitAndDates,
+    NewModel, NewRental, UnitAndDates,
 };
-use crate::helpers::machinery_mgmt::{date_is_overlap, get_claims_from_token, validate_client};
-use axum::{extract::Path, extract::State, http::StatusCode, Json};
+use crate::helpers::{
+    auth::*,
+    machinery_mgmt::{date_is_overlap, get_claims_from_token, validate_client},
+};
+use axum::{
+    extract::Path,
+    extract::State,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use axum_extra::extract::Query;
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use deadpool_postgres::Status;
 use headers::Date;
+use image::ImageFormat;
 use serde_json::json;
+use std::{fs::File, io::BufWriter, path::PathBuf};
 use tokio_postgres::types::ToSql;
 use validator::Validate;
 
@@ -436,6 +449,204 @@ pub async fn get_units_unavailable_dates(
             "message": "Se ha producido un error interno en el servidor",
         })),
     );
+}
+
+pub async fn new_model(State(state): State<AppState>, Json(payload): Json<NewModel>) -> Response {
+    if payload.images.len() > 10 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"message": "Cannot upload more than 10 images"})),
+        )
+            .into_response();
+    }
+
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            )
+                .into_response()
+        }
+    }
+    .claims;
+
+    if claims.role != 0 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Not enough permissions"})),
+        )
+            .into_response();
+    }
+
+    let mut client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response()
+        }
+    };
+
+    let transaction = match client.transaction().await {
+        Ok(t) => t,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to create a DB transaction",})),
+            )
+                .into_response()
+        }
+    };
+
+    let row = match transaction
+        .query_one(
+            "INSERT INTO machinery_models
+        (name, brand, model, year, policy, description, price)
+        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
+            &[
+                &payload.name,
+                &payload.brand,
+                &payload.model,
+                &payload.year,
+                &payload.policy,
+                &payload.description,
+                &payload.price,
+            ],
+        )
+        .await
+    {
+        Ok(r) => r,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to execute transaction"})),
+            )
+                .into_response()
+        }
+    };
+
+    let model_id: i32 = row.get("id");
+
+    //Link the model with the categories
+    for cat_name in payload.categories.iter().map(|c| c.to_lowercase()) {
+        //Get or create category
+        let Ok(row) = transaction
+            .query_one(
+                "WITH inserted AS (
+            INSERT INTO categories (name)
+            VALUES ($1)
+            ON CONFLICT (name) DO NOTHING
+            RETURNING id)
+        SELECT id FROM inserted
+        UNION ALL
+        SELECT id FROM categories WHERE name = $1
+        LIMIT 1;",
+                &[&cat_name],
+            )
+            .await
+        else {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to save the categories"})),
+            )
+                .into_response();
+        };
+        let cat_id: i32 = row.get("id");
+        //Link the category to the model
+        if transaction
+            .execute(
+                "INSERT INTO machinery_categories (model_id, category_id)
+            VALUES ($1, $2);",
+                &[&model_id, &cat_id],
+            )
+            .await
+            .is_err()
+        {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to save the categories"})),
+            )
+                .into_response();
+        };
+    }
+
+    for b64 in &payload.images {
+        let Ok(bytes) = STANDARD.decode(b64) else {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"message": "Invalid base64 in images"})),
+            )
+                .into_response();
+        };
+
+        // Decode into a DynamicImage
+        let Ok(image) = image::load_from_memory(&bytes) else {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"message": "Failed to decode image"})),
+            )
+                .into_response();
+        };
+
+        // Generate 64-character filename
+        let name_without_extension = generate_random_string(64);
+        let filename = format!("{}.webp", name_without_extension);
+
+        // Save image as JPG
+        let filepath = PathBuf::from(format!("media/machines/{}", filename));
+        let Ok(file) = File::create(&filepath) else {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to save the images"})),
+            )
+                .into_response();
+        };
+        let mut writer = BufWriter::new(file);
+        if image.write_to(&mut writer, ImageFormat::WebP).is_err() {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message":"Failed to save the images"})),
+            )
+                .into_response();
+        }
+
+        // Store only filename
+        if transaction
+            .execute(
+                "INSERT INTO model_images (name, id) VALUES ($1, $2)",
+                &[&name_without_extension, &model_id],
+            )
+            .await
+            .is_err()
+        {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message":"Failed to save the images"})),
+            )
+                .into_response();
+        }
+    }
+
+    match transaction.commit().await {
+        Ok(_) => {
+            return (
+                StatusCode::CREATED,
+                Json(json!({"message":"Model created successfully"})),
+            )
+                .into_response()
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to commit transaction"})),
+            )
+                .into_response()
+        }
+    };
 }
 
 pub async fn new_rental(

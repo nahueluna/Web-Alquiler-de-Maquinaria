@@ -1,11 +1,16 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
 
-  server: {
-    host: true,
-    allowedHosts: [import.meta.env.NGROK],
-  },
+  return {
+    plugins: [react()],
+    server: {
+      host: true,
+      strictPort: true,
+      port: 5173,
+      allowedHosts: [env.NGROK],
+    },
+  };
 });

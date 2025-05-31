@@ -3,8 +3,10 @@ mod tests {
     use crate::custom_types::enums::RunningEnv;
     use crate::helpers::auth::create_pool;
     use crate::tests::helpers::*;
+    use base64::{engine::general_purpose::STANDARD, Engine};
     use chrono::Utc;
     use reqwest::Client;
+    use std::{fs::File, io::Read};
     use validator::ValidateLength;
 
     #[tokio::test]
@@ -493,6 +495,170 @@ mod tests {
             .unwrap();
 
         assert_eq!(missing_params_response.status(), 400);
+    }
+
+    #[tokio::test]
+    async fn test_new_model() {
+        setup().await;
+        let client = Client::new();
+
+        let pool = create_pool(RunningEnv::Testing);
+        let db_client = match pool.await.get().await {
+            Ok(c) => c,
+            Err(e) => panic!("Failed to connect to the database: {}", e),
+        };
+
+        // Get an admin token
+        let jwt = get_test_jwt("admin@example.com", true).await;
+
+        // Read image file from disk
+        let mut file = File::open("media/test/test_image1.png").unwrap();
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer).unwrap();
+        // Base64 encode the image
+        let img1 = STANDARD.encode(&buffer);
+
+        let mut file = File::open("media/test/test_image2.png").unwrap();
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer).unwrap();
+        let img2 = STANDARD.encode(&buffer);
+
+        let res = client
+            .post(backend_url("/newmodel"))
+            .json(&serde_json::json!({
+                "access": jwt,
+                "name": "Bulldozer X1",
+                "brand": "Caterpillar",
+                "model": "X1 2024",
+                "year": 2024,
+                "policy": "Basic Warranty",
+                "description": "Powerful bulldozer for rough terrain",
+                "price": 99000,
+                "categories": ["Heavy", "Construction"],
+                "images": [img1, img2]
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), 201);
+        assert_eq!(
+            res.json::<serde_json::Value>().await.unwrap()["message"]
+                .as_str()
+                .unwrap(),
+            "Model created successfully"
+        );
+
+        // Check that the model exists in the DB
+        let row = db_client
+            .query_one(
+                "SELECT * FROM machinery_models WHERE name = $1",
+                &[&"Bulldozer X1"],
+            )
+            .await
+            .unwrap();
+
+        let model_id: i32 = row.get("id");
+
+        // Check that categories were linked
+        let cats = db_client
+            .query(
+                "SELECT * FROM machinery_categories WHERE model_id = $1",
+                &[&model_id],
+            )
+            .await
+            .unwrap();
+        assert_eq!(cats.len(), 2);
+
+        // Check that the images are registered
+        let imgs = db_client
+            .query("SELECT * FROM model_images WHERE id = $1", &[&model_id])
+            .await
+            .unwrap();
+        assert_eq!(imgs.len(), 2);
+
+        //Try to send 12 images
+        let res = client
+            .post(backend_url("/newmodel"))
+            .json(&serde_json::json!({
+                "access": jwt,
+                "name": "Bulldozer X1",
+                "brand": "Caterpillar",
+                "model": "X1 2024",
+                "year": 2024,
+                "policy": "Basic Warranty",
+                "description": "Powerful bulldozer for rough terrain",
+                "price": 99000,
+                "categories": ["Heavy", "Construction"],
+                "images": [img2, img2, img2, img2, img2, img2,
+                            img2, img2, img2, img2, img2, img2]
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), 400);
+        assert_eq!(
+            res.json::<serde_json::Value>().await.unwrap()["message"]
+                .as_str()
+                .unwrap(),
+            "Cannot upload more than 10 images"
+        );
+
+        //Try an invalid jwt
+        let res = client
+            .post(backend_url("/newmodel"))
+            .json(&serde_json::json!({
+                "access": "hello",
+                "name": "Bulldozer X1",
+                "brand": "Caterpillar",
+                "model": "X1 2024",
+                "year": 2024,
+                "policy": "Basic Warranty",
+                "description": "Powerful bulldozer for rough terrain",
+                "price": 99000,
+                "categories": ["Heavy", "Construction"],
+                "images": [img2]
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), 401);
+        assert_eq!(
+            res.json::<serde_json::Value>().await.unwrap()["message"]
+                .as_str()
+                .unwrap(),
+            "Invalid access token"
+        );
+
+        //Try to access as an user
+        let jwt = get_test_jwt("login@example.com", false).await;
+        let res = client
+            .post(backend_url("/newmodel"))
+            .json(&serde_json::json!({
+                "access": jwt,
+                "name": "Bulldozer X1",
+                "brand": "Caterpillar",
+                "model": "X1 2024",
+                "year": 2024,
+                "policy": "Basic Warranty",
+                "description": "Powerful bulldozer for rough terrain",
+                "price": 99000,
+                "categories": ["Heavy", "Construction"],
+                "images": [img1, img2]
+            }))
+            .send()
+            .await
+            .unwrap();
+
+        assert_eq!(res.status(), 403);
+        assert_eq!(
+            res.json::<serde_json::Value>().await.unwrap()["message"]
+                .as_str()
+                .unwrap(),
+            "Not enough permissions"
+        );
     }
 
     #[tokio::test]

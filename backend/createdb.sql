@@ -74,7 +74,7 @@ CREATE TABLE machinery_location_history (
 
 CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE
+    name TEXT NOT NULL UNIQUE CHECK (name = LOWER(name))
 );
 
 CREATE TABLE machinery_categories (
@@ -98,4 +98,9 @@ CREATE TABLE rentals (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     payment_id TEXT NULL
+);
+
+CREATE TABLE model_images (
+    name varchar(64) PRIMARY KEY,
+    id INTEGER NOT NULL REFERENCES machinery_models(id)
 );

@@ -246,3 +246,17 @@ pub struct NewRental {
     pub total_price: f32,
     pub access: String,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct NewModel {
+    pub name: String,
+    pub brand: String,
+    pub model: String,
+    pub year: i32,
+    pub policy: String,
+    pub description: String,
+    pub price: f32,
+    pub categories: Vec<String>,
+    pub images: Vec<String>, //base64 encoded strings
+    pub access: String,
+}
