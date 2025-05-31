@@ -50,7 +50,7 @@ INSERT INTO locations (latitude, longitude, street, number, city) VALUES
 INSERT INTO machinery_units (serial_number, status, assigned_at, model_id, location_id) VALUES
 -- Modelo 1 (Caterpillar)
 ('CAT-001', 'available', NOW() - INTERVAL '100 days', 1, 1),
-('CAT-002', 'rented', NOW() - INTERVAL '20 days', 1, 2),
+('CAT-002', 'available', NOW() - INTERVAL '20 days', 1, 2),
 ('CAT-003', 'maintenance', NOW() - INTERVAL '5 days', 1, 1),
 
 -- Modelo 2 (John Deere)

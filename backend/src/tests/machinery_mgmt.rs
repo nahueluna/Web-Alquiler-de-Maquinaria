@@ -1275,3 +1275,114 @@ async fn test_get_my_rentals() {
         "Invalid access token"
     );
 }
+
+#[tokio::test]
+async fn test_load_retirement() {
+    setup().await;
+    let client = Client::new();
+
+    let pool = create_pool(RunningEnv::Testing);
+    let db_client = match pool.await.get().await {
+        Ok(c) => c,
+        Err(e) => panic!("Failed to connect to the database: {}", e),
+    };
+
+    // Get an admin token
+    let jwt = get_test_jwt("admin@example.com", true).await;
+
+    let res = client
+        .post(backend_url("/loadretirement"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 1,
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 201);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "Retirement loaded successfully"
+    );
+
+    // Check that the rental was updated
+    db_client
+        .query_one(
+            "SELECT * FROM rentals WHERE id = $1 AND
+            machine_id = $2 AND
+            retirement_employee_id = $3 AND
+            retirement_date = CURRENT_DATE;",
+            &[&&1, &&2, &&11],
+        )
+        .await
+        .unwrap();
+    // Check that the unit was updated
+    db_client
+        .query_one(
+            "SELECT * FROM machinery_units WHERE id = $1 AND status = 'rented';",
+            &[&&2],
+        )
+        .await
+        .unwrap();
+
+    //Invalid rental_id
+    let res = client
+        .post(backend_url("/loadretirement"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 10000
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 400);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "rental_id is invalid"
+    );
+
+    //Invalid token
+    let res = client
+        .post(backend_url("/loadretirement"))
+        .json(&serde_json::json!({
+            "access": "invalidtoken",
+            "rental_id": 10000
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 401);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "Invalid access token"
+    );
+
+    //Try to access as an user
+    let jwt = get_test_jwt("login@example.com", false).await;
+    let res = client
+        .post(backend_url("/loadretirement"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 10000
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 403);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "Not enough permissions"
+    );
+}

@@ -318,3 +318,9 @@ pub struct RentalInfo {
     pub number: String,
     pub payment_id: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LoadRetirement {
+    pub access: String,
+    pub rental_id: i32,
+}
