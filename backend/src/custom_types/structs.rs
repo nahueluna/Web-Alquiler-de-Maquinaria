@@ -189,6 +189,7 @@ pub struct MyRentalInfo {
     pub model_year: i32,
     pub model_policy: String,
     pub model_description: String,
+    pub model_image: String,
 }
 
 impl MachineModel {
@@ -279,8 +280,9 @@ pub struct NewModel {
     pub description: String,
     pub price: f32,
     pub categories: Vec<String>,
-    pub images: Vec<String>, //base64 encoded strings
+    pub extra_images: Vec<String>, //base64 encoded strings
     pub access: String,
+    pub image: String, //base64 encoded strings
 }
 
 #[derive(Debug, Deserialize, Serialize)]

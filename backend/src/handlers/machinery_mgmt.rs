@@ -16,7 +16,7 @@ use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use image::ImageFormat;
 use serde_json::json;
-use std::{fs::File, io::BufWriter, path::PathBuf};
+use std::{fs::File, io::BufWriter, path::PathBuf, env};
 use tokio_postgres::{types::ToSql, error::SqlState};
 use validator::Validate;
 
@@ -444,8 +444,8 @@ pub async fn get_units_unavailable_dates(
     );
 }
 
-pub async fn new_model(State(state): State<AppState>, Json(payload): Json<NewModel>) -> Response {
-    if payload.images.len() > 10 {
+pub async fn new_model(State(state): State<AppState>, Json(mut payload): Json<NewModel>) -> Response {
+    if payload.extra_images.len() > 10 {
         return (
             StatusCode::BAD_REQUEST,
             Json(json!({"message": "Cannot upload more than 10 images"})),
@@ -498,8 +498,8 @@ pub async fn new_model(State(state): State<AppState>, Json(payload): Json<NewMod
     let row = match transaction
         .query_one(
             "INSERT INTO machinery_models
-        (name, brand, model, year, policy, description, price)
-        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
+        (name, brand, model, year, policy, description, price, image)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, 'tempvalue') RETURNING id;",
             &[
                 &payload.name,
                 &payload.brand,
@@ -567,7 +567,9 @@ pub async fn new_model(State(state): State<AppState>, Json(payload): Json<NewMod
         };
     }
 
-    for b64 in &payload.images {
+    payload.extra_images.insert(0, payload.image); //So that we can process image as another extra_image
+    let mut first: bool = true;
+    for b64 in &payload.extra_images {
         let Ok(bytes) = STANDARD.decode(b64) else {
             return (
                 StatusCode::BAD_REQUEST,
@@ -607,20 +609,39 @@ pub async fn new_model(State(state): State<AppState>, Json(payload): Json<NewMod
                 .into_response();
         }
 
-        // Store only filename
-        if transaction
-            .execute(
-                "INSERT INTO model_images (name, id) VALUES ($1, $2)",
-                &[&name_without_extension, &model_id],
-            )
-            .await
-            .is_err()
-        {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"message":"Failed to save the images"})),
-            )
-                .into_response();
+        //image should be stored with the model
+        if first {
+            if transaction
+                .execute(
+                    "UPDATE machinery_models SET image = $1 WHERE id = $2;",
+                    &[&name_without_extension, &model_id],
+                )
+                .await
+                .is_err()
+            {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message":"Failed to save the images"})),
+                )
+                    .into_response();
+            }
+            first = false;
+        } else {
+            // Store only filename
+            if transaction
+                .execute(
+                    "INSERT INTO model_extra_images (name, id) VALUES ($1, $2)",
+                    &[&name_without_extension, &model_id],
+                )
+                .await
+                .is_err()
+            {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message":"Failed to save the images"})),
+                )
+                    .into_response();
+            }
         }
     }
 
@@ -1079,6 +1100,17 @@ pub async fn new_unit(State(state): State<AppState>, Json(payload): Json<NewUnit
 }
 
 pub async fn get_my_rentals(State(state): State<AppState>, Json(payload): Json<Access>) -> Response {
+    let frontend_url = match env::var("FRONTEND_URL") {
+        Ok(e) => e,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "FRONTEND_URL must be set in the .env file"})),
+            )
+                .into_response()
+        }
+    };
+
     let claims = match validate_jwt(&payload.access) {
         Some(data) => data,
         None => {
@@ -1130,7 +1162,8 @@ pub async fn get_my_rentals(State(state): State<AppState>, Json(payload): Json<A
             machinery_models.model AS model_model,
             machinery_models.year AS model_year,
             machinery_models.policy AS model_policy,
-            machinery_models.description AS model_description
+            machinery_models.description AS model_description,
+            machinery_models.image AS model_image
         FROM rentals
         JOIN machinery_units ON rentals.machine_id = machinery_units.id
         JOIN machinery_models ON machinery_units.model_id = machinery_models.id
@@ -1160,6 +1193,7 @@ pub async fn get_my_rentals(State(state): State<AppState>, Json(payload): Json<A
                     model_year: row.get("model_year"),
                     model_policy: row.get("model_policy"),
                     model_description: row.get("model_description"),
+                    model_image: format!("{}/media/machines/{}.webp",frontend_url,row.get::<_, String>("model_image")),
                 })
                 .collect();
             return (StatusCode::OK, Json(json!({"rentals": employees}))).into_response();

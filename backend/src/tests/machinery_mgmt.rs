@@ -4,7 +4,7 @@ use crate::tests::helpers::*;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use chrono::{Utc, NaiveDate};
 use reqwest::Client;
-use std::{fs::File, io::Read};
+use std::{fs::File, io::Read, env};
 use validator::ValidateLength;
 
 #[tokio::test]
@@ -533,7 +533,8 @@ async fn test_new_model() {
             "description": "Powerful bulldozer for rough terrain",
             "price": 99000,
             "categories": ["Heavy", "Construction"],
-            "images": [img1, img2]
+            "extra_images": [img1, img2],
+            "image": img1
         }))
         .send()
         .await
@@ -570,7 +571,7 @@ async fn test_new_model() {
 
     // Check that the images are registered
     let imgs = db_client
-        .query("SELECT * FROM model_images WHERE id = $1", &[&model_id])
+        .query("SELECT * FROM model_extra_images WHERE id = $1", &[&model_id])
         .await
         .unwrap();
     assert_eq!(imgs.len(), 2);
@@ -588,8 +589,9 @@ async fn test_new_model() {
             "description": "Powerful bulldozer for rough terrain",
             "price": 99000,
             "categories": ["Heavy", "Construction"],
-            "images": [img2, img2, img2, img2, img2, img2,
-                        img2, img2, img2, img2, img2, img2]
+            "extra_images": [img2, img2, img2, img2, img2, img2,
+                        img2, img2, img2, img2, img2, img2],
+            "image":img1
         }))
         .send()
         .await
@@ -616,7 +618,8 @@ async fn test_new_model() {
             "description": "Powerful bulldozer for rough terrain",
             "price": 99000,
             "categories": ["Heavy", "Construction"],
-            "images": [img2]
+            "extra_images": [img2],
+            "image": img2
         }))
         .send()
         .await
@@ -644,7 +647,8 @@ async fn test_new_model() {
             "description": "Powerful bulldozer for rough terrain",
             "price": 99000,
             "categories": ["Heavy", "Construction"],
-            "images": [img1, img2]
+            "extra_images": [img1, img2],
+            "image":img1
         }))
         .send()
         .await
@@ -1232,8 +1236,9 @@ async fn test_get_my_rentals() {
     assert_eq!(rental.model_year, 2019);
     assert_eq!(rental.model_policy, "No se realizan reembolsos por cancelaciones.");
     assert_eq!(rental.model_description, "Ideal para zonas urbanas");
+    let frontend_url = env::var("FRONTEND_URL").expect("FRONTEND_URL must be set in the .env file");
+    assert_eq!(rental.model_image, format!("{}/media/machines/imagecode.webp", frontend_url));
 
-    //Try to access as an admin
     let jwt = get_test_jwt("admin@example.com", false).await;
     let res = client
         .post(backend_url("/myrentals"))

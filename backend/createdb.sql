@@ -43,7 +43,8 @@ CREATE TABLE machinery_models (
     year INTEGER NOT NULL CHECK (year >= 1900),
     policy TEXT NOT NULL,
     description TEXT NOT NULL,
-    price REAL NOT NULL
+    price REAL NOT NULL,
+    image varchar(64) NOT NULL
 );
 
 CREATE TABLE locations (
@@ -100,7 +101,7 @@ CREATE TABLE rentals (
     payment_id TEXT NULL
 );
 
-CREATE TABLE model_images (
+CREATE TABLE model_extra_images (
     name varchar(64) PRIMARY KEY,
     id INTEGER NOT NULL REFERENCES machinery_models(id)
 );

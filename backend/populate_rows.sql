@@ -32,12 +32,12 @@ INSERT INTO change_psw_codes (id, code) VALUES
 (16, 'change_psw_code2');
 
 -- Insert sample data into the machinery_models table
-INSERT INTO machinery_models (name, brand, model, year, policy, description, price) VALUES
-('Excavadora hidráulica', 'Caterpillar', 'CAT320D', 2020, 'No se realizan reembolsos por cancelaciones.', 'Excavadora para trabajos pesados', 150000.00),
-('Retroexcavadora', 'John Deere', '310SL', 2019, 'No se realizan reembolsos por cancelaciones.', 'Ideal para zonas urbanas', 95000.00),
-('Cargadora frontal', 'Komatsu', 'WA270', 2021, 'Se aplica un reembolso parcial según el tiempo de aviso previo.', 'Cargadora con gran potencia', 120000.00),
-('Miniexcavadora', 'Bobcat', 'E35', 2022, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Compacta para espacios reducidos', 75000.00),
-('Grúa torre', 'Liebherr', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00);
+INSERT INTO machinery_models (name, brand, model, year, policy, description, price, image) VALUES
+('Excavadora hidráulica', 'Caterpillar', 'CAT320D', 2020, 'No se realizan reembolsos por cancelaciones.', 'Excavadora para trabajos pesados', 150000.00, 'imagecode'),
+('Retroexcavadora', 'John Deere', '310SL', 2019, 'No se realizan reembolsos por cancelaciones.', 'Ideal para zonas urbanas', 95000.00, 'imagecode'),
+('Cargadora frontal', 'Komatsu', 'WA270', 2021, 'Se aplica un reembolso parcial según el tiempo de aviso previo.', 'Cargadora con gran potencia', 120000.00, 'imagecode'),
+('Miniexcavadora', 'Bobcat', 'E35', 2022, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Compacta para espacios reducidos', 75000.00, 'imagecode'),
+('Grúa torre', 'Liebherr', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode');
 
 -- Insert sample data into the locations table
 INSERT INTO locations (latitude, longitude, street, number, city) VALUES
