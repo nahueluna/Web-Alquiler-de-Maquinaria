@@ -70,7 +70,7 @@ async fn main() {
             "/newmodel",
             post(new_model).layer(DefaultBodyLimit::max(20 * 1024 * 1024)),
         ) //20MB for images
-        .route("/payment/success", post(check_rental_payment))
+        .route("/payment/check", post(check_rental_payment))
         .layer(
             CorsLayer::new()
                 .allow_origin(vec![frontend_url.parse().unwrap()])
