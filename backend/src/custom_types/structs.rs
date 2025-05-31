@@ -237,10 +237,12 @@ pub struct DateRange {
     pub end_date: NaiveDate,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Validate)]
 pub struct NewRental {
-    pub start_date: String,
-    pub end_date: String,
     pub machine_id: i32,
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    #[validate(range(min = 0.0))]
+    pub total_price: f32,
     pub access: String,
 }
