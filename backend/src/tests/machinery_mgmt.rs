@@ -977,7 +977,7 @@ async fn test_check_rental_payment() {
 
     // ----------- Check payment for a valid rental ID
 
-    let valid_rental_id = 5;
+    let valid_rental_id = 7;
     let valid_response = http_client
         .post(backend_url("/payment/check"))
         .query(&[("payment_id", "2424235352"), ("status", "approved")])
@@ -1017,7 +1017,7 @@ async fn test_check_rental_payment() {
 
     // ----------- Check payment with failed status
 
-    let failed_rental_id = 6;
+    let failed_rental_id = 8;
 
     let failed_response = http_client
         .post(backend_url("/payment/check"))
@@ -1034,7 +1034,7 @@ async fn test_check_rental_payment() {
 
     // ----------- Check payment with another status
 
-    let another_status_rental_id = 7;
+    let another_status_rental_id = 9;
     let another_status_response = http_client
         .post(backend_url("/payment/check"))
         .query(&[("payment_id", "2424235352"), ("status", "pending")])
@@ -1373,6 +1373,155 @@ async fn test_load_retirement() {
         .json(&serde_json::json!({
             "access": jwt,
             "rental_id": 10000
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 403);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "Not enough permissions"
+    );
+}
+
+#[tokio::test]
+async fn test_load_return() {
+    setup().await;
+    let client = Client::new();
+
+    let pool = create_pool(RunningEnv::Testing);
+    let db_client = match pool.await.get().await {
+        Ok(c) => c,
+        Err(e) => panic!("Failed to connect to the database: {}", e),
+    };
+
+    // Get an admin token
+    let jwt = get_test_jwt("admin@example.com", true).await;
+
+    let res = client
+        .post(backend_url("/loadreturn"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 3,
+            "location_id": 3,
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 201);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "Return loaded successfully"
+    );
+
+    // Check that the rental was updated
+    db_client
+        .query_one(
+            "SELECT * FROM rentals WHERE id = $1 AND
+            machine_id = $2 AND
+            return_employee_id = $3 AND
+            status = 'completed' AND
+            return_date = CURRENT_DATE;",
+            &[&&3, &&16, &&11],
+        )
+        .await
+        .unwrap();
+    // Check that the unit was updated
+    db_client
+        .query_one(
+            "SELECT * FROM machinery_units WHERE
+            id = $1 AND
+            status = 'maintenance' AND
+            location_id = $2;",
+            &[&&16, &&3],
+        )
+        .await
+        .unwrap();
+    // Check that the location history was updated
+    db_client
+        .query_one(
+            "SELECT * FROM machinery_location_history WHERE
+            unit_id = $1 AND
+            location_id = $2;",
+            &[&&16, &&1],
+        )
+        .await
+        .unwrap();
+
+    //Invalid rental_id
+    let res = client
+        .post(backend_url("/loadreturn"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 10000,
+            "location_id": 3
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 400);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "rental_id is invalid"
+    );
+
+    //Invalid location_id
+    let res = client
+        .post(backend_url("/loadreturn"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 4,
+            "location_id": 10000
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 400);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "location_id is invalid"
+    );
+
+    //Invalid token
+    let res = client
+        .post(backend_url("/loadreturn"))
+        .json(&serde_json::json!({
+            "access": "invalidtoken",
+            "rental_id": 4,
+            "location_id": 10000
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 401);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "Invalid access token"
+    );
+
+    //Try to access as an user
+    let jwt = get_test_jwt("login@example.com", false).await;
+    let res = client
+        .post(backend_url("/loadreturn"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 4,
+            "location_id": 10000
         }))
         .send()
         .await

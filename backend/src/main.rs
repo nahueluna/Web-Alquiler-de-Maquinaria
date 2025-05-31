@@ -69,6 +69,7 @@ async fn main() {
         .route("/newunit", post(new_unit))
         .route("/myrentals", post(get_my_rentals))
         .route("/loadretirement", post(load_retirement))
+        .route("/loadreturn", post(load_return))
         .route(
             "/newmodel",
             post(new_model).layer(DefaultBodyLimit::max(20 * 1024 * 1024)),

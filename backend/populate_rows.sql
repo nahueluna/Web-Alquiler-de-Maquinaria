@@ -15,7 +15,8 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES
 ('logout@example.com', 'log', 'out', '0df0d73a572d94bf79da609a4b37a4dd7a308c9debf51197a2e1eaa5b616a8a1', '1111111111111111', 2, 'active'),
 ('admin2@example.com', 'admin', '2', '9c82435c63a8d9c0afee889440e9b5c75c0b72cc717230a1dab6f0db35a7e2eb', '1212121212121212', 0, 'active'),
 ('check_change_psw_code@example.com', 'jamie', 'hi', '2c82435c63a8d9c0afee889440e9b5c75c0b72cc717230a1dab6f0db35a7e2eb', '1212121212121212', 0, 'active'),
-('client1@example.com', 'client', 'one', 'nopasswordforyou', '123', 2, 'active');
+('client1@example.com', 'user17', 'one', 'nopasswordforyou', '123', 2, 'active'),
+('loadreturn@example.com', 'user18', 'one', 'nopasswordforyoueither', '123', 0, 'active');
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),
@@ -37,7 +38,8 @@ INSERT INTO machinery_models (name, brand, model, year, policy, description, pri
 ('Retroexcavadora', 'John Deere', '310SL', 2019, 'No se realizan reembolsos por cancelaciones.', 'Ideal para zonas urbanas', 95000.00, 'imagecode'),
 ('Cargadora frontal', 'Komatsu', 'WA270', 2021, 'Se aplica un reembolso parcial según el tiempo de aviso previo.', 'Cargadora con gran potencia', 120000.00, 'imagecode'),
 ('Miniexcavadora', 'Bobcat', 'E35', 2022, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Compacta para espacios reducidos', 75000.00, 'imagecode'),
-('Grúa torre', 'Liebherr', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode');
+('Grúa torre', 'Liebherr', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode'),
+('testloadreturn', 'model6', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode');
 
 -- Insert sample data into the locations table
 INSERT INTO locations (latitude, longitude, street, number, city) VALUES
@@ -71,7 +73,11 @@ INSERT INTO machinery_units (serial_number, status, assigned_at, model_id, locat
 -- Modelo 5 (Liebherr)
 ('LH-001', 'available', NOW() - INTERVAL '3 days', 5, 1),
 ('LH-002', 'rented', NOW() - INTERVAL '25 days', 5, 2),
-('LH-003', 'available', NOW() - INTERVAL '12 days', 5, 3);
+('LH-003', 'available', NOW() - INTERVAL '12 days', 5, 3),
+
+-- Modelo 6 (test load return)
+('CAT-0016', 'rented', NOW() - INTERVAL '5 days', 6, 1),
+('CAT-0017', 'rented', NOW() - INTERVAL '5 days', 6, 1);
 
 -- Insert sample data into the machinery_location_history table
 INSERT INTO machinery_location_history (unit_id, location_id, assigned_at, unassigned_at) VALUES
@@ -131,6 +137,14 @@ VALUES (
 (
     8, 5, NOW() - INTERVAL '148 days', NOW() - INTERVAL '139 days', 4300.00, 'completed',
     6, 2, NOW() - INTERVAL '148 days', NOW() - INTERVAL '139 days', 'PAY_00002'
+),
+(
+    17, 16, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 5000.00, 'completed',
+    2, 6, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 'PAY_00001'
+),
+(
+    17, 17, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 5000.00, 'completed',
+    2, 6, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 'PAY_00001'
 );
 
 INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status,
