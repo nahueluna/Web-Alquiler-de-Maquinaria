@@ -15,7 +15,7 @@ use axum::{
 use axum_extra::extract::Query;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::{Local, NaiveDate, NaiveDateTime};
 use image::ImageFormat;
 use serde_json::json;
 use std::{env, fs::File, io::BufWriter, path::PathBuf};
@@ -928,7 +928,7 @@ pub async fn check_rental_payment(
             PaymentStatus::Approved => {
                 let approved_query = "
                     UPDATE rentals 
-                    SET status = 'active', payment_id = $1
+                    SET status = 'active', payment_id = $1, updated_at = NOW()
                     WHERE id = $2 AND status = 'pending_payment';
                 ";
 
@@ -1611,4 +1611,218 @@ pub async fn load_return(
                 .into_response()
         }
     };
+}
+
+pub async fn cancel_rental(
+    State(state): State<AppState>,
+    Json(payload): Json<CancelRentalInfo>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    }
+    .claims;
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            );
+        }
+    };
+
+    let get_rental_query = "
+            SELECT * FROM rentals 
+            WHERE id = $1 AND status IN ('pending_payment', 'active');
+        ";
+
+    if let Ok(rental_row) = client
+        .query_one(get_rental_query, &[&payload.rental_id])
+        .await
+    {
+        let rental_start_date: NaiveDate = rental_row.get("start_date");
+
+        if rental_start_date < Local::now().date_naive() {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"message": "No se puede cancelar un alquiler que ya ha comenzado"})),
+            );
+        }
+
+        if claims.role == 2 {
+            let update_client_query = "
+                UPDATE rentals 
+                SET status = 'cancelled', updated_at = NOW()
+                WHERE id = $1 AND user_id = $2 AND status IN ('pending_payment', 'active');
+            ";
+
+            match client
+                .execute(update_client_query, &[&payload.rental_id, &claims.user_id])
+                .await
+            {
+                Ok(rows_updated) if rows_updated == 1 => {
+                    return (
+                        StatusCode::OK,
+                        Json(json!({"message": "El alquiler ha sido cancelado exitosamente"})),
+                    );
+                }
+                Ok(_) => {
+                    return (
+                        StatusCode::NOT_FOUND,
+                        Json(
+                            json!({"message": "El alquiler no se ha encontrado o no puede ser cancelado"}),
+                        ),
+                    );
+                }
+                Err(_) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(
+                            json!({"message": "Se produjo un error interno al cancelar el alquiler"}),
+                        ),
+                    );
+                }
+            };
+        } else {
+            let update_query = "
+                UPDATE rentals 
+                SET status = 'cancelled', notes = $1, updated_at = NOW()
+                WHERE id = $2 AND status IN ('pending_payment', 'active');
+            ";
+
+            let cancel_reason = payload
+                .reason
+                .as_deref()
+                .unwrap_or("No se indicó un motivo");
+
+            match client
+                .execute(update_query, &[&cancel_reason, &payload.rental_id])
+                .await
+            {
+                Ok(rows_updated) if rows_updated == 1 => {
+                    let client_id = rental_row.get::<_, i32>("user_id");
+
+                    let get_client_query = "
+                        SELECT email, name FROM users WHERE id = $1;
+                    ";
+
+                    let user_row = match client.query_one(get_client_query, &[&client_id]).await {
+                        Ok(row) => row,
+                        Err(_) => {
+                            return (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(json!({"message": "Error al obtener los datos del usuario"})),
+                            );
+                        }
+                    };
+
+                    let get_rental_extra_info_query = "
+                            SELECT l.street, l.number, l.city, mm.brand, mm.name, mm.model 
+                            FROM rentals r
+                            INNER JOIN machinery_units mu ON r.machine_id = mu.id
+                            INNER JOIN machinery_models mm ON mu.model_id = mm.id
+                            INNER JOIN locations l ON mu.location_id = l.id
+                            WHERE r.id = $1;
+                        ";
+
+                    match client
+                        .query_one(get_rental_extra_info_query, &[&payload.rental_id])
+                        .await
+                    {
+                        Ok(extra_info_rental_row) => {
+                            let rental_end_date: NaiveDate = rental_row.get("end_date");
+
+                            let user_email: String = user_row.get("email");
+                            let user_name: String = user_row.get("name");
+
+                            let subject = format!(
+                                "Alquiler n° {} cancelado - Bob el Alquilador",
+                                payload.rental_id
+                            );
+                            let body = format!(
+                                "Hola {},\n\n\
+                    Se le informa que se ha cancelado su alquiler.
+                    \n\n\
+                    Detalles del Alquiler:
+                    \n\
+                    Número de alquiler:\t\t\t {}\n\
+                    Período:\t\t\t {} - {}\n\
+                    Máquina:\t\t\t {} {} {}\n\
+                    Ubicación:\t\t\t {}, {}, {}
+                    \n\n\
+                    En la brevedad se le reintegrará la totalidad del monto abonado.\n\
+                    Nos disculpamos por las molestias ocasionadas.\n\n\
+                    \n\
+                    Saludos cordiales,\n\
+                    El equipo de Bob el Alquilador\n",
+                                user_name,
+                                payload.rental_id,
+                                rental_start_date.format("%d/%m/%Y").to_string(),
+                                rental_end_date.format("%d/%m/%Y").to_string(),
+                                extra_info_rental_row.get::<_, String>("name"),
+                                extra_info_rental_row.get::<_, String>("brand"),
+                                extra_info_rental_row.get::<_, String>("model"),
+                                extra_info_rental_row.get::<_, String>("city"),
+                                extra_info_rental_row.get::<_, String>("street"),
+                                extra_info_rental_row.get::<_, String>("number"),
+                            );
+
+                            match send_mail(&user_email, &subject, &body) {
+                                Ok(_) => {
+                                    return (
+                                        StatusCode::OK,
+                                        Json(
+                                            json!({"message": "El alquiler ha sido cancelado exitosamente y el cliente ha sido notificado"}),
+                                        ),
+                                    );
+                                }
+                                Err(_) => {
+                                    return (
+                                        StatusCode::INTERNAL_SERVER_ERROR,
+                                        Json(
+                                            json!({"message": "Error al enviar la notificación al usuario"}),
+                                        ),
+                                    );
+                                }
+                            }
+                        }
+                        Err(_) => {
+                            return (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(json!({"message": "Error al obtener los datos del alquiler"})),
+                            );
+                        }
+                    }
+                }
+                Ok(_) => {
+                    return (
+                        StatusCode::NOT_FOUND,
+                        Json(
+                            json!({"message": "El alquiler no se ha encontrado o no puede ser cancelado"}),
+                        ),
+                    );
+                }
+                Err(_) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(
+                            json!({"message": "Se produjo un error interno al cancelar el alquiler"}),
+                        ),
+                    );
+                }
+            };
+        }
+    }
+
+    return (
+        StatusCode::NOT_FOUND,
+        Json(json!({"message": "El alquiler no se ha encontrado o ya ha sido cancelado"})),
+    );
 }

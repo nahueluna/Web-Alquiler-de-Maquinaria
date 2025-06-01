@@ -98,7 +98,8 @@ CREATE TABLE rentals (
     status rental_status NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    payment_id TEXT NULL
+    payment_id TEXT NULL,
+    notes TEXT NULL
 );
 
 CREATE TABLE model_extra_images (

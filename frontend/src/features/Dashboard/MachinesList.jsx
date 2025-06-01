@@ -1,64 +1,157 @@
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionGroup,
-  AccordionSummary,
-  Avatar,
-  Button,
-  Chip,
-  Divider,
-  Input,
   Sheet,
-  Stack,
+  AccordionGroup,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Avatar,
   Typography,
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
   Select,
-  Option
+  Option,
+  Snackbar,
+  Alert
 } from "@mui/joy";
-import { useState } from "react";
+import { useState, useEffect, useContext } from "react";
+import axios from "axios"
+import UserContext from "../../context/UserContext"
 
-const machinesData = [
-  {
-    id: 1,
-    modelo: "Excavadora ZX200",
-    imagen:
-      "https://image.made-in-china.com/202f0j00rpiRscOFCWzH/Sdlg-36t-E6360f-Manufacturing-Technology-Volvo-Excavator-with-High-Response-Rate.webp",
-    descripcion: "Excavadora de gran porte.",
-    detalles: ["Mantenimiento: OK", "Año: 2022", "Horas: 1500"],
-    ejemplares: [
-      {
-        id: "ZX200-1",
-        estado: "Disponible",
-        ubicacion: "Depósito 1",
-      },
-      {
-        id: "ZX200-2",
-        estado: "En reparación",
-        ubicacion: "Taller",
-      },
-    ],
-  },
-  {
-    id: 2,
-    modelo: "Retroexcavadora CAT",
-    imagen: "https://http2.mlstatic.com/D_944682-MLA84275111016_052025-C.jpg",
-    descripcion: "Retroexcavadora compacta.",
-    detalles: ["Mantenimiento: Pendiente", "Año: 2021", "Horas: 2000"],
-    ejemplares: [
-      {
-        id: "CAT-1",
-        estado: "Alquilada",
-        ubicacion: "Obra 3",
-      },
-    ],
-  },
-];
 export const MachinesList = () => {
+  const { user } = useContext(UserContext);
+  const [machinesData, setMachinesData] = useState([]);
+  const [feedback, setFeedback] = useState("");
   const [openFormId, setOpenFormId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [estado, setEstado] = useState("");
   const [ubicacion, setUbicacion] = useState("");
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    color: "neutral",
+    duration: 3000,
+  });
+
+  const token = user?.access || "";
+
+  useEffect(() => {
+    axios
+      .get("http://localhost:8000/explore")
+      .then((response) => {
+        console.log(response.data.items[0])
+        setMachinesData(response.data.items || []);
+      })
+      .catch((error) => {
+        console.error("Error cargando máquinas:", error);
+      });
+  }, []);
+
+    const handleSubmit = (e, machine) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const serial_number = formData.get("numeroSerie");
+    const estado = formData.get("estado");
+    const ubicacion = formData.get("ubicacion");
+
+    const locationMap = {
+      marDelPlata: 1,
+      bahiaBlanca: 2,
+      caballito: 3,
+    };
+    const location_id = locationMap[ubicacion];
+
+    axios
+      .post(
+        "http://localhost:8000/newunit",
+        {
+          access: token,
+          serial_number,
+          model_id: machine.id,
+          location_id,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      )
+      .then((res) => {
+        setSnackbar({
+          open: true,
+          message: "Unidad agregada con éxito.",
+          color: "success",
+          duration: 3000,
+        });
+        setOpenFormId(null);
+      })
+      .catch((err) => {
+        if (err.response) {
+          const status = err.response.status;
+          switch (status) {
+            case 400:
+              setSnackbar({
+                open: true,
+                message: "Error: El número de serie ya existe.",
+                color: "danger",
+                duration: 3000,
+              });
+              break;
+            case 401:
+              setSnackbar({
+                open: true,
+                message: "Error: Token inválido.",
+                color: "danger",
+                duration: 3000,
+              });
+              break;
+            case 403:
+              setSnackbar({
+                open: true,
+                message: "Error: No posee permisos para esta acción.",
+                color: "danger",
+                duration: 3000,
+              });
+              break;
+            case 404:
+              setSnackbar({
+                open: true,
+                message: "Error: No se pudo encontrar a la máquina o al usuario.",
+                color: "danger",
+                duration: 3000,
+              });
+              break;
+            case 500:
+              setSnackbar({
+                open: true,
+                message: "Error interno.",
+                color: "danger",
+                duration: 3000,
+              });
+              break;
+            default:
+              setSnackbar({
+                open: true,
+                message: "Error desconocido.",
+                color: "danger",
+                duration: 3000,
+              });
+          }
+        } else {
+          // Error de conexión o sin respuesta del servidor
+          setSnackbar({
+            open: true,
+            message: "Error en la conexión.",
+            color: "danger",
+            duration: 3000,
+          });
+        }
+});
+  };
 
   return (
+    <>
     <Sheet
       variant="outlined"
       sx={{ borderRadius: "sm", width: "60%", minWidth: "600px" }}
@@ -73,52 +166,12 @@ export const MachinesList = () => {
             }
           >
             <AccordionSummary>
-              <Avatar src={machine.imagen} sx={{ mr: 2 }} />
+              <Avatar src={machine.main_image} sx={{ mr: 2, width: 56, height: 56 }} alt={machine.name} />
               <Typography level="title-md" sx={{ flex: 1 }}>
-                {machine.modelo}
+                {machine.name + " " + machine.brand + " " + machine.model}
               </Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <Typography level="title-sm" sx={{ mt: 2, mb: 1 }}>
-                Ejemplares:
-              </Typography>
-              <Stack spacing={0.5}>
-                {machine.ejemplares.map((ejemplar) => (
-                  <Sheet
-                    key={ejemplar.id}
-                    variant="outlined"
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-evenly",
-                      p: 1,
-                      borderRadius: "sm",
-                      backgroundColor: "#f7f7f7",
-                      width: "100%",
-                    }}
-                  >
-                    <Stack direction="row" spacing={1}>
-                      <Typography sx={{ fontWeight: "bold" }}>
-                        Numero de serie:{" "}
-                      </Typography>
-                      <Typography color="neutral">{ejemplar.id}</Typography>
-                      <Divider orientation="vertical"></Divider>
-                      <Typography sx={{ fontWeight: "bold" }}>
-                        Ubicacion:{" "}
-                      </Typography>
-                      <Typography color="neutral">
-                        {ejemplar.ubicacion}
-                      </Typography>
-                      <Divider
-                        orientation="vertical"
-                        sx={{ height: "100%" }}
-                      ></Divider>
-
-                      <Chip color="danger" variant="solid">
-                        {ejemplar.estado}
-                      </Chip>
-                    </Stack>
-                  </Sheet>
-                ))}
                 <Button
                   size="sm"
                   color="danger"
@@ -134,62 +187,56 @@ export const MachinesList = () => {
                 >
                   Agregar ejemplar
                 </Button>
+
                 {openFormId === machine.id && (
-                  <Sheet
-                    variant="soft"
-                    sx={{
-                      p: 2,
-                      borderRadius: "sm",
-                      mt: 2,
-                      backgroundColor: "#fff7f7",
-                    }}
-                  >
-                    <Typography level="title-sm" sx={{ mb: 1 }}>
-                      Nuevo ejemplar
-                    </Typography>
-                    <Stack direction="row" spacing={2}>
-                      <Input placeholder="ID" size="sm" />
-                    <Select
-                      placeholder="Estado"
-                      value={estado}
-                      onChange={(e, value) => setEstado(value)}
-                      sx={{ minWidth: 120 }}
-                      variant="outlined"
-                    >
-                      <Option value="Disponible">Disponible</Option>
-                      <Option value="En mantenimiento">En mantenimiento</Option>
-                      <Option value="No disponible">No disponible</Option>
-                    </Select>
-                    <Select
-                      placeholder="Ubicación"
-                      value={ubicacion}
-                      onChange={(e, value) => setUbicacion(value)}
-                      sx={{ minWidth: 130 }}
-                      variant="outlined"
-                    >
-                      <Option value="mar_del_plata">Mar del Plata</Option>
-                      <Option value="bahia_blanca">Bahía Blanca</Option>
-                      <Option value="caballito">Caballito</Option>
-                    </Select>
-                      <Button size="sm" color="danger" variant="solid">
-                        Guardar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="plain"
-                        onClick={() => setOpenFormId(null)}
-                      >
-                        Cancelar
-                      </Button>
-                    </Stack>
-                  </Sheet>
-                )}
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-        ))}
-      </AccordionGroup>
-    </Sheet>
+              <form
+                onSubmit={(e) => handleSubmit(e, machine)}
+                style={{ display: "flex", flexDirection: "column", gap: "1rem", marginTop: "1rem" }}
+              >
+                <FormControl>
+                  <FormLabel>Número de serie</FormLabel>
+                  <Input name="numeroSerie" required />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Estado</FormLabel>
+                  <Select name="estado" defaultValue="disponible" required>
+                    <Option value="disponible">Disponible</Option>
+                    <Option value="mantenimiento">En mantenimiento</Option>
+                    <Option value="noDisponible">No disponible</Option>
+                  </Select>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Ubicación</FormLabel>
+                  <Select name="ubicacion" defaultValue="marDelPlata" required>
+                    <Option value="marDelPlata">Mar del Plata</Option>
+                    <Option value="bahiaBlanca">Bahía Blanca</Option>
+                    <Option value="caballito">Caballito</Option>
+                  </Select>
+                </FormControl>
+
+                <Button type="submit" color="primary" variant="solid">
+                  Confirmar
+                </Button>
+              </form>
+            )}
+          </AccordionDetails>
+        </Accordion>
+      ))}
+    </AccordionGroup>
+  </Sheet>
+  <Snackbar
+    open={snackbar.open}
+    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+    autoHideDuration={3000}
+    anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+    variant="soft"
+    color={snackbar.color}
+  >
+    {snackbar.message}
+  </Snackbar>
+  </>
   );
 };
 

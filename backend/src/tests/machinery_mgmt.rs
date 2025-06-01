@@ -1579,3 +1579,172 @@ async fn test_load_return() {
         "Not enough permissions"
     );
 }
+
+#[tokio::test]
+async fn test_cancel_rental() {
+    setup().await;
+    let client = Client::new();
+
+    let pool = create_pool(RunningEnv::Testing);
+    let db_client = match pool.await.get().await {
+        Ok(c) => c,
+        Err(e) => panic!("Failed to connect to the database: {}", e),
+    };
+
+    // Get an client token
+    let jwt = get_test_jwt("ivy@example.com", false).await;
+
+    // ----------- Client user cancels a rental with valid data
+
+    let rental_id = 15;
+
+    let cancel_response = client
+        .post(backend_url("/rental/cancel"))
+        .json(&serde_json::json!({
+            "rental_id": rental_id,
+            "access": jwt,
+            "reason": null,
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(cancel_response.status(), 200);
+
+    let response_body = cancel_response.json::<serde_json::Value>().await.unwrap();
+
+    assert_eq!(
+        response_body["message"].as_str().unwrap(),
+        "El alquiler ha sido cancelado exitosamente"
+    );
+
+    let row = db_client
+        .query_one(
+            "SELECT id, status::TEXT as status FROM rentals WHERE id = $1 AND status = 'cancelled';",
+            &[&&rental_id],
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(row.get::<_, i32>("id"), rental_id);
+    assert_eq!(row.get::<_, String>("status"), "cancelled");
+
+    // ---------- Client user tries to cancel a rental that does not exist
+
+    let invalid_rental_id = 9999;
+    let invalid_cancel_response = client
+        .post(backend_url("/rental/cancel"))
+        .json(&serde_json::json!({
+            "rental_id": invalid_rental_id,
+            "access": jwt,
+            "reason": null,
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_cancel_response.status(), 404);
+
+    let invalid_response_body = invalid_cancel_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+    assert_eq!(
+        invalid_response_body["message"].as_str().unwrap(),
+        "El alquiler no se ha encontrado o ya ha sido cancelado"
+    );
+
+    // ---------- Client user tries to cancel a rental with start date in the past
+
+    let past_rental_id = 5;
+
+    let past_cancel_response = client
+        .post(backend_url("/rental/cancel"))
+        .json(&serde_json::json!({
+            "rental_id": past_rental_id,
+            "access": jwt,
+            "reason": null,
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(past_cancel_response.status(), 400);
+
+    let past_response_body = past_cancel_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+    assert_eq!(
+        past_response_body["message"].as_str().unwrap(),
+        "No se puede cancelar un alquiler que ya ha comenzado"
+    );
+
+    // ---------- Client user tries to cancel a rental that he has not rented
+
+    let another_user_rental_id = 6;
+    let another_user_cancel_response = client
+        .post(backend_url("/rental/cancel"))
+        .json(&serde_json::json!({
+            "rental_id": another_user_rental_id,
+            "access": jwt,
+            "reason": null,
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(another_user_cancel_response.status(), 404);
+
+    let another_user_response_body = another_user_cancel_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+    assert_eq!(
+        another_user_response_body["message"].as_str().unwrap(),
+        "El alquiler no se ha encontrado o no puede ser cancelado"
+    );
+
+    // ---------- Employee cancels a rental with valid data
+
+    let employee_jwt = get_test_jwt("bob@example.com", true).await;
+
+    let another_rental_id = 16;
+
+    let employee_cancel_response = client
+        .post(backend_url("/rental/cancel"))
+        .json(&serde_json::json!({
+            "rental_id": another_rental_id,
+            "access": employee_jwt,
+            "reason": "Maintenance required",
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(employee_cancel_response.status(), 200);
+
+    let employee_response_body = employee_cancel_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        employee_response_body["message"].as_str().unwrap(),
+        "El alquiler ha sido cancelado exitosamente y el cliente ha sido notificado"
+    );
+
+    let employee_row = db_client
+        .query_one(
+            "SELECT id, status::TEXT as status, notes FROM rentals WHERE id = $1 AND status = 'cancelled';",
+            &[&&another_rental_id],
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(employee_row.get::<_, i32>("id"), another_rental_id);
+    assert_eq!(employee_row.get::<_, String>("status"), "cancelled");
+    assert_eq!(
+        employee_row.get::<_, Option<String>>("notes"),
+        Some("Maintenance required".to_string())
+    );
+}
