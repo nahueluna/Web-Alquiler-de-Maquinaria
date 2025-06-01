@@ -8,18 +8,15 @@ import ListItem from "@mui/joy/ListItem";
 import Snackbar from "@mui/joy/Snackbar";
 import Stack from "@mui/joy/Stack";
 import Tooltip from "@mui/joy/Tooltip";
-import axios from "axios";
-import { useContext, useEffect, useState } from "react";
-import UserContext from "../../context/UserContext";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import { useEffect, useState } from "react";
+import useAuth from "../utils/useAuth";
 
 const EmployeesList = () => {
   //const [open, setOpen] = React.useState(false);
   //const [selectedEmployee, setSelectedEmployee] = React.useState(null);
   //const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: "" });
   //const [loading, setLoading] = useState(false);
-  const { user } = useContext(UserContext); // Obtenemos user del contexto
-  const accessToken = user?.access || null; // Obtenemos el token
+  const { post } = useAuth();
 
   const [employees, setEmployees] = useState([]);
   const [open, setOpen] = useState(false);
@@ -33,11 +30,7 @@ const EmployeesList = () => {
   const fetchEmployees = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(
-        `${BACKEND_URL}/getemployees`,
-        { access: accessToken },
-        { withCredentials: true }
-      );
+      const response = await post("/getemployees");
       if (response.status === 200) {
         setEmployees(response.data.employees);
       }
@@ -80,10 +73,8 @@ const EmployeesList = () => {
   };
 
   useEffect(() => {
-    if (accessToken) {
-      fetchEmployees();
-    }
-  }, [accessToken]);
+    fetchEmployees();
+  }, []);
 
   const handleDeleteClick = (employee) => {
     setSelectedEmployee(employee);
@@ -94,14 +85,9 @@ const EmployeesList = () => {
     if (!selectedEmployee) return;
     setLoading(true);
     try {
-      const response = await axios.post(
-        `${BACKEND_URL}/deletemployee`,
-        {
-          access: accessToken,
-          id: selectedEmployee.id,
-        },
-        { withCredentials: true }
-      );
+      const response = await post("/deletemployee", {
+        id: selectedEmployee.id,
+      });
       if (response.status === 200) {
         setEmployees((prev) =>
           prev.filter((emp) => emp.id !== selectedEmployee.id)

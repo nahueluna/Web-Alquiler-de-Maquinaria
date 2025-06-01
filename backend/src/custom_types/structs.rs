@@ -1,7 +1,10 @@
 use super::enums::{OrderByField, OrderDirection, PaymentStatus};
+use axum::Json;
 use chrono::{NaiveDate, NaiveDateTime};
 use deadpool_postgres::Pool;
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::sync::Arc;
 use validator::Validate;
 
@@ -167,6 +170,8 @@ pub struct MachineModel {
     pub description: String,
     pub price: f32,
     pub categories: Vec<Category>,
+    pub main_image: String, //base64 encoded string
+    pub extra_images: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -193,8 +198,22 @@ pub struct MyRentalInfo {
 }
 
 impl MachineModel {
-    pub fn build_from_row(row: &tokio_postgres::Row) -> Self {
-        MachineModel {
+    pub fn build_from_row(
+        row: &tokio_postgres::Row,
+    ) -> Result<Self, (StatusCode, Json<serde_json::Value>)> {
+        let frontend_url = match env::var("FRONTEND_URL") {
+            Ok(url) => url,
+            Err(_) => {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({
+                        "error": "FRONTEND_URL environment variable is not set. Cannot get machine image."
+                    })),
+                ))
+            }
+        };
+
+        let machine = MachineModel {
             id: row.get("id"),
             name: row.get("name"),
             brand: row.get("brand"),
@@ -204,7 +223,15 @@ impl MachineModel {
             description: row.get("description"),
             price: row.get("price"),
             categories: Vec::new(),
-        }
+            main_image: format!(
+                "{}/media/machines/{}.webp",
+                frontend_url,
+                row.get::<_, String>("image")
+            ),
+            extra_images: Vec::new(),
+        };
+
+        Ok(machine)
     }
 }
 

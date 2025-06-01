@@ -1,12 +1,11 @@
 import { Sheet } from "@mui/joy";
 import { Divider } from "@mui/material";
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import useAuth from "../utils/useAuth";
 import Filters from "./Filters";
 import Results from "./Results";
 import SortBy from "./SortBy";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const ExplorePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,6 +17,7 @@ const ExplorePage = () => {
     total_items: 0,
   });
   const [loading, setLoading] = useState(true);
+  const { get } = useAuth();
 
   const [selectedFilters, setSelectedFilters] = React.useState({
     categories: [],
@@ -50,12 +50,7 @@ const ExplorePage = () => {
           params.append("min_price", selectedFilters.minPrice);
         if (selectedFilters.maxPrice !== null)
           params.append("max_price", selectedFilters.maxPrice);
-
-        setSearchParams(params, { replace: true });
-
-        const { data } = await axios.get(
-          `${BACKEND_URL}/explore?${params.toString()}`
-        );
+        const { data } = await get(`/explore?${params.toString()}`);
         setResults(data);
         setLoading(false);
       } catch (error) {

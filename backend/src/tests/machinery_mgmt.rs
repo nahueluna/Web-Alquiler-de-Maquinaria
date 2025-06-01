@@ -1,10 +1,11 @@
 use crate::custom_types::{enums::RunningEnv, structs::MyRentalInfo};
 use crate::helpers::auth::create_pool;
 use crate::tests::helpers::*;
+use axum::http::response;
 use base64::{engine::general_purpose::STANDARD, Engine};
-use chrono::{Utc, NaiveDate};
+use chrono::{NaiveDate, Utc};
 use reqwest::Client;
-use std::{fs::File, io::Read, env};
+use std::{env, fs::File, io::Read};
 use validator::ValidateLength;
 
 #[tokio::test]
@@ -27,6 +28,8 @@ async fn test_explore_catalog() {
 
     assert_eq!(response_body["items"].as_array().length(), Some(2));
 
+    assert_eq!(response_body["all_categories"].as_array().unwrap().len(), 5);
+
     let machine1 = &response_body["items"][0];
     let machine2 = &response_body["items"][1];
 
@@ -42,6 +45,14 @@ async fn test_explore_catalog() {
             .unwrap()[0]["name"],
         "obras urbanas"
     );
+    assert!(!machine2
+        .as_object()
+        .unwrap()
+        .get("main_image")
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .is_empty(),);
 
     // ----------- Page 2, Page size 2, valid request without filters
 
@@ -571,7 +582,10 @@ async fn test_new_model() {
 
     // Check that the images are registered
     let imgs = db_client
-        .query("SELECT * FROM model_extra_images WHERE id = $1", &[&model_id])
+        .query(
+            "SELECT * FROM model_extra_images WHERE id = $1",
+            &[&model_id],
+        )
         .await
         .unwrap();
     assert_eq!(imgs.len(), 2);
@@ -1211,7 +1225,10 @@ async fn test_get_my_rentals() {
         .post(backend_url("/myrentals"))
         .json(&serde_json::json!({
             "access": jwt
-        })).send().await.unwrap();
+        }))
+        .send()
+        .await
+        .unwrap();
 
     assert_eq!(res.status(), 200);
     let value = res.json::<serde_json::Value>().await.unwrap()["rentals"].clone();
@@ -1221,10 +1238,22 @@ async fn test_get_my_rentals() {
     let rental = &rentals[0];
 
     assert_eq!(rental.rental_id, 2);
-    assert_eq!(rental.return_date, Some(NaiveDate::from_ymd_opt(2025, 1, 12).unwrap()));
-    assert_eq!(rental.retirement_date, Some(NaiveDate::from_ymd_opt(2025, 1, 3).unwrap()));
-    assert_eq!(rental.start_date, NaiveDate::from_ymd_opt(2025, 1, 3).unwrap());
-    assert_eq!(rental.end_date, NaiveDate::from_ymd_opt(2025, 1, 12).unwrap());
+    assert_eq!(
+        rental.return_date,
+        Some(NaiveDate::from_ymd_opt(2025, 1, 12).unwrap())
+    );
+    assert_eq!(
+        rental.retirement_date,
+        Some(NaiveDate::from_ymd_opt(2025, 1, 3).unwrap())
+    );
+    assert_eq!(
+        rental.start_date,
+        NaiveDate::from_ymd_opt(2025, 1, 3).unwrap()
+    );
+    assert_eq!(
+        rental.end_date,
+        NaiveDate::from_ymd_opt(2025, 1, 12).unwrap()
+    );
     assert_eq!(rental.total_price, 4300.0);
     assert_eq!(rental.status, "completed");
     assert_eq!(rental.unit_id, 5);
@@ -1234,10 +1263,16 @@ async fn test_get_my_rentals() {
     assert_eq!(rental.model_brand, "John Deere");
     assert_eq!(rental.model_model, "310SL");
     assert_eq!(rental.model_year, 2019);
-    assert_eq!(rental.model_policy, "No se realizan reembolsos por cancelaciones.");
+    assert_eq!(
+        rental.model_policy,
+        "No se realizan reembolsos por cancelaciones."
+    );
     assert_eq!(rental.model_description, "Ideal para zonas urbanas");
     let frontend_url = env::var("FRONTEND_URL").expect("FRONTEND_URL must be set in the .env file");
-    assert_eq!(rental.model_image, format!("{}/media/machines/imagecode.webp", frontend_url));
+    assert_eq!(
+        rental.model_image,
+        format!("{}/media/machines/imagecode.webp", frontend_url)
+    );
 
     let jwt = get_test_jwt("admin@example.com", false).await;
     let res = client
@@ -1414,17 +1449,12 @@ async fn test_load_return() {
 
     assert_eq!(res.status(), 201);
     let json = res.json::<serde_json::Value>().await.unwrap();
-    assert_eq!(json["message"]
-            .as_str()
-            .unwrap(),
+    assert_eq!(
+        json["message"].as_str().unwrap(),
         "Return loaded successfully"
     );
-    assert!(
-        json["days_late"].as_u64().unwrap() > 0
-    );
-    assert!(
-        json["fine"].as_f64().unwrap() > 0.0
-    );
+    assert!(json["days_late"].as_u64().unwrap() > 0);
+    assert!(json["fine"].as_f64().unwrap() > 0.0);
 
     // Check that the rental was updated
     db_client

@@ -9,21 +9,18 @@ import {
   Typography,
 } from "@mui/joy";
 import Stack from "@mui/joy/Stack";
-import axios from "axios";
 import { useFormik } from "formik";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import * as Yup from "yup";
-import UserContext from "../../context/UserContext";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import useAuth from "../utils/useAuth";
 
 function AddEmployee({ setRegisterForm }) {
   const [openSnackbar, setOpenSnackbar] = useState(false);
-  const { user } = useContext(UserContext);
-  const accessToken = user?.access || null;
   const [errorSnackbar, setErrorSnackbar] = useState({
     open: false,
     message: "",
   });
+  const { post } = useAuth();
 
   const formik = useFormik({
     initialValues: {
@@ -88,16 +85,9 @@ function AddEmployee({ setRegisterForm }) {
           birthdate: fechaFormateada,
           id_card: values.dni,
           phone: values.telefono || null,
-          access: user?.access || "",
         };
         console.log("Payload enviado:", JSON.stringify(payload, null, 2));
-        const response = await axios.post(
-          `${BACKEND_URL}/registeremployee`,
-          payload,
-          {
-            withCredentials: true,
-          }
-        );
+        const response = await post("/registeremployee", payload);
 
         if (response.status === 200) {
           setOpenSnackbar(true);

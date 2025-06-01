@@ -17,13 +17,12 @@ import {
   Stack,
   Typography,
 } from "@mui/joy";
-import axios from "axios";
 import { useFormik } from "formik";
 import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 import * as yup from "yup";
+import useAuth from "../utils/useAuth";
 
 const today = new Date();
 const yyyy = today.getFullYear();
@@ -87,6 +86,7 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [openSnack, setOpenSnack] = useState(false);
   const [status, setStatus] = useState({ isError: false, message: "" });
+  const { post } = useAuth();
 
   const formik = useFormik({
     initialValues: {
@@ -111,7 +111,7 @@ const RegisterPage = () => {
       } = values;
 
       try {
-        const { data } = await axios.post(`${BACKEND_URL}/signup`, {
+        const { data } = await post("/signup", {
           name,
           surname,
           email,
