@@ -41,6 +41,14 @@ INSERT INTO machinery_models (name, brand, model, year, policy, description, pri
 ('Grúa torre', 'Liebherr', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode'),
 ('testloadreturn', 'model6', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode');
 
+-- Insert sample data into the extra images table
+INSERT INTO model_extra_images (name, id) VALUES 
+('imagecode1', 1),
+('imagecode2', 1),
+('imagecode3', 2),
+('imagecode4', 4),
+('imagecode5', 6);
+
 -- Insert sample data into the locations table
 INSERT INTO locations (latitude, longitude, street, number, city) VALUES
 (-34.603722, -58.381592, 'Av. Corrientes', '1234', 'Buenos Aires'),
