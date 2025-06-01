@@ -9,23 +9,24 @@ import {
   Table,
   Typography,
 } from "@mui/joy";
-import axios from "axios";
 import { useContext, useEffect, useState } from "react";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import UserContext from "../../context/UserContext";
 import MachineCard from "../Explore/MachineCard";
 import RentalModal from "./Modal/RentalModal";
 import ProductSkeleton from "./ProductSkeleton";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import useAuth from "../utils/useAuth";
 
 function Product() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingButton, setLoadingButton] = useState(false);
   const [machine, setMachine] = useState(null);
   const [locations, setLocations] = useState(null);
   const [products, setProducts] = useState([]);
-  const { user, refresh } = useContext(UserContext);
+  const { user } = useContext(UserContext);
   const nav = useNavigate();
+  const { get, post } = useAuth();
 
   const { id } = useParams();
 
@@ -37,7 +38,7 @@ function Product() {
 
     async function fetchMachine() {
       try {
-        const { data } = await axios.get(`${BACKEND_URL}/explore/${id}`);
+        const { data } = await get(`/explore/${id}`);
 
         console.log(data.machine);
         setMachine(data.machine);
@@ -54,7 +55,7 @@ function Product() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const { data } = await axios.get(`${BACKEND_URL}/explore`);
+        const { data } = await get("/explore");
 
         setProducts(data.items.slice(0, 6));
       } catch (error) {
@@ -125,28 +126,17 @@ function Product() {
                 size="lg"
                 color="danger"
                 onClick={async () => {
-                  // TODO: Cleanup
+                  setLoadingButton(true);
                   const {
                     data: { locations },
-                  } = await axios
-                    .post(`${BACKEND_URL}/explore/${machine.id}/locations`, {
-                      access: user.access,
-                    })
-                    .catch(async () => {
-                      const { access } = await refresh();
-                      const res = await axios.post(
-                        `${BACKEND_URL}/explore/${machine.id}/locations`,
-                        {
-                          access,
-                        }
-                      );
-
-                      return res;
-                    });
+                  } = await post(`/explore/${machine.id}/locations`);
+                  console.log(locations);
+                  setLoadingButton(false);
                   setLocations(locations);
                   setOpen(true);
                 }}
                 disabled={!user}
+                loading={loadingButton}
               >
                 Alquilar
               </Button>

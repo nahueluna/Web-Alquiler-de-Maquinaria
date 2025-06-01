@@ -12,13 +12,12 @@ import {
   Stepper,
   Typography,
 } from "@mui/joy";
-import axios from "axios";
-import { useContext, useReducer, useState } from "react";
-import UserContext from "../../../context/UserContext";
+import { useReducer, useState } from "react";
+import useAuth from "../../utils/useAuth";
 import Duration from "./Duration";
 import Location from "./Location";
 import Summary from "./Summary";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import axios from "axios";
 
 initMercadoPago(import.meta.env.VITE_MP_PUBLIC);
 
@@ -53,10 +52,11 @@ function reducer(state, action) {
 }
 
 function RentalModal({ setOpen, open, machine, locations }) {
-  const { user, refresh } = useContext(UserContext);
+  // const { user, refresh } = useContext(UserContext);
   const [activeStep, setActiveStep] = useState(0);
   const [mlId, setMlId] = useState("");
   const [loadingMl, setLoadingMl] = useState(false);
+  const { post } = useAuth();
   const [state, dispatch] = useReducer(reducer, {
     machine,
     selectedLocation: {},
@@ -84,7 +84,7 @@ function RentalModal({ setOpen, open, machine, locations }) {
   async function handleNext() {
     if (activeStep === 1) {
       setLoadingMl(true);
-      const { data } = await axios.post(`${BACKEND_URL}/pago`, state);
+      const { data } = await axios.post("http://localhost:3000/pago", state);
 
       setMlId(data.id);
       setLoadingMl(false);
@@ -165,25 +165,11 @@ function RentalModal({ setOpen, open, machine, locations }) {
               onSubmit={async () => {
                 const body = {
                   machine_id: state.machine.id,
-                  start_date: state.dates[0].split("-").reverse().join(""),
-                  end_date: state.dates[1].split("-").reverse().join(""),
+                  start_date: state.dates[0],
+                  end_date: state.dates[1],
+                  total_price: state.days * state.machine.price,
                 };
-
-                console.log(body);
-                const { data } = await axios
-                  .post(`${BACKEND_URL}/rental/new`, {
-                    ...body,
-                    access: user.access,
-                  })
-                  .catch(async () => {
-                    const { access } = await refresh();
-                    const res = await axios.post(`${BACKEND_URL}/rental/new`, {
-                      ...body,
-                      access,
-                    });
-
-                    return res;
-                  });
+                const { data } = await post("/rental/new", body);
 
                 console.log(data);
               }}

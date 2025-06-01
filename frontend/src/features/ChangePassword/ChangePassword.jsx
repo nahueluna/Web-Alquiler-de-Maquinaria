@@ -1,10 +1,9 @@
 import { Alert, Box, Button, Divider, Input, Typography } from "@mui/joy";
-import axios from "axios";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import * as Yup from "yup";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import useAuth from "../../features/utils/useAuth";
 
 const ChangePassword = () => {
   const { code } = useParams();
@@ -15,6 +14,7 @@ const ChangePassword = () => {
   const [checkingCode, setCheckingCode] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { post } = useAuth();
 
   useEffect(() => {
     if (!code) {
@@ -24,11 +24,7 @@ const ChangePassword = () => {
 
     const checkCode = async () => {
       try {
-        const { data } = await axios.post(
-          `${BACKEND_URL}/checkchangepswcode`,
-          { code },
-          { withCredentials: true }
-        );
+        const { data } = await post("/checkchangepswcode", { code });
         setCodeValid(data.valid);
         setErrorMsg(data.valid ? null : "Código inválido o expirado.");
       } catch (error) {
@@ -65,14 +61,10 @@ const ChangePassword = () => {
     onSubmit: async (values) => {
       try {
         setLoading(true);
-        const { data } = await axios.post(
-          `${BACKEND_URL}/changepsw`,
-          {
-            code,
-            new_password: values.password,
-          },
-          { withCredentials: true }
-        );
+        const { data } = await post("/changepsw", {
+          code,
+          new_password: values.password,
+        });
         setSuccess(true);
         setErrorMsg(null);
       } catch (error) {
