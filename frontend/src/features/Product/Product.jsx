@@ -227,6 +227,7 @@ function Product() {
                     category={machine.category}
                     price={machine.price}
                     onClick={() => nav(`/explore/${machine.id}`)}
+                    categories={machine.categories}
                   />
                 </Grid>
               ))}
