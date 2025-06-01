@@ -32,11 +32,10 @@ const Profile = () => {
 
   useEffect(() => {
     if (user) {
-      const phoneFromStorage = window.localStorage.getItem("userPhone");
       setUserData({
         nombre: user.pub_user?.name || "",
         correo: user.pub_user?.email || "",
-        telefono: phoneFromStorage || user.user_info?.phone || "",
+        telefono: user.user_info?.phone || "",
         dni: user.user_info?.id_card || "",
         nacimiento: user.user_info?.birthdate || "",
         rol: user?.pub_user?.role ?? 2,
@@ -76,6 +75,7 @@ const Profile = () => {
     }),
     onSubmit: async (values, { setSubmitting }) => {
       try {
+        console.log("Enviando teléfono:", values.telefono);
         const response = await post("/changephone", {
           phone: values.telefono,
         });
@@ -267,10 +267,9 @@ const Profile = () => {
         {editMode ? (
           <Button
             color="primary"
+            type="submit"
             onClick={formik.handleSubmit}
-            disabled={
-              formik.touched.telefono && Boolean(formik.errors.telefono)
-            }
+            disabled = {Boolean(formik.errors.telefono)}
           >
             Guardar cambios
           </Button>
