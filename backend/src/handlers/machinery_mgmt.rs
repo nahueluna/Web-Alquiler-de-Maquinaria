@@ -1,5 +1,6 @@
 use crate::custom_types::enums::{OrderByField, OrderDirection, PaymentStatus};
 use crate::custom_types::structs::*;
+use crate::constants::LATE_RETURN_FINE;
 use crate::helpers::{
     auth::*,
     machinery_mgmt::{date_is_overlap, get_claims_from_token, validate_client},
@@ -19,7 +20,7 @@ use serde_json::json;
 use std::{fs::File, io::BufWriter, path::PathBuf, env};
 use tokio_postgres::{types::ToSql, error::SqlState};
 use validator::Validate;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, NaiveDate};
 
 #[axum::debug_handler]
 pub async fn explore_catalog(
@@ -1449,11 +1450,38 @@ pub async fn load_return(State(state): State<AppState>, Json(payload): Json<Load
         }
     }
 
+    let row = match transaction.query_one(
+        "SELECT r.end_date, r.return_date, m.price
+        FROM rentals r
+        JOIN machinery_units u ON u.id = r.machine_id
+        JOIN machinery_models m ON m.id = u.model_id
+        WHERE r.id = $1;",
+        &[&payload.rental_id],
+    ).await {
+        Ok(r) => r,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to retrieve delay data"})),
+            )
+            .into_response();
+        }
+    };
+
+    let end_date: NaiveDate = row.get("end_date");
+    let return_date: NaiveDate = row.get("return_date");
+    let price: f32 = row.get("price");
+
+    let days_late = (return_date - end_date).num_days().max(0); // avoid negative values
+    let fine = days_late as f32 * price * LATE_RETURN_FINE;
+
     match transaction.commit().await {
         Ok(_) => {
             return (
                 StatusCode::CREATED,
-                Json(json!({"message": "Return loaded successfully"})),
+                Json(json!({"message": "Return loaded successfully",
+                            "fine":fine,
+                            "days_late":days_late})),
             )
                 .into_response()
         }

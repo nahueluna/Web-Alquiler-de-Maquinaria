@@ -1413,11 +1413,17 @@ async fn test_load_return() {
         .unwrap();
 
     assert_eq!(res.status(), 201);
-    assert_eq!(
-        res.json::<serde_json::Value>().await.unwrap()["message"]
+    let json = res.json::<serde_json::Value>().await.unwrap();
+    assert_eq!(json["message"]
             .as_str()
             .unwrap(),
         "Return loaded successfully"
+    );
+    assert!(
+        json["days_late"].as_u64().unwrap() > 0
+    );
+    assert!(
+        json["fine"].as_f64().unwrap() > 0.0
     );
 
     // Check that the rental was updated
