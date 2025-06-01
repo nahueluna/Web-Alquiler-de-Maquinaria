@@ -1,6 +1,6 @@
+use crate::constants::LATE_RETURN_FINE;
 use crate::custom_types::enums::{OrderByField, OrderDirection, PaymentStatus};
 use crate::custom_types::structs::*;
-use crate::constants::LATE_RETURN_FINE;
 use crate::helpers::{
     auth::*,
     machinery_mgmt::{date_is_overlap, get_claims_from_token, validate_client},
@@ -15,12 +15,12 @@ use axum::{
 use axum_extra::extract::Query;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use chrono::{NaiveDate, NaiveDateTime};
 use image::ImageFormat;
 use serde_json::json;
-use std::{fs::File, io::BufWriter, path::PathBuf, env};
-use tokio_postgres::{types::ToSql, error::SqlState};
+use std::{env, fs::File, io::BufWriter, path::PathBuf};
+use tokio_postgres::{error::SqlState, types::ToSql};
 use validator::Validate;
-use chrono::{NaiveDateTime, NaiveDate};
 
 #[axum::debug_handler]
 pub async fn explore_catalog(
@@ -184,10 +184,39 @@ pub async fn explore_catalog(
 
                 match client.query(&select_query, select_params.as_slice()).await {
                     Ok(machinery_rows) => {
-                        let mut machinery_list: Vec<MachineModel> = machinery_rows
+                        let result_machinery_list: Result<
+                            Vec<MachineModel>,
+                            (StatusCode, Json<serde_json::Value>),
+                        > = machinery_rows
                             .iter()
                             .map(|row| MachineModel::build_from_row(row))
                             .collect();
+
+                        let mut machinery_list = match result_machinery_list {
+                            Ok(list) => list,
+                            Err((status, json)) => {
+                                return (status, json);
+                            }
+                        };
+
+                        let all_categories: Vec<String>;
+
+                        if let Ok(all_categories_rows) = client
+                            .query("SELECT name FROM categories ORDER BY name ASC;", &[])
+                            .await
+                        {
+                            all_categories = all_categories_rows
+                                .iter()
+                                .map(|row| row.get("name"))
+                                .collect();
+                        } else {
+                            return (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(json!({
+                                    "message": "Se ha producido un error interno al intentar obtener las categorías",
+                                })),
+                            );
+                        }
 
                         for machine in machinery_list.iter_mut() {
                             let category_query = "
@@ -224,6 +253,7 @@ pub async fn explore_catalog(
                                 "page_size": page_size,
                                 "total_items": total_items,
                                 "items": machinery_list,
+                                "all_categories": all_categories,
                             })),
                         );
                     }
@@ -255,7 +285,14 @@ pub async fn select_machine(
 
         match client.query_one(machine_query, &[&machine_id]).await {
             Ok(machine_row) => {
-                let mut machine = MachineModel::build_from_row(&machine_row);
+                let result_machine = MachineModel::build_from_row(&machine_row);
+
+                let mut machine = match result_machine {
+                    Ok(m) => m,
+                    Err((status, json)) => {
+                        return (status, json);
+                    }
+                };
 
                 let category_query = "
                     SELECT c.id AS category_id, c.name AS category_name 
@@ -446,7 +483,10 @@ pub async fn get_units_unavailable_dates(
     );
 }
 
-pub async fn new_model(State(state): State<AppState>, Json(mut payload): Json<NewModel>) -> Response {
+pub async fn new_model(
+    State(state): State<AppState>,
+    Json(mut payload): Json<NewModel>,
+) -> Response {
     if payload.extra_images.len() > 10 {
         return (
             StatusCode::BAD_REQUEST,
@@ -1053,7 +1093,9 @@ pub async fn new_unit(State(state): State<AppState>, Json(payload): Json<NewUnit
         }
     };
 
-    match client.execute("INSERT INTO machinery_units
+    match client
+        .execute(
+            "INSERT INTO machinery_units
         (serial_number, status, model_id, location_id)
         VALUES ($1, 'available', $2, $3) RETURNING id;",
             &[
@@ -1064,21 +1106,22 @@ pub async fn new_unit(State(state): State<AppState>, Json(payload): Json<NewUnit
         )
         .await
     {
-        Ok(_) =>
+        Ok(_) => {
             return (
                 StatusCode::CREATED,
                 Json(json!({"message": "Unit created successfully"})),
             )
-                .into_response(),
+                .into_response()
+        }
         Err(e) => {
             let mut status_code = StatusCode::INTERNAL_SERVER_ERROR;
             let mut message = "Failed to save unit";
             if let Some(db_err) = e.as_db_error() {
                 match db_err.code() {
-                    &SqlState::UNIQUE_VIOLATION  => {
+                    &SqlState::UNIQUE_VIOLATION => {
                         status_code = StatusCode::BAD_REQUEST;
                         message = "The serial_number is already registered";
-                    },
+                    }
                     &SqlState::FOREIGN_KEY_VIOLATION => {
                         let detail = db_err.message().to_lowercase();
                         if detail.contains("model_id") {
@@ -1088,20 +1131,19 @@ pub async fn new_unit(State(state): State<AppState>, Json(payload): Json<NewUnit
                             status_code = StatusCode::BAD_REQUEST;
                             message = "location_id is invalid";
                         }
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
             }
-            return (
-                status_code,
-                Json(json!({"message": message})),
-            )
-                .into_response();
-        },
+            return (status_code, Json(json!({"message": message}))).into_response();
+        }
     };
 }
 
-pub async fn get_my_rentals(State(state): State<AppState>, Json(payload): Json<Access>) -> Response {
+pub async fn get_my_rentals(
+    State(state): State<AppState>,
+    Json(payload): Json<Access>,
+) -> Response {
     let frontend_url = match env::var("FRONTEND_URL") {
         Ok(e) => e,
         Err(_) => {
@@ -1170,7 +1212,8 @@ pub async fn get_my_rentals(State(state): State<AppState>, Json(payload): Json<A
         JOIN machinery_units ON rentals.machine_id = machinery_units.id
         JOIN machinery_models ON machinery_units.model_id = machinery_models.id
         WHERE rentals.user_id = $1;",
-        &[&claims.user_id],)
+            &[&claims.user_id],
+        )
         .await
     {
         Ok(rows) => {
@@ -1195,7 +1238,11 @@ pub async fn get_my_rentals(State(state): State<AppState>, Json(payload): Json<A
                     model_year: row.get("model_year"),
                     model_policy: row.get("model_policy"),
                     model_description: row.get("model_description"),
-                    model_image: format!("{}/media/machines/{}.webp",frontend_url,row.get::<_, String>("model_image")),
+                    model_image: format!(
+                        "{}/media/machines/{}.webp",
+                        frontend_url,
+                        row.get::<_, String>("model_image")
+                    ),
                 })
                 .collect();
             return (StatusCode::OK, Json(json!({"rentals": employees}))).into_response();
@@ -1210,7 +1257,10 @@ pub async fn get_my_rentals(State(state): State<AppState>, Json(payload): Json<A
     };
 }
 
-pub async fn load_retirement(State(state): State<AppState>, Json(payload): Json<LoadRetirement>) -> Response {
+pub async fn load_retirement(
+    State(state): State<AppState>,
+    Json(payload): Json<LoadRetirement>,
+) -> Response {
     let claims = match validate_jwt(&payload.access) {
         Some(data) => data,
         None => {
@@ -1253,7 +1303,8 @@ pub async fn load_retirement(State(state): State<AppState>, Json(payload): Json<
         }
     };
 
-    let row = match transaction.query_one(
+    let row = match transaction
+        .query_one(
             "UPDATE rentals
              SET retirement_employee_id = $1,
                  retirement_date = CURRENT_DATE
@@ -1261,19 +1312,23 @@ pub async fn load_retirement(State(state): State<AppState>, Json(payload): Json<
              RETURNING machine_id;",
             &[&claims.user_id, &payload.rental_id],
         )
-        .await {
+        .await
+    {
         Ok(r) => r,
         Err(e) => {
             if e.to_string().contains("unexpected number of rows") {
-                return (StatusCode::BAD_REQUEST,
-                    Json(json!({"message": "rental_id is invalid"}))).into_response();
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({"message": "rental_id is invalid"})),
+                )
+                    .into_response();
             }
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"message": "Failed to execute transaction"})),
             )
                 .into_response();
-        },
+        }
     };
 
     let machine_id: i32 = row.get("machine_id");
@@ -1286,12 +1341,16 @@ pub async fn load_retirement(State(state): State<AppState>, Json(payload): Json<
              WHERE id = $1 AND status = 'available';",
             &[&machine_id],
         )
-        .await {
+        .await
+    {
         Ok(rows) if rows > 0 => (),
-        _ => return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"message": "Failed to execute transaction"})),
-            ).into_response(),
+        _ => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to execute transaction"})),
+            )
+                .into_response()
+        }
     }
 
     match transaction.commit().await {
@@ -1312,7 +1371,10 @@ pub async fn load_retirement(State(state): State<AppState>, Json(payload): Json<
     };
 }
 
-pub async fn load_return(State(state): State<AppState>, Json(payload): Json<LoadReturn>) -> Response {
+pub async fn load_return(
+    State(state): State<AppState>,
+    Json(payload): Json<LoadReturn>,
+) -> Response {
     let claims = match validate_jwt(&payload.access) {
         Some(data) => data,
         None => {
@@ -1355,7 +1417,8 @@ pub async fn load_return(State(state): State<AppState>, Json(payload): Json<Load
         }
     };
 
-    let row = match transaction.query_one(
+    let row = match transaction
+        .query_one(
             "UPDATE rentals
              SET return_employee_id = $1,
                  return_date = CURRENT_DATE,
@@ -1364,19 +1427,23 @@ pub async fn load_return(State(state): State<AppState>, Json(payload): Json<Load
              RETURNING machine_id;",
             &[&claims.user_id, &payload.rental_id],
         )
-        .await {
+        .await
+    {
         Ok(r) => r,
         Err(e) => {
             if e.to_string().contains("unexpected number of rows") {
-                return (StatusCode::BAD_REQUEST,
-                    Json(json!({"message": "rental_id is invalid"}))).into_response();
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({"message": "rental_id is invalid"})),
+                )
+                    .into_response();
             }
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"message": "Failed to update rental"})),
             )
                 .into_response();
-        },
+        }
     };
 
     let machine_id: i32 = row.get("machine_id");
@@ -1399,7 +1466,6 @@ pub async fn load_return(State(state): State<AppState>, Json(payload): Json<Load
 
     //If the machine was returned to the same location, there is no need to update location history
     if location_id == payload.location_id {
-
         // Now update the unit
         match transaction
             .execute(
@@ -1408,12 +1474,16 @@ pub async fn load_return(State(state): State<AppState>, Json(payload): Json<Load
                  WHERE id = $1;",
                 &[&machine_id],
             )
-            .await {
+            .await
+        {
             Ok(rows) if rows > 0 => (),
-            _ => return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"message": "Failed to update unit"})),
-                ).into_response(),
+            _ => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to update unit"})),
+                )
+                    .into_response()
+            }
         }
     } else {
         //Update the location history
@@ -1424,12 +1494,16 @@ pub async fn load_return(State(state): State<AppState>, Json(payload): Json<Load
                 ($1, $2, $3, NOW());",
                 &[&machine_id, &location_id, &assigned_at],
             )
-            .await {
+            .await
+        {
             Ok(rows) if rows > 0 => (),
-            _ => return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"message": "Failed to update location history"})),
-                ).into_response(),
+            _ => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"message": "Failed to update location history"})),
+                )
+                    .into_response()
+            }
         }
         //Update the unit
         match transaction
@@ -1441,30 +1515,37 @@ pub async fn load_return(State(state): State<AppState>, Json(payload): Json<Load
                 WHERE id = $2;",
                 &[&payload.location_id, &machine_id],
             )
-            .await {
+            .await
+        {
             Ok(rows) if rows > 0 => (),
-            _ => return (
-                StatusCode::BAD_REQUEST,
-                Json(json!({"message": "location_id is invalid"})),
-                ).into_response(),
+            _ => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({"message": "location_id is invalid"})),
+                )
+                    .into_response()
+            }
         }
     }
 
-    let row = match transaction.query_one(
-        "SELECT r.end_date, r.return_date, m.price
+    let row = match transaction
+        .query_one(
+            "SELECT r.end_date, r.return_date, m.price
         FROM rentals r
         JOIN machinery_units u ON u.id = r.machine_id
         JOIN machinery_models m ON m.id = u.model_id
         WHERE r.id = $1;",
-        &[&payload.rental_id],
-    ).await {
+            &[&payload.rental_id],
+        )
+        .await
+    {
         Ok(r) => r,
         Err(_) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"message": "Failed to retrieve delay data"})),
             )
-            .into_response();
+                .into_response();
         }
     };
 
