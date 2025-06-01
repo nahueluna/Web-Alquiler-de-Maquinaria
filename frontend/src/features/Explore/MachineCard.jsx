@@ -1,8 +1,10 @@
 import { Skeleton } from "@mui/joy";
 import AspectRatio from "@mui/joy/AspectRatio";
+import Box from "@mui/joy/Box";
 import Card from "@mui/joy/Card";
 import CardContent from "@mui/joy/CardContent";
 import CardOverflow from "@mui/joy/CardOverflow";
+import Chip from "@mui/joy/Chip";
 import Divider from "@mui/joy/Divider";
 import Typography from "@mui/joy/Typography";
 import React from "react";
@@ -10,7 +12,7 @@ import React from "react";
 export default function MachineCard({
   imageUrl,
   model,
-  category,
+  categories,
   price,
   onClick,
 }) {
@@ -57,7 +59,19 @@ export default function MachineCard({
         >
           {model}
         </Typography>
-        <Typography level="body-sm">{category}</Typography>
+        <Box sx={{ minHeight: "4em" }}>
+          {categories.map((category, index) => (
+            <Chip
+              key={index}
+              variant="soft"
+              size="sm"
+              color="danger"
+              sx={{ mr: 0.5, mb: 0.5 }}
+            >
+              {category.name}
+            </Chip>
+          ))}
+        </Box>
       </CardContent>
       <CardOverflow variant="soft" sx={{ bgcolor: "background.level1" }}>
         <Divider inset="context" />

@@ -1,10 +1,60 @@
 import { Sheet } from "@mui/joy";
 import { Divider } from "@mui/material";
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Filters from "./Filters";
 import Results from "./Results";
 import SortBy from "./SortBy";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const ExplorePage = () => {
+  const [searchParams] = useSearchParams();
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [selectedFilters, setSelectedFilters] = React.useState({
+    categories: [],
+    maxPrice: null,
+    minPrice: null,
+  });
+
+  const categories = searchParams.getAll("category");
+  const maxPrice = searchParams.get("max_price");
+  const minPrice = searchParams.get("min_price");
+
+  const currentFilters = {
+    categories: categories,
+    maxPrice: maxPrice ? Number(maxPrice) : null,
+    minPrice: minPrice ? Number(minPrice) : null,
+  };
+
+  const query = searchParams.get("q")?.toLowerCase() || "";
+
+  useEffect(() => {
+    async function fetchResults(query) {
+      try {
+        const params = new URLSearchParams();
+        selectedFilters.categories.forEach((cat) =>
+          params.append("category", cat)
+        );
+        if (selectedFilters.minPrice !== null)
+          params.append("min_price", selectedFilters.minPrice);
+        if (selectedFilters.maxPrice !== null)
+          params.append("max_price", selectedFilters.maxPrice);
+        const { data } = await axios.get(
+          `${BACKEND_URL}/explore?${params.toString()}`
+        );
+        setResults(data);
+        setLoading(false);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    fetchResults(query); // Fetch results whenever the query changes to update them
+  }, [query]);
+
   return (
     <Sheet
       sx={{
@@ -18,7 +68,12 @@ const ExplorePage = () => {
       }}
     >
       <Sheet sx={{ minWidth: 250, maxWidth: 350, flex: "0 0 20%" }}>
-        <Filters />
+        <Filters
+          results={results}
+          currentFilters={currentFilters}
+          setSelectedFilters={setSelectedFilters}
+          selectedFilters={selectedFilters}
+        />
       </Sheet>
       <Divider orientation="vertical" />
       <Sheet sx={{ flex: 1, minWidth: 0 }}>
@@ -32,7 +87,7 @@ const ExplorePage = () => {
         >
           <SortBy />
         </Sheet>
-        <Results />
+        <Results results={results.items} loading={loading} />
       </Sheet>
     </Sheet>
   );

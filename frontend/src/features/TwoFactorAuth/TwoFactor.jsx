@@ -1,12 +1,9 @@
-import { Box, Button, FormLabel, Link, Sheet, Typography } from "@mui/joy";
-import { useEffect, useRef, useState, useContext } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import InputGroup from "./InputGroup";
 import Shield from "@mui/icons-material/Shield";
+import { Box, Button, FormLabel, Link, Sheet, Typography } from "@mui/joy";
+import { useContext, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import UserContext from "../../context/UserContext";
-import { Snackbar } from "@mui/material";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheck";
+import InputGroup from "./InputGroup";
 
 function TwoFactor() {
   const { login, user, setUser } = useContext(UserContext);
@@ -111,7 +108,7 @@ function TwoFactor() {
 
   return (
     <>
-      <Snackbar
+      {/*<Snackbar
         variant="soft"
         color={status.isError ? "danger" : "success"}
         open={openSnack}
@@ -136,7 +133,7 @@ function TwoFactor() {
         }
       >
         {status.message}
-      </Snackbar>
+      </Snackbar> */}
       <Sheet
         sx={{
           display: "grid",

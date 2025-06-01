@@ -1,36 +1,11 @@
 import Grid from "@mui/joy/Grid";
 import Typography from "@mui/joy/Typography";
-import axios from "axios";
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import MachineCard from "./MachineCard";
 import MachineCardSkeleton from "./MachineCardSkeleton";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-const Results = () => {
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchParams] = useSearchParams();
+const Results = ({ results, loading }) => {
   const nav = useNavigate();
-  const query = searchParams.get("q")?.toLowerCase() || "";
-
-  useEffect(() => {
-    async function fetchResults(query) {
-      try {
-        const {
-          data: { items },
-        } = await axios.get(
-          `${BACKEND_URL}/explore${query ? `?search=${query}` : ""}`
-        );
-        setResults(items);
-        setLoading(false);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    fetchResults(query); // Fetch results whenever the query changes to update them
-  }, [query]);
 
   return (
     <Grid container spacing={2} sx={{ px: 5, pb: 2 }}>
@@ -46,7 +21,7 @@ const Results = () => {
             <MachineCard
               imageUrl={machine.imageUrl}
               model={machine.model}
-              category={machine.category}
+              categories={machine.categories}
               price={machine.price}
               onClick={() => nav(`/explore/${machine.id}`)}
             />
