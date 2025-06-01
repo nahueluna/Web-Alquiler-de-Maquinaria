@@ -1,12 +1,12 @@
 import { Box, Button, Input, Link, Sheet } from "@mui/joy";
-import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
-import SoloLogo from "../../assets/SoloLogo.png";
-import { useEffect, useState, useContext } from "react";
-import Nav from "./Nav";
 import { useFormik } from "formik";
+import { useContext, useEffect, useState } from "react";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
-import UserDrop from "./UserDrop";
+import SoloLogo from "../../assets/SoloLogo.png";
 import UserContext from "../../context/UserContext";
+import Nav from "./Nav";
+import UserDrop from "./UserDrop";
 
 const Navbar = () => {
   const [hideNav, setHideNav] = useState(false);
@@ -24,10 +24,11 @@ const Navbar = () => {
     window.addEventListener("scroll", scrollNavbar);
 
     return () => window.removeEventListener("scroll", scrollNavbar);
+    d;
   }, []);
 
   const params = new URLSearchParams(location.search);
-  const initialSearch = params.get("q") || "";
+  const initialSearch = params.get("search") || "";
 
   // Configuración de Formik y Yup para el buscador
   const formik = useFormik({
@@ -37,13 +38,16 @@ const Navbar = () => {
     }),
     onSubmit: (values) => {
       const termino = values.search.trim();
+      const params = new URLSearchParams(location.search);
+
       if (termino) {
-        navigate(`/explore?q=${encodeURIComponent(termino)}`);
+        params.set("search", termino);
       } else {
-        navigate("/explore");
+        params.delete("search");
       }
+      navigate(`/explore?${params.toString()}`);
     },
-    enableReinitialize: true
+    enableReinitialize: true,
   });
 
   return (
