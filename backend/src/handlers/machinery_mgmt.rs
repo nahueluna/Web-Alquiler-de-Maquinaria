@@ -281,6 +281,18 @@ pub async fn select_machine(
     Path(machine_id): Path<i32>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     if let Ok(client) = state.pool.get().await {
+        let frontend_url = match env::var("FRONTEND_URL") {
+            Ok(url) => url,
+            Err(_) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({
+                        "message": "FRONTEND_URL environment variable is not set. Cannot get machine image.",
+                    })),
+                );
+            }
+        };
+
         let machine_query = "SELECT * FROM machinery_models WHERE id = $1;";
 
         match client.query_one(machine_query, &[&machine_id]).await {
@@ -293,6 +305,31 @@ pub async fn select_machine(
                         return (status, json);
                     }
                 };
+
+                let extra_images_query = "
+                    SELECT name FROM model_extra_images WHERE id = $1;";
+
+                if let Ok(extra_images_rows) =
+                    client.query(extra_images_query, &[&machine.id]).await
+                {
+                    machine.extra_images = extra_images_rows
+                        .into_iter()
+                        .map(|row| {
+                            format!(
+                                "{}/media/machines/{}.webp",
+                                frontend_url,
+                                row.get::<_, String>("name")
+                            )
+                        })
+                        .collect();
+                } else {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({
+                            "message": "Se ha producido un error interno al intentar obtener las imágenes adicionales",
+                        })),
+                    );
+                }
 
                 let category_query = "
                     SELECT c.id AS category_id, c.name AS category_name 

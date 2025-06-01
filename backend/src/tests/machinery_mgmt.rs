@@ -1,7 +1,6 @@
 use crate::custom_types::{enums::RunningEnv, structs::MyRentalInfo};
 use crate::helpers::auth::create_pool;
 use crate::tests::helpers::*;
-use axum::http::response;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use chrono::{NaiveDate, Utc};
 use reqwest::Client;
@@ -324,6 +323,15 @@ async fn test_select_machine() {
     assert_eq!(
         machine.get("categories").unwrap().as_array().unwrap()[0]["name"],
         "construccion pesada"
+    );
+    assert_eq!(
+        machine
+            .get("extra_images")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        2
     );
 
     // ----------- Select a machine with an invalid ID
