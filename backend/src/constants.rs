@@ -1,3 +1,4 @@
 pub const ACCESS_EXPIRATION_MINUTES: i64 = 15;
 pub const REFRESH_EXPIRATION_DAYS: i64 = 7;
 pub const CHANGE_PSW_CODE_EXP_MINS: i32 = 15;
+pub const LATE_RETURN_FINE: f32 = 0.1;

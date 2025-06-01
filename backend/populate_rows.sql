@@ -135,12 +135,12 @@ VALUES (
     2, 6, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 'PAY_00001'
 ),
 (
-    8, 5, NOW() - INTERVAL '148 days', NOW() - INTERVAL '139 days', 4300.00, 'completed',
-    6, 2, NOW() - INTERVAL '148 days', NOW() - INTERVAL '139 days', 'PAY_00002'
+    8, 5, '2025-1-3', '2025-1-12', 4300.00, 'completed',
+    6, 2, '2025-1-3', '2025-1-12', 'PAY_00002'
 ),
 (
-    17, 16, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 5000.00, 'completed',
-    2, 6, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 'PAY_00001'
+    17, 16,'2025-1-3', '2025-1-12', 5000.00, 'completed',
+    2, 6, '2025-1-3', '2025-1-12', 'PAY_00001'
 ),
 (
     17, 17, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 5000.00, 'completed',
