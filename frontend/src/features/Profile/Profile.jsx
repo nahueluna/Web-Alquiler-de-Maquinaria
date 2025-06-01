@@ -7,18 +7,18 @@ import {
   Snackbar,
   Typography,
 } from "@mui/joy";
-import axios from "axios";
 import { useFormik } from "formik";
 import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 import UserContext from "../../context/UserContext";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import useAuth from "../utils/useAuth";
 
 const phoneRegex = /^[\d+\-\s]{8,17}$/;
 
 const Profile = () => {
   const { user } = useContext(UserContext);
+  const { post } = useAuth();
   const navigate = useNavigate();
   const [loadingPasswordChange, setLoadingPasswordChange] = useState(false);
   const [userData, setUserData] = useState({
@@ -76,14 +76,9 @@ const Profile = () => {
     }),
     onSubmit: async (values, { setSubmitting }) => {
       try {
-        const response = await axios.post(
-          `${BACKEND_URL}/changephone`,
-          {
-            phone: values.telefono,
-            access: user?.access || "",
-          },
-          { withCredentials: true }
-        );
+        const response = await post("/changephone", {
+          phone: values.telefono,
+        });
 
         if (response.status === 200) {
           setUserData((prev) => ({
@@ -131,11 +126,9 @@ const Profile = () => {
   const handleChangePassword = async () => {
     try {
       setLoadingPasswordChange(true);
-      const response = await axios.post(
-        `${BACKEND_URL}/requestpswchange`,
-        { email: userData.correo },
-        { withCredentials: true } // Para las cookies (?)
-      );
+      const response = await post("/requestpswchange", {
+        email: userData.correo,
+      });
 
       if (response.status === 200) {
         setShowChangePasswordSnackbar(true); // Si funca...

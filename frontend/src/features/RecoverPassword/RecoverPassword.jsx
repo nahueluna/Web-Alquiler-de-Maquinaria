@@ -8,11 +8,10 @@ import {
   Input,
   Typography,
 } from "@mui/joy";
-import axios from "axios";
 import { useFormik } from "formik";
 import { useEffect, useState } from "react";
 import * as yup from "yup";
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import useAuth from "../utils/useAuth";
 
 const validationSchema = yup.object({
   email: yup
@@ -32,6 +31,7 @@ function RecoverPassword() {
     open: false,
     message: "",
   });
+  const { post } = useAuth();
 
   useEffect(() => {
     document.title = "Recuperar contraseña";
@@ -45,11 +45,9 @@ function RecoverPassword() {
     onSubmit: async (values) => {
       setLoading(true);
       try {
-        const response = await axios.post(
-          `${BACKEND_URL}/requestpswchange`,
-          { email: values.email },
-          { withCredentials: true }
-        );
+        const response = await post("/requestpswchange", {
+          email: values.email,
+        });
         setMensajeEnviado(true);
       } catch (error) {
         if (error.response) {
