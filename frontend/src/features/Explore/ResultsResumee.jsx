@@ -1,12 +1,8 @@
 import { Divider, Typography } from "@mui/joy";
 import Box from "@mui/joy/Box";
 import Chip from "@mui/joy/Chip";
-import { useSearchParams } from "react-router-dom";
 
-const ResultsResumee = ({ totalItems, currentFilters }) => {
-  const [searchParams] = useSearchParams();
-  const query = searchParams.get("q");
-
+const ResultsResumee = ({ totalItems, currentFilters, query }) => {
   return (
     <Box>
       {(query ||
@@ -18,7 +14,8 @@ const ResultsResumee = ({ totalItems, currentFilters }) => {
             <>
               <Typography level="title-lg">"{query}"</Typography>
               <Typography level="body-xs">
-                {totalItems === 0 ? "0" : totalItems} resultados
+                {!totalItems || totalItems === 0 ? "0" : totalItems}{" "}
+                {!totalItems || totalItems != 1 ? "resultados" : "resultado"}
               </Typography>
             </>
           )}

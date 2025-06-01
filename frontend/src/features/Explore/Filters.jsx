@@ -11,7 +11,7 @@ import Sheet from "@mui/joy/Sheet";
 import ResultsResumee from "./ResultsResumee"; // Assuming this is a custom component for displaying results summary
 
 const categorias = [
-  "Tecnología",
+  "obras urbanas",
   "Hogar",
   "Ropa",
   "Juguetes",
@@ -28,12 +28,14 @@ const Filters = ({
   currentFilters,
   setSelectedFilters,
   selectedFilters,
+  query,
 }) => {
   return (
     <Sheet sx={{ p: 2 }}>
       <ResultsResumee
         totalItems={results.total_items}
         currentFilters={currentFilters}
+        query={query}
       />
       <Typography level="body-lg" sx={{ fontWeight: "lg", mb: 1 }}>
         Categorias

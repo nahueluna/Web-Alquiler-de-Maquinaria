@@ -15,7 +15,7 @@ const Results = ({ results, loading }) => {
             <MachineCardSkeleton />
           </Grid>
         ))
-      ) : results.length > 0 ? (
+      ) : Array.isArray(results) && results.length > 0 ? (
         results.map((machine) => (
           <Grid xs={6} sm={6} md={4} lg={3} key={machine.id}>
             <MachineCard
