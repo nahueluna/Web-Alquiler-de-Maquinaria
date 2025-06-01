@@ -10,7 +10,7 @@ CREATE TABLE users (
     email varchar(254) UNIQUE NOT NULL,
     name varchar(100) NOT NULL,
     surname varchar(100) NOT NULL,
-    psw_hash varchar(64) UNIQUE NOT NULL,
+    psw_hash varchar(64) NOT NULL,
     salt varchar(16) NOT NULL,
     role smallint NOT NULL,
     refresh text NULL,

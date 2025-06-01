@@ -324,3 +324,10 @@ pub struct LoadRetirement {
     pub access: String,
     pub rental_id: i32,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LoadReturn {
+    pub access: String,
+    pub rental_id: i32,
+    pub location_id: i32,
+}

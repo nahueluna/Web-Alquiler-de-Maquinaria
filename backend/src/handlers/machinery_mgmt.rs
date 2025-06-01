@@ -19,6 +19,7 @@ use serde_json::json;
 use std::{fs::File, io::BufWriter, path::PathBuf, env};
 use tokio_postgres::{types::ToSql, error::SqlState};
 use validator::Validate;
+use chrono::NaiveDateTime;
 
 #[axum::debug_handler]
 pub async fn explore_catalog(
@@ -1297,6 +1298,162 @@ pub async fn load_retirement(State(state): State<AppState>, Json(payload): Json<
             return (
                 StatusCode::CREATED,
                 Json(json!({"message": "Retirement loaded successfully"})),
+            )
+                .into_response()
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to commit transaction"})),
+            )
+                .into_response()
+        }
+    };
+}
+
+pub async fn load_return(State(state): State<AppState>, Json(payload): Json<LoadReturn>) -> Response {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            )
+                .into_response()
+        }
+    }
+    .claims;
+
+    if claims.role == 2 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Not enough permissions"})),
+        )
+            .into_response();
+    }
+
+    let mut client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response()
+        }
+    };
+
+    let transaction = match client.transaction().await {
+        Ok(t) => t,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to create a DB transaction",})),
+            )
+                .into_response()
+        }
+    };
+
+    let row = match transaction.query_one(
+            "UPDATE rentals
+             SET return_employee_id = $1,
+                 return_date = CURRENT_DATE,
+                 status = 'completed'
+             WHERE id = $2
+             RETURNING machine_id;",
+            &[&claims.user_id, &payload.rental_id],
+        )
+        .await {
+        Ok(r) => r,
+        Err(e) => {
+            if e.to_string().contains("unexpected number of rows") {
+                return (StatusCode::BAD_REQUEST,
+                    Json(json!({"message": "rental_id is invalid"}))).into_response();
+            }
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to update rental"})),
+            )
+                .into_response();
+        },
+    };
+
+    let machine_id: i32 = row.get("machine_id");
+
+    let row = match transaction.query_one(
+            "SELECT location_id, assigned_at FROM machinery_units WHERE id = $1 AND status = 'rented';",
+            &[&machine_id],
+        )
+        .await {
+        Ok(r) => r,
+        Err(_) => return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to find related unit"})),
+            )
+                .into_response(),
+    };
+
+    let location_id: i32 = row.get("location_id");
+    let assigned_at: NaiveDateTime = row.get("assigned_at");
+
+    //If the machine was returned to the same location, there is no need to update location history
+    if location_id == payload.location_id {
+
+        // Now update the unit
+        match transaction
+            .execute(
+                "UPDATE machinery_units
+                 SET status = 'maintenance'
+                 WHERE id = $1;",
+                &[&machine_id],
+            )
+            .await {
+            Ok(rows) if rows > 0 => (),
+            _ => return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to update unit"})),
+                ).into_response(),
+        }
+    } else {
+        //Update the location history
+        match transaction
+            .execute(
+                "INSERT INTO machinery_location_history
+                (unit_id, location_id, assigned_at, unassigned_at) VALUES
+                ($1, $2, $3, NOW());",
+                &[&machine_id, &location_id, &assigned_at],
+            )
+            .await {
+            Ok(rows) if rows > 0 => (),
+            _ => return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to update location history"})),
+                ).into_response(),
+        }
+        //Update the unit
+        match transaction
+            .execute(
+                "UPDATE machinery_units
+                SET status = 'maintenance',
+                assigned_at = NOW(),
+                location_id = $1
+                WHERE id = $2;",
+                &[&payload.location_id, &machine_id],
+            )
+            .await {
+            Ok(rows) if rows > 0 => (),
+            _ => return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({"message": "location_id is invalid"})),
+                ).into_response(),
+        }
+    }
+
+    match transaction.commit().await {
+        Ok(_) => {
+            return (
+                StatusCode::CREATED,
+                Json(json!({"message": "Return loaded successfully"})),
             )
                 .into_response()
         }
