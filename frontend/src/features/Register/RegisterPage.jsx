@@ -21,6 +21,7 @@ import axios from "axios";
 import { useFormik } from "formik";
 import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 import * as yup from "yup";
 
@@ -110,7 +111,7 @@ const RegisterPage = () => {
       } = values;
 
       try {
-        const { data } = await axios.post("http://localhost:8000/signup", {
+        const { data } = await axios.post(`${BACKEND_URL}/signup`, {
           name,
           surname,
           email,

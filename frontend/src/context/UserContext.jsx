@@ -1,5 +1,6 @@
 import axios from "axios";
 import { createContext, useEffect, useState } from "react";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const UserContext = createContext();
 
@@ -20,7 +21,7 @@ export function UserProvider({ children }) {
 
   async function login(loginInfo, code = 0) {
     const { data } = await axios.post(
-      "http://localhost:8000/login",
+      `${BACKEND_URL}/login`,
       code !== 0 ? { ...loginInfo, code } : loginInfo,
       {
         withCredentials: true,
@@ -35,7 +36,7 @@ export function UserProvider({ children }) {
   }
 
   async function refresh() {
-    const { data } = await axios.post("http://localhost:8000/refresh", null, {
+    const { data } = await axios.post(`${BACKEND_URL}/refresh`, null, {
       withCredentials: true,
     });
     const user = JSON.parse(window.localStorage.getItem("user"));
@@ -49,7 +50,7 @@ export function UserProvider({ children }) {
   async function logout() {
     try {
       const { data } = await axios.post(
-        "http://localhost:8000/logout",
+        `${BACKEND_URL}/logout`,
         {
           access: user.access,
         },
@@ -66,7 +67,7 @@ export function UserProvider({ children }) {
         console.log(access);
 
         await axios.post(
-          "http://localhost:8000/logout",
+          `${BACKEND_URL}/logout`,
           {
             access,
           },

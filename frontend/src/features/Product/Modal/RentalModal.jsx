@@ -1,3 +1,5 @@
+import { initMercadoPago, Wallet } from "@mercadopago/sdk-react";
+import Check from "@mui/icons-material/Check";
 import {
   Box,
   Button,
@@ -10,14 +12,13 @@ import {
   Stepper,
   Typography,
 } from "@mui/joy";
-import { useState, useReducer, useContext } from "react";
-import Check from "@mui/icons-material/Check";
-import Location from "./Location";
-import Duration from "./Duration";
-import { initMercadoPago, Wallet } from "@mercadopago/sdk-react";
-import Summary from "./Summary";
 import axios from "axios";
+import { useContext, useReducer, useState } from "react";
 import UserContext from "../../../context/UserContext";
+import Duration from "./Duration";
+import Location from "./Location";
+import Summary from "./Summary";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 initMercadoPago(import.meta.env.VITE_MP_PUBLIC);
 
@@ -83,7 +84,7 @@ function RentalModal({ setOpen, open, machine, locations }) {
   async function handleNext() {
     if (activeStep === 1) {
       setLoadingMl(true);
-      const { data } = await axios.post("http://localhost:3000/pago", state);
+      const { data } = await axios.post(`${BACKEND_URL}/pago`, state);
 
       setMlId(data.id);
       setLoadingMl(false);
@@ -170,16 +171,16 @@ function RentalModal({ setOpen, open, machine, locations }) {
 
                 console.log(body);
                 const { data } = await axios
-                  .post("http://localhost:8000/rental/new", {
+                  .post(`${BACKEND_URL}/rental/new`, {
                     ...body,
                     access: user.access,
                   })
                   .catch(async () => {
                     const { access } = await refresh();
-                    const res = await axios.post(
-                      "http://localhost:8000/rental/new",
-                      { ...body, access }
-                    );
+                    const res = await axios.post(`${BACKEND_URL}/rental/new`, {
+                      ...body,
+                      access,
+                    });
 
                     return res;
                   });

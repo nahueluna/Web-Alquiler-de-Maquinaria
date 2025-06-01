@@ -1,18 +1,10 @@
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Button,
-  Input,
-  Typography,
-  Sheet,
-  Divider,
-  Alert,
-} from "@mui/joy";
-import { useFormik } from "formik";
-import * as Yup from "yup";
+import { Alert, Box, Button, Divider, Input, Typography } from "@mui/joy";
 import axios from "axios";
-import { useParams, useNavigate } from "react-router-dom";
-
+import { useFormik } from "formik";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import * as Yup from "yup";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const ChangePassword = () => {
   const { code } = useParams();
@@ -33,7 +25,7 @@ const ChangePassword = () => {
     const checkCode = async () => {
       try {
         const { data } = await axios.post(
-          "http://localhost:8000/checkchangepswcode",
+          `${BACKEND_URL}/checkchangepswcode`,
           { code },
           { withCredentials: true }
         );
@@ -63,7 +55,9 @@ const ChangePassword = () => {
       confirmPassword: "",
     },
     validationSchema: Yup.object({
-      password: Yup.string().min(8, "Mínimo 8 caracteres").required("Requerido"),
+      password: Yup.string()
+        .min(8, "Mínimo 8 caracteres")
+        .required("Requerido"),
       confirmPassword: Yup.string()
         .oneOf([Yup.ref("password"), null], "Las contraseñas no coinciden")
         .required("Requerido"),
@@ -72,7 +66,7 @@ const ChangePassword = () => {
       try {
         setLoading(true);
         const { data } = await axios.post(
-          "http://localhost:8000/changepsw",
+          `${BACKEND_URL}/changepsw`,
           {
             code,
             new_password: values.password,
@@ -147,11 +141,12 @@ const ChangePassword = () => {
               onChange={formik.handleChange}
               onBlur={formik.handleBlur}
             />
-            {formik.touched.confirmPassword && formik.errors.confirmPassword && (
-              <Typography level="body-sm" color="danger">
-                {formik.errors.confirmPassword}
-              </Typography>
-            )}
+            {formik.touched.confirmPassword &&
+              formik.errors.confirmPassword && (
+                <Typography level="body-sm" color="danger">
+                  {formik.errors.confirmPassword}
+                </Typography>
+              )}
           </Box>
 
           {errorMsg && (

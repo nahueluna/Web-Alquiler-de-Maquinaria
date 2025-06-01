@@ -1,10 +1,11 @@
 import Grid from "@mui/joy/Grid";
-import MachineCard from "./MachineCard";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import Typography from "@mui/joy/Typography";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import MachineCard from "./MachineCard";
 import MachineCardSkeleton from "./MachineCardSkeleton";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const Results = () => {
   const [results, setResults] = useState([]);
@@ -19,7 +20,7 @@ const Results = () => {
         const {
           data: { items },
         } = await axios.get(
-          `http://localhost:8000/explore${query ? `?search=${query}` : ""}`
+          `${BACKEND_URL}/explore${query ? `?search=${query}` : ""}`
         );
         setResults(items);
         setLoading(false);

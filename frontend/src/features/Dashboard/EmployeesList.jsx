@@ -1,36 +1,40 @@
 import Delete from "@mui/icons-material/Delete";
 import { Button, Modal, Sheet, Typography } from "@mui/joy";
+import Box from "@mui/joy/Box";
 import IconButton from "@mui/joy/IconButton";
 import List from "@mui/joy/List";
 import ListDivider from "@mui/joy/ListDivider";
 import ListItem from "@mui/joy/ListItem";
+import Snackbar from "@mui/joy/Snackbar";
 import Stack from "@mui/joy/Stack";
 import Tooltip from "@mui/joy/Tooltip";
-import Box from '@mui/joy/Box';
-import React, { useState, useEffect, useContext } from "react";
-import UserContext from "../../context/UserContext"
-import Snackbar from '@mui/joy/Snackbar';
-import axios from 'axios';
+import axios from "axios";
+import { useContext, useEffect, useState } from "react";
+import UserContext from "../../context/UserContext";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const EmployeesList = () => {
   //const [open, setOpen] = React.useState(false);
   //const [selectedEmployee, setSelectedEmployee] = React.useState(null);
   //const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: "" });
   //const [loading, setLoading] = useState(false);
-  const { user } = useContext(UserContext);  // Obtenemos user del contexto
+  const { user } = useContext(UserContext); // Obtenemos user del contexto
   const accessToken = user?.access || null; // Obtenemos el token
 
   const [employees, setEmployees] = useState([]);
   const [open, setOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: "" });
+  const [errorSnackbar, setErrorSnackbar] = useState({
+    open: false,
+    message: "",
+  });
   const [loading, setLoading] = useState(false);
 
-    const fetchEmployees = async () => {
+  const fetchEmployees = async () => {
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:8000/getemployees",
+        `${BACKEND_URL}/getemployees`,
         { access: accessToken },
         { withCredentials: true }
       );
@@ -41,19 +45,34 @@ const EmployeesList = () => {
       if (error.response) {
         switch (error.response.status) {
           case 401:
-            setErrorSnackbar({ open: true, message: "Token inválido. Por favor, inicia sesión de nuevo." });
+            setErrorSnackbar({
+              open: true,
+              message: "Token inválido. Por favor, inicia sesión de nuevo.",
+            });
             break;
           case 403:
-            setErrorSnackbar({ open: true, message: "No tienes permisos de administrador." });
+            setErrorSnackbar({
+              open: true,
+              message: "No tienes permisos de administrador.",
+            });
             break;
           case 500:
-            setErrorSnackbar({ open: true, message: "Error interno del servidor." });
+            setErrorSnackbar({
+              open: true,
+              message: "Error interno del servidor.",
+            });
             break;
           default:
-            setErrorSnackbar({ open: true, message: error.response.data.message || "Error desconocido." });
+            setErrorSnackbar({
+              open: true,
+              message: error.response.data.message || "Error desconocido.",
+            });
         }
       } else {
-        setErrorSnackbar({ open: true, message: "No se pudo conectar con el servidor." });
+        setErrorSnackbar({
+          open: true,
+          message: "No se pudo conectar con el servidor.",
+        });
       }
     } finally {
       setLoading(false);
@@ -70,13 +89,13 @@ const EmployeesList = () => {
     setSelectedEmployee(employee);
     setOpen(true);
   };
-  
+
   const handleConfirmedDelete = async () => {
     if (!selectedEmployee) return;
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:8000/deletemployee",
+        `${BACKEND_URL}/deletemployee`,
         {
           access: accessToken,
           id: selectedEmployee.id,
@@ -94,19 +113,34 @@ const EmployeesList = () => {
       if (error.response) {
         switch (error.response.status) {
           case 401:
-            setErrorSnackbar({ open: true, message: "Token inválido. Por favor, inicia sesión de nuevo." });
+            setErrorSnackbar({
+              open: true,
+              message: "Token inválido. Por favor, inicia sesión de nuevo.",
+            });
             break;
           case 403:
-            setErrorSnackbar({ open: true, message: "No tienes permisos de administrador." });
+            setErrorSnackbar({
+              open: true,
+              message: "No tienes permisos de administrador.",
+            });
             break;
           case 500:
-            setErrorSnackbar({ open: true, message: "Error interno o empleado no encontrado." });
+            setErrorSnackbar({
+              open: true,
+              message: "Error interno o empleado no encontrado.",
+            });
             break;
           default:
-            setErrorSnackbar({ open: true, message: error.response.data.message || "Error desconocido." });
+            setErrorSnackbar({
+              open: true,
+              message: error.response.data.message || "Error desconocido.",
+            });
         }
       } else {
-        setErrorSnackbar({ open: true, message: "No se pudo conectar con el servidor." });
+        setErrorSnackbar({
+          open: true,
+          message: "No se pudo conectar con el servidor.",
+        });
       }
     } finally {
       setLoading(false);
@@ -206,14 +240,14 @@ const EmployeesList = () => {
         variant="soft"
         autoHideDuration={3000}
         sx={{
-          position: 'fixed',
+          position: "fixed",
           bottom: 16,
-          left: '70%',
-          transform: 'translateX(-50%)',
+          left: "70%",
+          transform: "translateX(-50%)",
           zIndex: 9999,
         }}
-        >
-          {errorSnackbar.message}
+      >
+        {errorSnackbar.message}
       </Snackbar>
     </>
   );

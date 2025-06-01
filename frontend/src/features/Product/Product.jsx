@@ -9,13 +9,14 @@ import {
   Table,
   Typography,
 } from "@mui/joy";
-import { useParams, Link as RouterLink, useNavigate } from "react-router-dom";
-import { useEffect, useState, useContext } from "react";
 import axios from "axios";
+import { useContext, useEffect, useState } from "react";
+import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import UserContext from "../../context/UserContext";
-import ProductSkeleton from "./ProductSkeleton";
 import MachineCard from "../Explore/MachineCard";
 import RentalModal from "./Modal/RentalModal";
+import ProductSkeleton from "./ProductSkeleton";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 function Product() {
   const [open, setOpen] = useState(false);
@@ -36,7 +37,7 @@ function Product() {
 
     async function fetchMachine() {
       try {
-        const { data } = await axios.get(`http://localhost:8000/explore/${id}`);
+        const { data } = await axios.get(`${BACKEND_URL}/explore/${id}`);
 
         console.log(data.machine);
         setMachine(data.machine);
@@ -53,7 +54,7 @@ function Product() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const { data } = await axios.get(`http://localhost:8000/explore`);
+        const { data } = await axios.get(`${BACKEND_URL}/explore`);
 
         setProducts(data.items.slice(0, 6));
       } catch (error) {
@@ -128,14 +129,13 @@ function Product() {
                   const {
                     data: { locations },
                   } = await axios
-                    .post(
-                      `http://localhost:8000/explore/${machine.id}/locations`,
-                      { access: user.access }
-                    )
+                    .post(`${BACKEND_URL}/explore/${machine.id}/locations`, {
+                      access: user.access,
+                    })
                     .catch(async () => {
                       const { access } = await refresh();
                       const res = await axios.post(
-                        `http://localhost:8000/explore/${machine.id}/locations`,
+                        `${BACKEND_URL}/explore/${machine.id}/locations`,
                         {
                           access,
                         }
