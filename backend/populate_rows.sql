@@ -176,4 +176,8 @@ INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, sta
 
 (4, 10, NOW() + INTERVAL '8 days', NOW() + INTERVAL '18 days', 6000.00, 'active'),
 
-(9, 10, NOW() + INTERVAL '28 days', NOW() + INTERVAL '38 days', 6000.00, 'pending_payment');
+(9, 10, NOW() + INTERVAL '28 days', NOW() + INTERVAL '38 days', 6000.00, 'pending_payment'),
+
+-- To test cancel rental
+(9, 15, NOW() + INTERVAL '23 days', NOW() + INTERVAL '30 days', 4000.00, 'pending_payment'),
+(9, 15, NOW() + INTERVAL '40 days', NOW() + INTERVAL '47 days', 4000.00, 'pending_payment');
