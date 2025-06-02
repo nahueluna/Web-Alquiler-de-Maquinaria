@@ -1,5 +1,23 @@
 import { Box, Button, Chip, Sheet, Stack, Typography } from "@mui/joy";
 
+const onSameDay = (startDate) => {
+  const today = new Date();
+  const start = new Date(startDate);
+  return (
+    today.getFullYear() === start.getFullYear() &&
+    today.getMonth() === start.getMonth() &&
+    today.getDate() === start.getDate()
+  );
+};
+
+const isAfterEndDate = (endDate) => {
+  const today = new Date();
+  const end = new Date(endDate);
+  today.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  return today > end;
+};
+
 const translateStatus = (status) => {
   switch (status) {
     case "pending_payment":
@@ -102,32 +120,40 @@ export default function RentalCard({
         {retirementDate ? (
           <Typography>Retirado el: {parseDate(retirementDate)}</Typography>
         ) : (
-          <>
-            <Stack direction="row" spacing={1}>
-              <Typography>Retiro pendiente</Typography>
-              <Button
-                color="danger"
-                variant="plain"
-                size="xs"
-                onClick={() => {
-                  setOpen(true);
-                  setType("retirement");
-                  setRentalInfo({
-                    rentalId,
-                    modelName,
-                    modelModel,
-                  });
-                }}
-              >
-                Cargar retiro
-              </Button>
-            </Stack>
-          </>
+          <Stack direction="row" spacing={1}>
+            <Typography>
+              {isAfterEndDate(endDate) || status != "active"
+                ? "No retirado"
+                : "Retiro pendiente"}
+            </Typography>
+            {status === "active" &&
+              !onSameDay(endDate) &&
+              !isAfterEndDate(endDate) && (
+                <Button
+                  color="danger"
+                  variant="plain"
+                  size="xs"
+                  onClick={() => {
+                    setOpen(true);
+                    setType("retirement");
+                    setRentalInfo({
+                      rentalId,
+                      modelName,
+                      modelModel,
+                    });
+                  }}
+                >
+                  Cargar retiro
+                </Button>
+              )}
+          </Stack>
         )}
+
         {returnDate ? (
           <Typography>Devuelto el: {parseDate(returnDate)}</Typography>
         ) : (
-          <>
+          retirementDate &&
+          status == "active" && (
             <Stack direction="row" spacing={1}>
               <Typography>Devolucion pendiente</Typography>
               <Button
@@ -147,26 +173,31 @@ export default function RentalCard({
                 Cargar devolucion
               </Button>
             </Stack>
-          </>
+          )
         )}
         <Typography>Politica de cancelacion: {modelPolicy}</Typography>
-        <Button
-          color="danger"
-          size="lg"
-          variant="soft"
-          sx={{ width: { xs: "100%", sm: "40%" } }}
-          onClick={() => {
-            setOpen(true);
-            setType("cancel");
-            setRentalInfo({
-              rentalId,
-              modelName,
-              modelModel,
-            });
-          }}
-        >
-          Cancelar alquiler
-        </Button>
+        {(status === "pending_payment" ||
+          (status === "active" &&
+            !onSameDay(startDate) &&
+            isAfterEndDate(endDate))) && (
+          <Button
+            color="danger"
+            size="lg"
+            variant="soft"
+            sx={{ width: { xs: "100%", sm: "40%", alignSelf: "center" } }}
+            onClick={() => {
+              setOpen(true);
+              setType("cancel");
+              setRentalInfo({
+                rentalId,
+                modelName,
+                modelModel,
+              });
+            }}
+          >
+            Cancelar alquiler
+          </Button>
+        )}
       </Stack>
     </Sheet>
   );
