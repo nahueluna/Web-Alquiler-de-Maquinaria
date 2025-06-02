@@ -1,5 +1,8 @@
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheck";
 import Shield from "@mui/icons-material/Shield";
 import { Box, Button, FormLabel, Link, Sheet, Typography } from "@mui/joy";
+import Snackbar from "@mui/joy/Snackbar";
 import { useContext, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import UserContext from "../../context/UserContext";
@@ -92,7 +95,7 @@ function TwoFactor() {
 
       setStatus({
         isError: false,
-        message: "Successfully logged in, redirecting in 5 seconds...",
+        message: "Inicio de sesion exitoso, redirigiendo en 5 segundos...",
       });
       setOpenSnack(true);
       setTimeout(() => setUser(user), 5000);
@@ -108,7 +111,7 @@ function TwoFactor() {
 
   return (
     <>
-      {/*<Snackbar
+      <Snackbar
         variant="soft"
         color={status.isError ? "danger" : "success"}
         open={openSnack}
@@ -133,7 +136,7 @@ function TwoFactor() {
         }
       >
         {status.message}
-      </Snackbar> */}
+      </Snackbar>
       <Sheet
         sx={{
           display: "grid",
