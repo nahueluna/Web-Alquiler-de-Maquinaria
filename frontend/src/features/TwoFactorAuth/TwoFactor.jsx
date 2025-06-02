@@ -144,7 +144,7 @@ function TwoFactor() {
             variant="soft"
             color={status.isError ? "danger" : "success"}
           >
-            Dismiss
+            Cerrar
           </Button>
         }
       >
