@@ -40,3 +40,9 @@ pub fn date_is_overlap(
 ) -> bool {
     a_start <= b_end && b_start <= a_end
 }
+
+pub fn clean_strings(s: &str) -> String {
+    s.chars()
+        .filter(|c| c.is_alphanumeric() || c.is_whitespace()) // ¡Aquí está el cambio!
+        .collect()
+}
