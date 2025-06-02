@@ -1759,7 +1759,7 @@ pub async fn cancel_rental(
                     Máquina:\t\t\t {} {} {}\n\
                     Ubicación:\t\t\t {}, {}, {}
                     \n\n\
-                    En la brevedad se le reintegrará la totalidad del monto abonado.\n\
+                    Si ya realizó el pago, en la brevedad se le reintegrará la totalidad del monto abonado.\n\
                     Nos disculpamos por las molestias ocasionadas.\n\n\
                     \n\
                     Saludos cordiales,\n\
