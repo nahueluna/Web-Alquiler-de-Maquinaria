@@ -101,7 +101,20 @@ function TwoFactor() {
       setTimeout(() => setUser(user), 5000);
     } catch (error) {
       console.error(error);
-      setStatus({ isError: true, message: error.response.data.message });
+      switch (error.response.status) {
+        case 400:
+          setStatus({
+            isError: true,
+            message: "Codigo de verificación inválido o expirado.",
+          });
+          break;
+        default:
+          setStatus({
+            isError: true,
+            message:
+              "Ocurrió un error al verificar el código. Inténtalo de nuevo.",
+          });
+      }
       setOpenSnack(true);
     } finally {
       setIsLoading(false);

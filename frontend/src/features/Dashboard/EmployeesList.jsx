@@ -11,7 +11,7 @@ import Tooltip from "@mui/joy/Tooltip";
 import { useEffect, useState } from "react";
 import useAuth from "../utils/useAuth";
 
-const EmployeesList = () => {
+const EmployeesList = ({ refreshEmployees }) => {
   //const [open, setOpen] = React.useState(false);
   //const [selectedEmployee, setSelectedEmployee] = React.useState(null);
   //const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: "" });
@@ -75,6 +75,10 @@ const EmployeesList = () => {
   useEffect(() => {
     fetchEmployees();
   }, []);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [refreshEmployees]);
 
   const handleDeleteClick = (employee) => {
     setSelectedEmployee(employee);

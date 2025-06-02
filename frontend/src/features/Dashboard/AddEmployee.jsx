@@ -13,13 +13,15 @@ import { useFormik } from "formik";
 import { useState } from "react";
 import * as Yup from "yup";
 import useAuth from "../utils/useAuth";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheck";
 
-function AddEmployee({ setRegisterForm }) {
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-  const [errorSnackbar, setErrorSnackbar] = useState({
-    open: false,
-    message: "",
-  });
+function AddEmployee({
+  setRegisterForm,
+  setOpenSnack,
+  setStatus,
+  handleEmployeeAdded,
+}) {
   const { post } = useAuth();
 
   const formik = useFormik({
@@ -88,50 +90,48 @@ function AddEmployee({ setRegisterForm }) {
         };
         console.log("Payload enviado:", JSON.stringify(payload, null, 2));
         const response = await post("/registeremployee", payload);
-
-        if (response.status === 200) {
-          setOpenSnackbar(true);
-          resetForm();
-          setRegisterForm(false);
-        }
+        setStatus({
+          isError: false,
+          message: "Empleado registrado exitosamente.",
+        });
+        handleEmployeeAdded();
+        setOpenSnack(true);
+        resetForm();
+        setRegisterForm(false);
       } catch (error) {
         console.error("Error axios:", error);
-        let errorMsg = "Error desconocido.";
+        let errorMsg = "Ocurrio un error con el servidor. Intentalo más tarde.";
         if (error.response) {
           switch (error.response.status) {
             case 400:
               errorMsg = "Datos inválidos. Revisa el formulario.";
               break;
             case 401:
-              errorMsg = "Token inválido. Por favor inicia sesión de nuevo.";
+              errorMsg = "Expiro tu sesion. Por favor inicia sesión de nuevo.";
               break;
             case 403:
-              errorMsg = "No tienes permisos para registrar empleados.";
+              errorMsg = "No tenes permisos para registrar empleados.";
               break;
             case 409:
-              errorMsg = "El email ya está registrado.";
+              errorMsg = "El email o DNI ingresados ya estan registrados.";
               break;
             case 500:
               errorMsg =
                 "Error interno del servidor (posible DNI ya registrado).";
               break;
             default:
-              errorMsg = error.response.data.message || errorMsg;
+              errorMsg = errorMsg;
           }
         } else {
           errorMsg = "No se pudo conectar con el servidor.";
         }
-        setErrorSnackbar({ open: true, message: errorMsg });
+        setStatus({ isError: true, message: errorMsg });
+        setOpenSnack(true);
       } finally {
         setSubmitting(false);
       }
     },
   });
-
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === "clickaway") return;
-    setOpenSnackbar(false);
-  };
 
   const renderInput = (label, name, type = "text", required = false) => {
     const showError = formik.touched[name] && Boolean(formik.errors[name]);
@@ -214,41 +214,6 @@ function AddEmployee({ setRegisterForm }) {
           </Button>
         </Stack>
       </Box>
-
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={3000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        sx={{
-          backgroundColor: "transparent",
-          boxShadow: "none",
-          padding: 0,
-        }}
-      >
-        <Alert color="success" variant="soft" onClose={handleCloseSnackbar}>
-          El empleado ha sido registrado correctamente.
-        </Alert>
-      </Snackbar>
-      <Snackbar
-        open={errorSnackbar.open}
-        onClose={() => setErrorSnackbar({ open: false, message: "" })}
-        message={errorSnackbar.message}
-        color={
-          errorSnackbar.message.includes("correctamente") ? "success" : "danger"
-        }
-        variant="soft"
-        autoHideDuration={3000}
-        sx={{
-          position: "fixed",
-          bottom: 16,
-          left: "70%",
-          transform: "translateX(-50%)",
-          zIndex: 9999,
-        }}
-      >
-        {errorSnackbar.message}
-      </Snackbar>
     </>
   );
 }
