@@ -295,6 +295,62 @@ async fn test_explore_catalog() {
         .unwrap();
 
     assert_eq!(invalid_price_range_res.status(), 400);
+
+    // ----------- Request with spaces in search term
+
+    let spaces_search_res = http_client
+        .get(backend_url("/explore"))
+        .query(&[
+            ("page", "1"),
+            ("page_size", "2"),
+            ("search", "      excavadora        "),
+        ])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(spaces_search_res.status(), 200);
+
+    let response_body = spaces_search_res.json::<serde_json::Value>().await.unwrap();
+
+    assert!(response_body["items"].as_array().unwrap().len() > 0);
+
+    // ----------- Request with empty search term
+
+    let empty_search_res = http_client
+        .get(backend_url("/explore"))
+        .query(&[("page", "1"), ("page_size", "2"), ("search", " ")])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(empty_search_res.status(), 200);
+
+    let response_body = empty_search_res.json::<serde_json::Value>().await.unwrap();
+
+    assert!(response_body["items"].as_array().unwrap().len() > 0);
+
+    // ----------- Request with special characters in search term
+
+    let special_chars_search_res = http_client
+        .get(backend_url("/explore"))
+        .query(&[
+            ("page", "1"),
+            ("page_size", "2"),
+            ("search", "exca!@va#$do%^&ra*() hidráuli*ca"),
+        ])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(special_chars_search_res.status(), 200);
+
+    let response_body = special_chars_search_res
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert!(response_body["items"].as_array().unwrap().len() > 0);
 }
 
 #[tokio::test]
@@ -1747,4 +1803,121 @@ async fn test_cancel_rental() {
         employee_row.get::<_, Option<String>>("notes"),
         Some("Maintenance required".to_string())
     );
+}
+
+#[tokio::test]
+async fn test_get_staff_rentals() {
+    setup().await;
+    let client = Client::new();
+
+    let jwt = get_test_jwt("bob@example.com", true).await;
+
+    // ---------- Employee retrieves all rentals
+
+    let res = client
+        .post(backend_url("/staff/rentals"))
+        .json(&serde_json::json!({
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 200);
+
+    let value = res.json::<serde_json::Value>().await.unwrap();
+
+    assert!(value["rentals"].as_array().unwrap().len() > 1);
+
+    // ---------- Employee retrieves specific rental by ID
+
+    let rental_id = 1;
+
+    let res = client
+        .post(backend_url("/staff/rentals"))
+        .json(&serde_json::json!({
+            "access": jwt,
+        }))
+        .query(&[("id", "1")])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 200);
+
+    let rental = res.json::<serde_json::Value>().await.unwrap();
+
+    let machine = rental["rentals"].as_array().unwrap().get(0);
+
+    assert_eq!(rental["rentals"].as_array().unwrap().len(), 1);
+    assert_eq!(machine.unwrap()["rental_id"], rental_id);
+
+    assert!(machine.unwrap()["days_late"].is_null());
+    assert!(machine.unwrap()["percentage_per_day_late"].is_null());
+
+    // ---------- Employee retrieves rentals with invalid ID
+
+    let res = client
+        .post(backend_url("/staff/rentals"))
+        .json(&serde_json::json!({
+            "access": jwt,
+        }))
+        .query(&[("id", "9999")])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 404);
+
+    let res_json = res.json::<serde_json::Value>().await.unwrap();
+
+    assert_eq!(
+        res_json["message"].as_str().unwrap(),
+        "No se encontraron alquileres"
+    );
+
+    // ---------- Not staff member tries to access rentals
+
+    let user_jwt = get_test_jwt("hank@example.com", false).await;
+
+    let res = client
+        .post(backend_url("/staff/rentals"))
+        .json(&serde_json::json!({
+            "access": user_jwt,
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 403);
+
+    let res_json = res.json::<serde_json::Value>().await.unwrap();
+
+    assert_eq!(
+        res_json["message"].as_str().unwrap(),
+        "Solo empleados y administradores pueden acceder a esta información"
+    );
+
+    // ---------- Retrieves late rental
+
+    let late_rental_id = 17;
+
+    let res = client
+        .post(backend_url("/staff/rentals"))
+        .json(&serde_json::json!({
+            "access": jwt,
+        }))
+        .query(&[("id", &late_rental_id.to_string())])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 200);
+
+    let late_rental = res.json::<serde_json::Value>().await.unwrap();
+
+    let late_machine = late_rental["rentals"].as_array().unwrap().get(0);
+
+    assert_eq!(late_machine.unwrap()["days_late"].as_u64().unwrap(), 3);
+    assert!(!late_machine.unwrap()["percentage_per_late_day"].is_null());
 }

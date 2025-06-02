@@ -1,10 +1,7 @@
 use crate::constants::LATE_RETURN_FINE;
 use crate::custom_types::enums::{OrderByField, OrderDirection, PaymentStatus};
 use crate::custom_types::structs::*;
-use crate::helpers::{
-    auth::*,
-    machinery_mgmt::{date_is_overlap, get_claims_from_token, validate_client},
-};
+use crate::helpers::{auth::*, machinery_mgmt::*};
 use axum::{
     extract::Path,
     extract::State,
@@ -50,6 +47,9 @@ pub async fn explore_catalog(
         let mut param_idx = 1;
 
         if let Some(search_term) = &query_params.search {
+            let trimmed_search_term = search_term.trim();
+            let cleaned_search_term = clean_strings(trimmed_search_term);
+
             where_clauses.push(format!(
                 "(mm.name ILIKE ${} OR mm.brand ILIKE ${} OR mm.model ILIKE ${})",
                 param_idx,
@@ -57,9 +57,9 @@ pub async fn explore_catalog(
                 param_idx + 2
             ));
 
-            params.push(Box::new(format!("%{}%", search_term)));
-            params.push(Box::new(format!("%{}%", search_term)));
-            params.push(Box::new(format!("%{}%", search_term)));
+            params.push(Box::new(format!("%{}%", cleaned_search_term)));
+            params.push(Box::new(format!("%{}%", cleaned_search_term)));
+            params.push(Box::new(format!("%{}%", cleaned_search_term)));
 
             param_idx += 3;
         }
@@ -1280,6 +1280,8 @@ pub async fn get_my_rentals(
                         frontend_url,
                         row.get::<_, String>("model_image")
                     ),
+                    days_late: None,
+                    percentage_per_late_day: None,
                 })
                 .collect();
             return (StatusCode::OK, Json(json!({"rentals": employees}))).into_response();
@@ -1825,4 +1827,180 @@ pub async fn cancel_rental(
         StatusCode::NOT_FOUND,
         Json(json!({"message": "El alquiler no se ha encontrado o ya ha sido cancelado"})),
     );
+}
+
+#[axum::debug_handler]
+pub async fn get_staff_rentals(
+    State(state): State<AppState>,
+    Query(query_params): Query<GetRentalQueryParams>,
+    Json(payload): Json<Access>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    }
+    .claims;
+
+    if (claims.role != 0) && (claims.role != 1) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(
+                json!({"message": "Solo empleados y administradores pueden acceder a esta información"}),
+            ),
+        );
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            );
+        }
+    };
+
+    let param_idx = 1;
+    let mut params: Vec<Box<dyn ToSql + Sync + Send>> = Vec::new();
+
+    let where_clause = if let Some(rental_id) = query_params.id {
+        let formatted_where_clause = format!("WHERE rentals.id = ${}", param_idx);
+
+        params.push(Box::new(rental_id));
+
+        formatted_where_clause
+    } else {
+        "".to_string()
+    };
+
+    let rental_query = format!(
+        "SELECT
+            rentals.id AS rental_id,
+            rentals.return_date,
+            rentals.retirement_date,
+            rentals.start_date,
+            rentals.end_date,
+            rentals.total_price,
+            rentals.status::TEXT,
+            rentals.created_at,
+            rentals.updated_at,
+            machinery_units.id AS unit_id,
+            machinery_units.serial_number AS unit_serial_number,
+            machinery_models.id AS model_id,
+            machinery_models.name AS model_name,
+            machinery_models.brand AS model_brand,
+            machinery_models.model AS model_model,
+            machinery_models.year AS model_year,
+            machinery_models.policy AS model_policy,
+            machinery_models.description AS model_description,
+            machinery_models.image AS model_image
+        FROM rentals
+        INNER JOIN machinery_units ON rentals.machine_id = machinery_units.id
+        INNER JOIN machinery_models ON machinery_units.model_id = machinery_models.id
+        {}
+        ORDER BY rentals.created_at DESC;",
+        where_clause
+    );
+
+    let all_params_slice: Vec<&(dyn ToSql + Sync + Send)> =
+        params.iter().map(|p| p.as_ref()).collect();
+
+    let query_params: Vec<&(dyn ToSql + Sync)> = all_params_slice
+        .iter()
+        .map(|p_ref| *p_ref as &(dyn ToSql + Sync))
+        .collect();
+
+    match client.query(&rental_query, &query_params).await {
+        Ok(rows) => {
+            let fronted_url = match env::var("FRONTEND_URL") {
+                Ok(url) => url,
+                Err(_) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({"message": "FRONTEND_URL must be set in the .env file"})),
+                    );
+                }
+            };
+
+            if rows.is_empty() {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({"message": "No se encontraron alquileres"})),
+                );
+            }
+
+            let rentals: Vec<MyRentalInfo> = rows
+                .iter()
+                .map(|row| MyRentalInfo {
+                    rental_id: row.get("rental_id"),
+                    return_date: row.get("return_date"),
+                    retirement_date: row.get("retirement_date"),
+                    start_date: row.get("start_date"),
+                    end_date: row.get("end_date"),
+                    total_price: row.get("total_price"),
+                    status: row.get("status"),
+                    created_at: row.get("created_at"),
+                    updated_at: row.get("updated_at"),
+                    unit_id: row.get("unit_id"),
+                    unit_serial_number: row.get("unit_serial_number"),
+                    model_id: row.get("model_id"),
+                    model_name: row.get("model_name"),
+                    model_brand: row.get("model_brand"),
+                    model_model: row.get("model_model"),
+                    model_year: row.get("model_year"),
+                    model_policy: row.get("model_policy"),
+                    model_description: row.get("model_description"),
+                    model_image: format!(
+                        "{}/media/machines/{}.webp",
+                        fronted_url,
+                        row.get::<_, String>("model_image")
+                    ),
+                    days_late: {
+                        let status = row.get::<_, String>("status");
+                        let today = Local::now().date_naive();
+                        let end_date = row.get::<_, NaiveDate>("end_date");
+                        if ((status == "active") || (status == "pending_payment"))
+                            && (end_date < today)
+                        {
+                            Some((today - end_date).num_days())
+                        } else {
+                            None
+                        }
+                    },
+                    percentage_per_late_day: {
+                        let status = row.get::<_, String>("status");
+                        let today = Local::now().date_naive();
+                        let end_date = row.get::<_, NaiveDate>("end_date");
+                        if ((status == "active") || (status == "pending_payment"))
+                            && (end_date < today)
+                        {
+                            Some("10% del precio de la máquina por día de retraso".to_string())
+                        } else {
+                            None
+                        }
+                    },
+                })
+                .collect();
+
+            return (
+                StatusCode::OK,
+                Json(json!({
+                    "rentals": rentals,
+                })),
+            );
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    json!({"message": "Se produjo un error interno al intentar obtener los alquileres"}),
+                ),
+            );
+        }
+    }
 }
