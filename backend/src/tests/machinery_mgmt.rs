@@ -1748,9 +1748,9 @@ async fn test_cancel_rental() {
         "El alquiler no se ha encontrado o ya ha sido cancelado"
     );
 
-    // ---------- Client user tries to cancel a rental with start date in the past
+    // ---------- Client user tries to cancel a rental that has already been retired
 
-    let past_rental_id = 5;
+    let past_rental_id = 22;
 
     let past_cancel_response = client
         .post(backend_url("/rental/cancel"))
@@ -1771,7 +1771,7 @@ async fn test_cancel_rental() {
         .unwrap();
     assert_eq!(
         past_response_body["message"].as_str().unwrap(),
-        "No se puede cancelar un alquiler que ya ha comenzado"
+        "No se puede cancelar un alquiler que ya ha sido retirado"
     );
 
     // ---------- Client user tries to cancel a rental that he has not rented
@@ -1796,6 +1796,33 @@ async fn test_cancel_rental() {
     assert_eq!(
         another_user_response_body["message"].as_str().unwrap(),
         "El alquiler no se ha encontrado o no puede ser cancelado"
+    );
+
+    // ---------- Client user tries to cancel a rental with start date in the past
+
+    let past_start_date_rental_id = 18;
+
+    let past_start_date_cancel_response = client
+        .post(backend_url("/rental/cancel"))
+        .json(&serde_json::json!({
+            "rental_id": past_start_date_rental_id,
+            "access": jwt,
+            "reason": null,
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(past_start_date_cancel_response.status(), 400);
+
+    let past_start_date_response_body = past_start_date_cancel_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        past_start_date_response_body["message"].as_str().unwrap(),
+        "No se puede cancelar un alquiler que ya ha comenzado y no ha finalizado"
     );
 
     // ---------- Employee cancels a rental with valid data
