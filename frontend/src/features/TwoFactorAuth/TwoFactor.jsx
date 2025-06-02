@@ -98,7 +98,11 @@ function TwoFactor() {
         message: "Inicio de sesion exitoso, redirigiendo en 5 segundos...",
       });
       setOpenSnack(true);
-      setTimeout(() => setUser(user), 5000);
+      setTimeout(() => {
+        setUser(user);
+        setIsLoading(false);
+        editInputs(false);
+      }, 5000);
     } catch (error) {
       console.error(error);
       switch (error.response.status) {
@@ -117,7 +121,6 @@ function TwoFactor() {
       }
       setOpenSnack(true);
     } finally {
-      setIsLoading(false);
       editInputs(false);
     }
   }
@@ -136,16 +139,6 @@ function TwoFactor() {
           ) : (
             <PlaylistAddCheckCircleRoundedIcon />
           )
-        }
-        endDecorator={
-          <Button
-            onClick={() => setOpenSnack(false)}
-            size="sm"
-            variant="soft"
-            color={status.isError ? "danger" : "success"}
-          >
-            Dismiss
-          </Button>
         }
       >
         {status.message}
@@ -230,7 +223,7 @@ function TwoFactor() {
             >
               <Button
                 loading={isLoading}
-                disabled={!isComplete}
+                disabled={!isComplete || isLoading}
                 onClick={handleVerify}
                 sx={{
                   width: "100%",

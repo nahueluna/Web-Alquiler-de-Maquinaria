@@ -127,6 +127,7 @@ function RecoverPassword() {
           <Box sx={{ display: "flex", justifyContent: "center" }}>
             <Button
               type="submit"
+              color="danger"
               sx={{ mt: 1, fontSize: "1.1rem", py: 1.5, width: "fit-content" }}
               disabled={loading}
             >
