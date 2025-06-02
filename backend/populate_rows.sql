@@ -183,4 +183,10 @@ INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, sta
 (9, 15, NOW() + INTERVAL '40 days', NOW() + INTERVAL '47 days', 4000.00, 'pending_payment'),
 
 -- To test get staff rentals - late rent
-(9, 15, NOW() - INTERVAL '10 days', NOW() - INTERVAL '3 days', 4000.00, 'active');
+(9, 15, NOW() - INTERVAL '10 days', NOW() - INTERVAL '3 days', 4000.00, 'active'),
+
+(4, 2, NOW() - INTERVAL '10 days', NOW() + INTERVAL '3 days', 4000.00, 'active'),
+
+(4, 2, NOW() - INTERVAL '10 days', NOW() + INTERVAL '3 days', 4000.00, 'completed'),
+
+(4, 2, NOW() - INTERVAL '10 days', NOW(), 4000.00, 'active');

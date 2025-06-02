@@ -1393,7 +1393,7 @@ async fn test_load_retirement() {
         .post(backend_url("/loadretirement"))
         .json(&serde_json::json!({
             "access": jwt,
-            "rental_id": 1,
+            "rental_id": 18,
         }))
         .send()
         .await
@@ -1414,7 +1414,7 @@ async fn test_load_retirement() {
             machine_id = $2 AND
             retirement_employee_id = $3 AND
             retirement_date = CURRENT_DATE;",
-            &[&&1, &&2, &&11],
+            &[&&18, &&2, &&11],
         )
         .await
         .unwrap();
@@ -1444,6 +1444,44 @@ async fn test_load_retirement() {
             .as_str()
             .unwrap(),
         "rental_id is invalid"
+    );
+
+    //Rental expired
+    let res = client
+        .post(backend_url("/loadretirement"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 20
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 400);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "The rental has expired"
+    );
+
+    //Rental not active
+    let res = client
+        .post(backend_url("/loadretirement"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 19
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 400);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "The rental is not active"
     );
 
     //Invalid token

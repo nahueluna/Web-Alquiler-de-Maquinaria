@@ -1,5 +1,5 @@
 use crate::constants::LATE_RETURN_FINE;
-use crate::custom_types::enums::{OrderByField, OrderDirection, PaymentStatus};
+use crate::custom_types::enums::*;
 use crate::custom_types::structs::*;
 use crate::helpers::{auth::*, machinery_mgmt::*};
 use axum::{
@@ -1345,10 +1345,10 @@ pub async fn load_retirement(
     let row = match transaction
         .query_one(
             "UPDATE rentals
-             SET retirement_employee_id = $1,
+            SET retirement_employee_id = $1,
                  retirement_date = CURRENT_DATE
-             WHERE id = $2
-             RETURNING machine_id;",
+            WHERE id = $2
+            RETURNING machine_id, end_date, status::TEXT;",
             &[&claims.user_id, &payload.rental_id],
         )
         .await
@@ -1370,7 +1370,25 @@ pub async fn load_retirement(
         }
     };
 
+    let status: String = row.get("status");
+    let end_date: NaiveDate = row.get("end_date");
     let machine_id: i32 = row.get("machine_id");
+
+    if status != "active" {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"message": "The rental is not active"})),
+        )
+            .into_response();
+    }
+
+    if Local::now().naive_local().date() >= end_date {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"message": "The rental has expired"})),
+        )
+            .into_response();
+    }
 
     // Now update the machine status if it's currently 'available'
     match transaction
