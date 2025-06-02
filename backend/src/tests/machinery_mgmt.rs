@@ -3,7 +3,6 @@ use crate::helpers::auth::create_pool;
 use crate::tests::helpers::*;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use chrono::{NaiveDate, Utc};
-use rand::rand_core::le;
 use reqwest::Client;
 use std::{env, fs::File, io::Read};
 use validator::ValidateLength;
@@ -296,6 +295,62 @@ async fn test_explore_catalog() {
         .unwrap();
 
     assert_eq!(invalid_price_range_res.status(), 400);
+
+    // ----------- Request with spaces in search term
+
+    let spaces_search_res = http_client
+        .get(backend_url("/explore"))
+        .query(&[
+            ("page", "1"),
+            ("page_size", "2"),
+            ("search", "      excavadora        "),
+        ])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(spaces_search_res.status(), 200);
+
+    let response_body = spaces_search_res.json::<serde_json::Value>().await.unwrap();
+
+    assert!(response_body["items"].as_array().unwrap().len() > 0);
+
+    // ----------- Request with empty search term
+
+    let empty_search_res = http_client
+        .get(backend_url("/explore"))
+        .query(&[("page", "1"), ("page_size", "2"), ("search", " ")])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(empty_search_res.status(), 200);
+
+    let response_body = empty_search_res.json::<serde_json::Value>().await.unwrap();
+
+    assert!(response_body["items"].as_array().unwrap().len() > 0);
+
+    // ----------- Request with special characters in search term
+
+    let special_chars_search_res = http_client
+        .get(backend_url("/explore"))
+        .query(&[
+            ("page", "1"),
+            ("page_size", "2"),
+            ("search", "exca!@va#$do%^&ra*() hidráuli*ca"),
+        ])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(special_chars_search_res.status(), 200);
+
+    let response_body = special_chars_search_res
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert!(response_body["items"].as_array().unwrap().len() > 0);
 }
 
 #[tokio::test]

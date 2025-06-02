@@ -1,10 +1,7 @@
 use crate::constants::LATE_RETURN_FINE;
 use crate::custom_types::enums::{OrderByField, OrderDirection, PaymentStatus};
 use crate::custom_types::structs::*;
-use crate::helpers::{
-    auth::*,
-    machinery_mgmt::{date_is_overlap, get_claims_from_token, validate_client},
-};
+use crate::helpers::{auth::*, machinery_mgmt::*};
 use axum::{
     extract::Path,
     extract::State,
@@ -50,6 +47,9 @@ pub async fn explore_catalog(
         let mut param_idx = 1;
 
         if let Some(search_term) = &query_params.search {
+            let trimmed_search_term = search_term.trim();
+            let cleaned_search_term = clean_strings(trimmed_search_term);
+
             where_clauses.push(format!(
                 "(mm.name ILIKE ${} OR mm.brand ILIKE ${} OR mm.model ILIKE ${})",
                 param_idx,
@@ -57,9 +57,9 @@ pub async fn explore_catalog(
                 param_idx + 2
             ));
 
-            params.push(Box::new(format!("%{}%", search_term)));
-            params.push(Box::new(format!("%{}%", search_term)));
-            params.push(Box::new(format!("%{}%", search_term)));
+            params.push(Box::new(format!("%{}%", cleaned_search_term)));
+            params.push(Box::new(format!("%{}%", cleaned_search_term)));
+            params.push(Box::new(format!("%{}%", cleaned_search_term)));
 
             param_idx += 3;
         }
