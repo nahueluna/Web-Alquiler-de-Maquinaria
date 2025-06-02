@@ -18,6 +18,7 @@ import {
 import { useState, useEffect, useContext } from "react";
 import axios from "axios"
 import UserContext from "../../context/UserContext"
+import useAuth from "../utils/useAuth";
 
 export const MachinesList = () => {
   const { user } = useContext(UserContext);
@@ -33,12 +34,12 @@ export const MachinesList = () => {
     color: "neutral",
     duration: 3000,
   });
+  const { get, post } = useAuth();
 
   const token = user?.access || "";
 
   useEffect(() => {
-    axios
-      .get("http://localhost:8000/explore")
+      get("/explore")
       .then((response) => {
         console.log(response.data.items[0])
         setMachinesData(response.data.items || []);
@@ -62,9 +63,8 @@ export const MachinesList = () => {
     };
     const location_id = locationMap[ubicacion];
 
-    axios
-      .post(
-        "http://localhost:8000/newunit",
+      post(
+        "/newunit",
         {
           access: token,
           serial_number,
