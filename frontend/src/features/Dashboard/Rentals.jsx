@@ -41,8 +41,6 @@ const Rentals = () => {
   const handleConfirmedCancel = async (rentalId, reason = null) => {
     setLoading(true);
     try {
-      console.log(rentalId);
-      console.log(reason);
       const response = await post("/rental/cancel", {
         rental_id: rentalId,
         reason: reason.trim() == "" ? null : reason,
@@ -82,14 +80,13 @@ const Rentals = () => {
     setLoading(true);
     try {
       const response = await post("/loadretirement", { rental_id: rentalId });
+      // Por que no hacer un fetchRentals() directamente? Polque no hay polque
       setRefreshRentals((prev) => !prev);
       setOpenSnack(true);
       setStatus({
         isError: false,
         message: `Se registro el retiro para el alquiler ID ${rentalId}.`,
       });
-      // Por que no hacer un fetchRentals() directamente? Polque no hay polque
-      setRefreshRentals((prev) => !prev);
     } catch (error) {
       let errorMsg = "Ocurrió un error inesperado. Intente nuevamente.";
       switch (error.response?.status) {
@@ -112,6 +109,10 @@ const Rentals = () => {
       setLoading(false);
       setOpen(false);
     }
+  };
+
+  const handleConfirmedReturn = () => {
+    console.log("Confirming action...");
   };
 
   const getModalContent = () => {
@@ -217,10 +218,6 @@ const Rentals = () => {
     }
   };
 
-  const handleConfirm = () => {
-    console.log("Confirming action...");
-  };
-
   const fetchRentals = async (rentalId = null) => {
     try {
       const response = await post(`/staff/rentals?id=${rentalId || ""}`);
@@ -230,10 +227,6 @@ const Rentals = () => {
       setRentals([]);
     }
   };
-
-  useEffect(() => {
-    fetchRentals();
-  }, []);
 
   const handleChange = (event) => {
     const cleaned = event.target.value.replace(/[^\d]/g, "");
@@ -327,7 +320,7 @@ const Rentals = () => {
             alignItems: "center",
           }}
         >
-          <form onSubmit={handleConfirm}>
+          <form>
             <Sheet
               sx={{
                 p: 3,

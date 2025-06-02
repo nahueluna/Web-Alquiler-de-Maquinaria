@@ -74,10 +74,6 @@ const EmployeesList = ({ refreshEmployees }) => {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
-
-  useEffect(() => {
-    fetchEmployees();
   }, [refreshEmployees]);
 
   const handleDeleteClick = (employee) => {
