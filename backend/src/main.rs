@@ -76,6 +76,7 @@ async fn main() {
         ) //20MB for images
         .route("/payment/check", post(check_rental_payment))
         .route("/rental/cancel", post(cancel_rental))
+        .route("/staff/rentals", post(get_staff_rentals))
         .layer(
             CorsLayer::new()
                 .allow_origin(vec![frontend_url.parse().unwrap()])
