@@ -1332,10 +1332,10 @@ async fn test_get_my_rentals() {
         "No se realizan reembolsos por cancelaciones."
     );
     assert_eq!(rental.model_description, "Ideal para zonas urbanas");
-    let frontend_url = env::var("FRONTEND_URL").expect("FRONTEND_URL must be set in the .env file");
+    let nginx_url = env::var("NGINX_URL").expect("NGINX_URL must be set in the .env file");
     assert_eq!(
         rental.model_image,
-        format!("{}/media/machines/imagecode.webp", frontend_url)
+        format!("{}/media/machines/imagecode.webp", nginx_url)
     );
 
     let jwt = get_test_jwt("admin@example.com", false).await;

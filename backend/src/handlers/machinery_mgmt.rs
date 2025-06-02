@@ -281,13 +281,13 @@ pub async fn select_machine(
     Path(machine_id): Path<i32>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     if let Ok(client) = state.pool.get().await {
-        let frontend_url = match env::var("FRONTEND_URL") {
+        let nginx_url = match env::var("NGINX_URL") {
             Ok(url) => url,
             Err(_) => {
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({
-                        "message": "FRONTEND_URL environment variable is not set. Cannot get machine image.",
+                        "message": "NGINX_URL environment variable is not set. Cannot get machine image.",
                     })),
                 );
             }
@@ -317,7 +317,7 @@ pub async fn select_machine(
                         .map(|row| {
                             format!(
                                 "{}/media/machines/{}.webp",
-                                frontend_url,
+                                nginx_url,
                                 row.get::<_, String>("name")
                             )
                         })
@@ -1181,12 +1181,12 @@ pub async fn get_my_rentals(
     State(state): State<AppState>,
     Json(payload): Json<Access>,
 ) -> Response {
-    let frontend_url = match env::var("FRONTEND_URL") {
+    let nginx_url = match env::var("NGINX_URL") {
         Ok(e) => e,
         Err(_) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"message": "FRONTEND_URL must be set in the .env file"})),
+                Json(json!({"message": "NGINX_URL must be set in the .env file"})),
             )
                 .into_response()
         }
@@ -1277,7 +1277,7 @@ pub async fn get_my_rentals(
                     model_description: row.get("model_description"),
                     model_image: format!(
                         "{}/media/machines/{}.webp",
-                        frontend_url,
+                        nginx_url,
                         row.get::<_, String>("model_image")
                     ),
                     days_late: None,
@@ -1917,12 +1917,12 @@ pub async fn get_staff_rentals(
 
     match client.query(&rental_query, &query_params).await {
         Ok(rows) => {
-            let fronted_url = match env::var("FRONTEND_URL") {
+            let nginx_url = match env::var("NGINX_URL") {
                 Ok(url) => url,
                 Err(_) => {
                     return (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"message": "FRONTEND_URL must be set in the .env file"})),
+                        Json(json!({"message": "NGINX_URL must be set in the .env file"})),
                     );
                 }
             };
@@ -1957,7 +1957,7 @@ pub async fn get_staff_rentals(
                     model_description: row.get("model_description"),
                     model_image: format!(
                         "{}/media/machines/{}.webp",
-                        fronted_url,
+                        nginx_url,
                         row.get::<_, String>("model_image")
                     ),
                     days_late: {

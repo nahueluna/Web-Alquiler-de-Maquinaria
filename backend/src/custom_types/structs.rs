@@ -203,13 +203,13 @@ impl MachineModel {
     pub fn build_from_row(
         row: &tokio_postgres::Row,
     ) -> Result<Self, (StatusCode, Json<serde_json::Value>)> {
-        let frontend_url = match env::var("FRONTEND_URL") {
+        let nginx_url = match env::var("NGINX_URL") {
             Ok(url) => url,
             Err(_) => {
                 return Err((
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(serde_json::json!({
-                        "error": "FRONTEND_URL environment variable is not set. Cannot get machine image."
+                        "error": "NGINX_URL environment variable is not set. Cannot get machine image."
                     })),
                 ))
             }
@@ -227,7 +227,7 @@ impl MachineModel {
             categories: Vec::new(),
             main_image: format!(
                 "{}/media/machines/{}.webp",
-                frontend_url,
+                nginx_url,
                 row.get::<_, String>("image")
             ),
             extra_images: Vec::new(),
