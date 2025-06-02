@@ -1,5 +1,5 @@
 use crate::constants::LATE_RETURN_FINE;
-use crate::custom_types::enums::{OrderByField, OrderDirection, PaymentStatus};
+use crate::custom_types::enums::*;
 use crate::custom_types::structs::*;
 use crate::helpers::{auth::*, machinery_mgmt::*};
 use axum::{
@@ -281,13 +281,13 @@ pub async fn select_machine(
     Path(machine_id): Path<i32>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     if let Ok(client) = state.pool.get().await {
-        let frontend_url = match env::var("FRONTEND_URL") {
+        let nginx_url = match env::var("NGINX_URL") {
             Ok(url) => url,
             Err(_) => {
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(json!({
-                        "message": "FRONTEND_URL environment variable is not set. Cannot get machine image.",
+                        "message": "NGINX_URL environment variable is not set. Cannot get machine image.",
                     })),
                 );
             }
@@ -317,7 +317,7 @@ pub async fn select_machine(
                         .map(|row| {
                             format!(
                                 "{}/media/machines/{}.webp",
-                                frontend_url,
+                                nginx_url,
                                 row.get::<_, String>("name")
                             )
                         })
@@ -1181,12 +1181,12 @@ pub async fn get_my_rentals(
     State(state): State<AppState>,
     Json(payload): Json<Access>,
 ) -> Response {
-    let frontend_url = match env::var("FRONTEND_URL") {
+    let nginx_url = match env::var("NGINX_URL") {
         Ok(e) => e,
         Err(_) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"message": "FRONTEND_URL must be set in the .env file"})),
+                Json(json!({"message": "NGINX_URL must be set in the .env file"})),
             )
                 .into_response()
         }
@@ -1277,7 +1277,7 @@ pub async fn get_my_rentals(
                     model_description: row.get("model_description"),
                     model_image: format!(
                         "{}/media/machines/{}.webp",
-                        frontend_url,
+                        nginx_url,
                         row.get::<_, String>("model_image")
                     ),
                     days_late: None,
@@ -1345,10 +1345,10 @@ pub async fn load_retirement(
     let row = match transaction
         .query_one(
             "UPDATE rentals
-             SET retirement_employee_id = $1,
+            SET retirement_employee_id = $1,
                  retirement_date = CURRENT_DATE
-             WHERE id = $2
-             RETURNING machine_id;",
+            WHERE id = $2
+            RETURNING machine_id, end_date, status::TEXT;",
             &[&claims.user_id, &payload.rental_id],
         )
         .await
@@ -1370,7 +1370,25 @@ pub async fn load_retirement(
         }
     };
 
+    let status: String = row.get("status");
+    let end_date: NaiveDate = row.get("end_date");
     let machine_id: i32 = row.get("machine_id");
+
+    if status != "active" {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"message": "The rental is not active"})),
+        )
+            .into_response();
+    }
+
+    if Local::now().naive_local().date() >= end_date {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"message": "The rental has expired"})),
+        )
+            .into_response();
+    }
 
     // Now update the machine status if it's currently 'available'
     match transaction
@@ -1650,82 +1668,92 @@ pub async fn cancel_rental(
         .await
     {
         let rental_start_date: NaiveDate = rental_row.get("start_date");
+        let rental_end_date: NaiveDate = rental_row.get("end_date");
+        let retirement_date: Option<NaiveDate> = rental_row.get("retirement_date");
 
-        if rental_start_date < Local::now().date_naive() {
+        if let Some(_) = retirement_date {
             return (
                 StatusCode::BAD_REQUEST,
-                Json(json!({"message": "No se puede cancelar un alquiler que ya ha comenzado"})),
+                Json(
+                    json!({"message": "No se puede cancelar un alquiler que ya ha sido retirado"}),
+                ),
             );
         }
 
-        if claims.role == 2 {
-            let update_client_query = "
+        if (Local::now().date_naive() > rental_end_date)
+            || (Local::now().date_naive() <= rental_start_date)
+        {
+            if claims.role == 2 {
+                let update_client_query = "
                 UPDATE rentals 
                 SET status = 'cancelled', updated_at = NOW()
                 WHERE id = $1 AND user_id = $2 AND status IN ('pending_payment', 'active');
             ";
 
-            match client
-                .execute(update_client_query, &[&payload.rental_id, &claims.user_id])
-                .await
-            {
-                Ok(rows_updated) if rows_updated == 1 => {
-                    return (
-                        StatusCode::OK,
-                        Json(json!({"message": "El alquiler ha sido cancelado exitosamente"})),
-                    );
-                }
-                Ok(_) => {
-                    return (
-                        StatusCode::NOT_FOUND,
-                        Json(
-                            json!({"message": "El alquiler no se ha encontrado o no puede ser cancelado"}),
-                        ),
-                    );
-                }
-                Err(_) => {
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(
-                            json!({"message": "Se produjo un error interno al cancelar el alquiler"}),
-                        ),
-                    );
-                }
-            };
-        } else {
-            let update_query = "
+                match client
+                    .execute(update_client_query, &[&payload.rental_id, &claims.user_id])
+                    .await
+                {
+                    Ok(rows_updated) if rows_updated == 1 => {
+                        return (
+                            StatusCode::OK,
+                            Json(json!({"message": "El alquiler ha sido cancelado exitosamente"})),
+                        );
+                    }
+                    Ok(_) => {
+                        return (
+                            StatusCode::NOT_FOUND,
+                            Json(
+                                json!({"message": "El alquiler no se ha encontrado o no puede ser cancelado"}),
+                            ),
+                        );
+                    }
+                    Err(_) => {
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(
+                                json!({"message": "Se produjo un error interno al cancelar el alquiler"}),
+                            ),
+                        );
+                    }
+                };
+            } else {
+                let update_query = "
                 UPDATE rentals 
                 SET status = 'cancelled', notes = $1, updated_at = NOW()
                 WHERE id = $2 AND status IN ('pending_payment', 'active');
             ";
 
-            let cancel_reason = payload
-                .reason
-                .as_deref()
-                .unwrap_or("No se indicó un motivo");
+                let cancel_reason = payload
+                    .reason
+                    .as_deref()
+                    .unwrap_or("No se indicó un motivo");
 
-            match client
-                .execute(update_query, &[&cancel_reason, &payload.rental_id])
-                .await
-            {
-                Ok(rows_updated) if rows_updated == 1 => {
-                    let client_id = rental_row.get::<_, i32>("user_id");
+                match client
+                    .execute(update_query, &[&cancel_reason, &payload.rental_id])
+                    .await
+                {
+                    Ok(rows_updated) if rows_updated == 1 => {
+                        let client_id = rental_row.get::<_, i32>("user_id");
 
-                    let get_client_query = "
+                        let get_client_query = "
                         SELECT email, name FROM users WHERE id = $1;
                     ";
 
-                    let user_row = match client.query_one(get_client_query, &[&client_id]).await {
-                        Ok(row) => row,
-                        Err(_) => {
-                            return (
-                                StatusCode::INTERNAL_SERVER_ERROR,
-                                Json(json!({"message": "Error al obtener los datos del usuario"})),
-                            );
-                        }
-                    };
+                        let user_row = match client.query_one(get_client_query, &[&client_id]).await
+                        {
+                            Ok(row) => row,
+                            Err(_) => {
+                                return (
+                                    StatusCode::INTERNAL_SERVER_ERROR,
+                                    Json(
+                                        json!({"message": "Error al obtener los datos del usuario"}),
+                                    ),
+                                );
+                            }
+                        };
 
-                    let get_rental_extra_info_query = "
+                        let get_rental_extra_info_query = "
                             SELECT l.street, l.number, l.city, mm.brand, mm.name, mm.model 
                             FROM rentals r
                             INNER JOIN machinery_units mu ON r.machine_id = mu.id
@@ -1734,21 +1762,21 @@ pub async fn cancel_rental(
                             WHERE r.id = $1;
                         ";
 
-                    match client
-                        .query_one(get_rental_extra_info_query, &[&payload.rental_id])
-                        .await
-                    {
-                        Ok(extra_info_rental_row) => {
-                            let rental_end_date: NaiveDate = rental_row.get("end_date");
+                        match client
+                            .query_one(get_rental_extra_info_query, &[&payload.rental_id])
+                            .await
+                        {
+                            Ok(extra_info_rental_row) => {
+                                let rental_end_date: NaiveDate = rental_row.get("end_date");
 
-                            let user_email: String = user_row.get("email");
-                            let user_name: String = user_row.get("name");
+                                let user_email: String = user_row.get("email");
+                                let user_name: String = user_row.get("name");
 
-                            let subject = format!(
-                                "Alquiler n° {} cancelado - Bob el Alquilador",
-                                payload.rental_id
-                            );
-                            let body = format!(
+                                let subject = format!(
+                                    "Alquiler n° {} cancelado - Bob el Alquilador",
+                                    payload.rental_id
+                                );
+                                let body = format!(
                                 "Hola {},\n\n\
                     Se le informa que se ha cancelado su alquiler.
                     \n\n\
@@ -1759,7 +1787,7 @@ pub async fn cancel_rental(
                     Máquina:\t\t\t {} {} {}\n\
                     Ubicación:\t\t\t {}, {}, {}
                     \n\n\
-                    En la brevedad se le reintegrará la totalidad del monto abonado.\n\
+                    En caso de que corresponda, en la brevedad se le reintegrará la totalidad del monto abonado.\n\
                     Nos disculpamos por las molestias ocasionadas.\n\n\
                     \n\
                     Saludos cordiales,\n\
@@ -1776,50 +1804,60 @@ pub async fn cancel_rental(
                                 extra_info_rental_row.get::<_, String>("number"),
                             );
 
-                            match send_mail(&user_email, &subject, &body) {
-                                Ok(_) => {
-                                    return (
-                                        StatusCode::OK,
-                                        Json(
-                                            json!({"message": "El alquiler ha sido cancelado exitosamente y el cliente ha sido notificado"}),
-                                        ),
-                                    );
-                                }
-                                Err(_) => {
-                                    return (
-                                        StatusCode::INTERNAL_SERVER_ERROR,
-                                        Json(
-                                            json!({"message": "Error al enviar la notificación al usuario"}),
-                                        ),
-                                    );
+                                match send_mail(&user_email, &subject, &body) {
+                                    Ok(_) => {
+                                        return (
+                                            StatusCode::OK,
+                                            Json(
+                                                json!({"message": "El alquiler ha sido cancelado exitosamente y el cliente ha sido notificado"}),
+                                            ),
+                                        );
+                                    }
+                                    Err(_) => {
+                                        return (
+                                            StatusCode::INTERNAL_SERVER_ERROR,
+                                            Json(
+                                                json!({"message": "Error al enviar la notificación al usuario"}),
+                                            ),
+                                        );
+                                    }
                                 }
                             }
-                        }
-                        Err(_) => {
-                            return (
-                                StatusCode::INTERNAL_SERVER_ERROR,
-                                Json(json!({"message": "Error al obtener los datos del alquiler"})),
-                            );
+                            Err(_) => {
+                                return (
+                                    StatusCode::INTERNAL_SERVER_ERROR,
+                                    Json(
+                                        json!({"message": "Error al obtener los datos del alquiler"}),
+                                    ),
+                                );
+                            }
                         }
                     }
-                }
-                Ok(_) => {
-                    return (
-                        StatusCode::NOT_FOUND,
-                        Json(
-                            json!({"message": "El alquiler no se ha encontrado o no puede ser cancelado"}),
-                        ),
-                    );
-                }
-                Err(_) => {
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(
-                            json!({"message": "Se produjo un error interno al cancelar el alquiler"}),
-                        ),
-                    );
-                }
-            };
+                    Ok(_) => {
+                        return (
+                            StatusCode::NOT_FOUND,
+                            Json(
+                                json!({"message": "El alquiler no se ha encontrado o no puede ser cancelado"}),
+                            ),
+                        );
+                    }
+                    Err(_) => {
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(
+                                json!({"message": "Se produjo un error interno al cancelar el alquiler"}),
+                            ),
+                        );
+                    }
+                };
+            }
+        } else {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(
+                    json!({"message": "No se puede cancelar un alquiler que ya ha comenzado y no ha finalizado"}),
+                ),
+            );
         }
     }
 
@@ -1917,12 +1955,12 @@ pub async fn get_staff_rentals(
 
     match client.query(&rental_query, &query_params).await {
         Ok(rows) => {
-            let fronted_url = match env::var("FRONTEND_URL") {
+            let nginx_url = match env::var("NGINX_URL") {
                 Ok(url) => url,
                 Err(_) => {
                     return (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({"message": "FRONTEND_URL must be set in the .env file"})),
+                        Json(json!({"message": "NGINX_URL must be set in the .env file"})),
                     );
                 }
             };
@@ -1957,7 +1995,7 @@ pub async fn get_staff_rentals(
                     model_description: row.get("model_description"),
                     model_image: format!(
                         "{}/media/machines/{}.webp",
-                        fronted_url,
+                        nginx_url,
                         row.get::<_, String>("model_image")
                     ),
                     days_late: {

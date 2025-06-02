@@ -73,7 +73,7 @@ const validationSchema = yup.object({
     .string()
     .matches(
       /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
-      "Ingrese un correo electronico valido"
+      "Ingrese un correo electronico válido"
     )
     .required("El correo es obligatorio"),
   telefono: yup.string(), // Opcional
@@ -123,7 +123,7 @@ const RegisterPage = () => {
         setOpenSnack(true);
       } catch (error) {
         console.error(error);
-        setStatus({ isError: true, message: error.response.data.message });
+        setStatus({ isError: true, message: "Complete los campos correctamente." });
         setOpenSnack(true);
       } finally {
         setLoading(false);
@@ -154,16 +154,6 @@ const RegisterPage = () => {
           ) : (
             <PlaylistAddCheckCircleRoundedIcon />
           )
-        }
-        endDecorator={
-          <Button
-            onClick={() => setOpenSnack(false)}
-            size="sm"
-            variant="soft"
-            color={status.isError ? "danger" : "success"}
-          >
-            Dismiss
-          </Button>
         }
       >
         {status.message}
@@ -352,7 +342,7 @@ const RegisterPage = () => {
             <Divider />
             <Stack spacing={2} sx={{ alignItems: "center" }}>
               <Button
-                color="success"
+                color="danger"
                 size="lg"
                 sx={{ width: "50%" }}
                 type="submit"

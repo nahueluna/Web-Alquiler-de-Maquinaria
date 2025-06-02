@@ -1332,10 +1332,10 @@ async fn test_get_my_rentals() {
         "No se realizan reembolsos por cancelaciones."
     );
     assert_eq!(rental.model_description, "Ideal para zonas urbanas");
-    let frontend_url = env::var("FRONTEND_URL").expect("FRONTEND_URL must be set in the .env file");
+    let nginx_url = env::var("NGINX_URL").expect("NGINX_URL must be set in the .env file");
     assert_eq!(
         rental.model_image,
-        format!("{}/media/machines/imagecode.webp", frontend_url)
+        format!("{}/media/machines/imagecode.webp", nginx_url)
     );
 
     let jwt = get_test_jwt("admin@example.com", false).await;
@@ -1393,7 +1393,7 @@ async fn test_load_retirement() {
         .post(backend_url("/loadretirement"))
         .json(&serde_json::json!({
             "access": jwt,
-            "rental_id": 1,
+            "rental_id": 18,
         }))
         .send()
         .await
@@ -1414,7 +1414,7 @@ async fn test_load_retirement() {
             machine_id = $2 AND
             retirement_employee_id = $3 AND
             retirement_date = CURRENT_DATE;",
-            &[&&1, &&2, &&11],
+            &[&&18, &&2, &&11],
         )
         .await
         .unwrap();
@@ -1444,6 +1444,44 @@ async fn test_load_retirement() {
             .as_str()
             .unwrap(),
         "rental_id is invalid"
+    );
+
+    //Rental expired
+    let res = client
+        .post(backend_url("/loadretirement"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 20
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 400);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "The rental has expired"
+    );
+
+    //Rental not active
+    let res = client
+        .post(backend_url("/loadretirement"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rental_id": 19
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 400);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "The rental is not active"
     );
 
     //Invalid token
@@ -1710,9 +1748,9 @@ async fn test_cancel_rental() {
         "El alquiler no se ha encontrado o ya ha sido cancelado"
     );
 
-    // ---------- Client user tries to cancel a rental with start date in the past
+    // ---------- Client user tries to cancel a rental that has already been retired
 
-    let past_rental_id = 5;
+    let past_rental_id = 22;
 
     let past_cancel_response = client
         .post(backend_url("/rental/cancel"))
@@ -1733,7 +1771,7 @@ async fn test_cancel_rental() {
         .unwrap();
     assert_eq!(
         past_response_body["message"].as_str().unwrap(),
-        "No se puede cancelar un alquiler que ya ha comenzado"
+        "No se puede cancelar un alquiler que ya ha sido retirado"
     );
 
     // ---------- Client user tries to cancel a rental that he has not rented
@@ -1758,6 +1796,33 @@ async fn test_cancel_rental() {
     assert_eq!(
         another_user_response_body["message"].as_str().unwrap(),
         "El alquiler no se ha encontrado o no puede ser cancelado"
+    );
+
+    // ---------- Client user tries to cancel a rental with start date in the past
+
+    let past_start_date_rental_id = 18;
+
+    let past_start_date_cancel_response = client
+        .post(backend_url("/rental/cancel"))
+        .json(&serde_json::json!({
+            "rental_id": past_start_date_rental_id,
+            "access": jwt,
+            "reason": null,
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(past_start_date_cancel_response.status(), 400);
+
+    let past_start_date_response_body = past_start_date_cancel_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        past_start_date_response_body["message"].as_str().unwrap(),
+        "No se puede cancelar un alquiler que ya ha comenzado y no ha finalizado"
     );
 
     // ---------- Employee cancels a rental with valid data

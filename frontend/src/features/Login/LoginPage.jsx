@@ -33,16 +33,16 @@ export default function LoginPage() {
 
   const validationSchema = yup.object({
     email: yup
-      .string("Enter your email")
+      .string("Escribe tu email")
       .matches(
         /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
-        "Enter a valid email"
+        "Escribe un email válido"
       )
-      .required("Email is required"),
+      .required("El email es obligatorio"),
     password: yup
-      .string("Enter your password")
-      .min(8, "Password should be of minimum 8 characters length")
-      .required("Password is required"),
+      .string("Escribe tu contraseña")
+      .min(8, "La contraseña posee un mínimo de 8 caracteres")
+      .required("La contraseña es obligatoria"),
   });
 
   const formik = useFormik({
@@ -62,11 +62,11 @@ export default function LoginPage() {
           });
         }
 
-        setStatus({ isError: false, message: "Successfully logged in!" });
+        setStatus({ isError: false, message: "Sesión iniciada correctamente." });
         setOpenSnack(true);
         setTimeout(() => setUser(user), 1000);
       } catch (error) {
-        setStatus({ isError: true, message: error.response.data.message });
+        setStatus({ isError: true, message: "Credenciales inválidas." });
         setOpenSnack(true);
         console.error(error);
       } finally {
@@ -90,16 +90,6 @@ export default function LoginPage() {
           ) : (
             <PlaylistAddCheckCircleRoundedIcon />
           )
-        }
-        endDecorator={
-          <Button
-            onClick={() => setOpenSnack(false)}
-            size="sm"
-            variant="soft"
-            color={status.isError ? "danger" : "success"}
-          >
-            Dismiss
-          </Button>
         }
       >
         {status.message}
@@ -169,7 +159,7 @@ export default function LoginPage() {
               loading={loading}
               type="submit"
               variant="solid"
-              color="primary"
+              color="danger"
             >
               Ingresar
             </Button>
