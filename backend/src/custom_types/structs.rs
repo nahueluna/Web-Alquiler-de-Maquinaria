@@ -195,6 +195,8 @@ pub struct MyRentalInfo {
     pub model_policy: String,
     pub model_description: String,
     pub model_image: String,
+    pub days_late: Option<i64>,
+    pub percentage_per_late_day: Option<String>,
 }
 
 impl MachineModel {
@@ -364,4 +366,9 @@ pub struct CancelRentalInfo {
     pub access: String,
     pub rental_id: i32,
     pub reason: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetRentalQueryParams {
+    pub id: Option<i32>, // Rental ID
 }
