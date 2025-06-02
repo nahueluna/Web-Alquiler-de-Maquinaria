@@ -10,6 +10,7 @@ import SortBy from "./SortBy";
 const ExplorePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [results, setResults] = useState({
+    all_categories: [],
     items: [],
     categories: [],
     page: 0,
@@ -19,42 +20,37 @@ const ExplorePage = () => {
   const [loading, setLoading] = useState(true);
   const { get } = useAuth();
 
-  const [selectedFilters, setSelectedFilters] = React.useState({
+  const [currentFilters, setCurrentFilters] = React.useState({
     categories: [],
-    maxPrice: null,
     minPrice: null,
+    maxPrice: null,
   });
 
-  const categories = searchParams.getAll("category");
-  const maxPrice = searchParams.get("max_price");
-  const minPrice = searchParams.get("min_price");
-
-  const currentFilters = {
-    categories: categories,
-    maxPrice: maxPrice ? Number(maxPrice) : null,
-    minPrice: minPrice ? Number(minPrice) : null,
-  };
+  useEffect(() => {
+    setCurrentFilters({
+      categories: searchParams.getAll("category"),
+      minPrice: searchParams.get("min_price")
+        ? Number(searchParams.get("min_price"))
+        : null,
+      maxPrice: searchParams.get("max_price")
+        ? Number(searchParams.get("max_price"))
+        : null,
+    });
+  }, [searchParams]);
 
   const query = searchParams.get("search") || "";
 
   useEffect(() => {
-    async function fetchResults(query) {
-      console.log("Fetching results for query:", query);
+    async function fetchResults() {
       try {
-        const params = new URLSearchParams();
-        params.append("search", query);
-        selectedFilters.categories.forEach((cat) =>
-          params.append("category", cat)
-        );
-        if (selectedFilters.minPrice !== null)
-          params.append("min_price", selectedFilters.minPrice);
-        if (selectedFilters.maxPrice !== null)
-          params.append("max_price", selectedFilters.maxPrice);
-        const { data } = await get(`/explore?${params.toString()}`);
+        const queryString = searchParams.toString();
+        console.log("Fetching results with params:", queryString);
+        const { data } = await get(`/explore?${queryString}`);
         setResults(data);
         setLoading(false);
       } catch (error) {
         setResults({
+          all_categories: [],
           items: [],
           categories: [],
           page: 0,
@@ -66,8 +62,8 @@ const ExplorePage = () => {
       }
     }
 
-    fetchResults(query); // Fetch results whenever the query changes to update them
-  }, [query, selectedFilters]);
+    fetchResults();
+  }, [searchParams]);
 
   return (
     <Sheet
@@ -85,8 +81,6 @@ const ExplorePage = () => {
         <Filters
           results={results}
           currentFilters={currentFilters}
-          setSelectedFilters={setSelectedFilters}
-          selectedFilters={selectedFilters}
           query={query}
         />
       </Sheet>

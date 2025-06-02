@@ -19,10 +19,11 @@ const Results = ({ results, loading }) => {
         results.map((machine) => (
           <Grid xs={6} sm={6} md={4} lg={3} key={machine.id}>
             <MachineCard
-              imageUrl={machine.imageUrl}
+              imageUrl={machine.main_image}
               model={machine.model}
               categories={machine.categories}
               price={machine.price}
+              name={machine.name}
               onClick={() => nav(`/explore/${machine.id}`)}
             />
           </Grid>

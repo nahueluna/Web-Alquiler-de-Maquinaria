@@ -12,6 +12,7 @@ import React from "react";
 export default function MachineCard({
   imageUrl,
   model,
+  name,
   categories,
   price,
   onClick,
@@ -57,7 +58,7 @@ export default function MachineCard({
             lineHeight: 1.5,
           }}
         >
-          {model}
+          {name} {model}
         </Typography>
         <Box sx={{ minHeight: "4em" }}>
           {categories.map((category, index) => (
