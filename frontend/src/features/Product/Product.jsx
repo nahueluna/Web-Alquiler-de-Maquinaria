@@ -20,6 +20,7 @@ import useAuth from "../utils/useAuth";
 function Product() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingImg, setLoadingImg] = useState(true);
   const [loadingButton, setLoadingButton] = useState(false);
   const [machine, setMachine] = useState(null);
   const [locations, setLocations] = useState(null);
@@ -96,15 +97,16 @@ function Product() {
             {/* TODO: multiple images */}
             <Sheet>
               <AspectRatio ratio="4/3" sx={{ width: 500, mr: 2 }}>
-                <Skeleton animation="wave">
-                  {/* <img
-                style={{
-                  width: "100%",
-                  maxWidth: 500,
-                }}
-                // src={Img}
-                alt=""
-              /> */}
+                <Skeleton loading={loadingImg} animation="wave">
+                  <img
+                    style={{
+                      width: "100%",
+                      maxWidth: 500,
+                    }}
+                    src={machine?.main_image}
+                    alt=""
+                    onLoad={() => setLoadingImg(false)}
+                  />
                 </Skeleton>
               </AspectRatio>
             </Sheet>
