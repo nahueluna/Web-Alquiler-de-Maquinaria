@@ -1,40 +1,77 @@
-import { FormControl, FormLabel, Input, Sheet } from "@mui/joy";
+import { List, ListItem, ListItemButton, Sheet } from "@mui/joy";
+import {
+  areIntervalsOverlapping,
+  formatISO,
+  interval,
+  isSameDay,
+} from "date-fns";
+import { addDays, intervalToDuration, eachDayOfInterval } from "date-fns";
 import { useEffect, useState } from "react";
+import { DateRange } from "@iroomit/react-date-range";
+import ArrowRightRoundedIcon from "@mui/icons-material/ArrowRightRounded";
 
-function Duration({ dispatch }) {
-  const [minEnd, setMinEnd] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().split("T")[0]; // Return as value for the input
-  });
-  const [endValue, setEndValue] = useState(minEnd);
-  const [startValue, setStartValue] = useState(() => {
-    const d = new Date();
-    const value = d.toISOString().split("T")[0];
-    return {
-      value,
-      min: value,
-    };
-  });
-
-  // Update the end date whenever the start changes
-  function handleChange(e) {
-    const {
-      target: { value },
-    } = e;
-    setStartValue((prev) => ({ ...prev, value }));
-
-    const d = new Date(value);
-    d.setDate(d.getDate() + 7);
-    const newValue = d.toISOString().split("T")[0];
-
-    setEndValue(newValue);
-    setMinEnd(newValue);
-  }
+function Duration({ availability, setDisable, dispatch }) {
+  const [selectedRange, setSelectedRange] = useState([
+    {
+      startDate: new Date(),
+      endDate: new Date(),
+      key: "selection",
+    },
+  ]);
+  const [clickCount, setClickCount] = useState(1);
+  const [selected, setSelected] = useState(null);
+  const [disabledDates, setDisabledDates] = useState([]);
 
   useEffect(() => {
-    dispatch({ type: "setDates", value: [startValue.value, endValue] });
-  }, [startValue, endValue]);
+    setDisable(true);
+    return () => setDisable(false);
+  }, []);
+
+  useEffect(() => {
+    const [range] = selectedRange;
+
+    // If start and end have been selected
+    if (clickCount === 0) {
+      // Make intervals
+      const selectedInterval = interval(range.startDate, range.endDate);
+      const disabledIntervals = selected.periods.map((x) =>
+        interval(x.start_date, x.end_date)
+      );
+
+      // Check if the selected interval overlaps any disabled ones and update it
+      for (let d of disabledIntervals) {
+        if (
+          areIntervalsOverlapping(d, selectedInterval, {
+            inclusive: true,
+          })
+        ) {
+          selectedInterval.start = addDays(d.end, 1);
+          selectedInterval.end = addDays(selectedInterval.start, 7);
+        }
+      }
+
+      setSelectedRange([
+        {
+          startDate: selectedInterval.start,
+          endDate: selectedInterval.end,
+          key: "selection",
+        },
+      ]);
+
+      setDisable(false);
+      dispatch({
+        type: "setDates",
+        value: [
+          formatISO(selectedInterval.start, {
+            representation: "date",
+          }),
+          formatISO(selectedInterval.end, {
+            representation: "date",
+          }),
+        ],
+      });
+    }
+  }, [clickCount]);
 
   return (
     <Sheet
@@ -45,32 +82,75 @@ function Duration({ dispatch }) {
         gap: 2,
       }}
     >
-      <FormControl sx={{ width: "100%" }}>
-        <FormLabel>Fecha de inicio:</FormLabel>
-        <Input
-          slotProps={{
-            input: { min: startValue.min },
-          }}
-          onKeyDown={(e) => {
-            return e.preventDefault(); // Disable keyboard input
-          }}
-          value={startValue.value}
-          onChange={handleChange}
-          type="date"
-        ></Input>
-      </FormControl>
-      <FormControl sx={{ width: "100%" }}>
-        <FormLabel>Fecha de fin</FormLabel>
-        <Input
-          slotProps={{ input: { min: minEnd } }}
-          value={endValue}
-          onKeyDown={(e) => {
-            return e.preventDefault();
-          }}
-          onChange={(e) => setEndValue(e.target.value)}
-          type="date"
-        ></Input>
-      </FormControl>
+      {selected !== null ? (
+        <>
+          <DateRange
+            onChange={(item) => {
+              let { selection } = item;
+              const { startDate, endDate } = selection;
+              // Set the hour to 21, this is because the date-fns intervals are set to that
+              startDate.setHours(21);
+              endDate.setHours(21);
+              const inter = interval(startDate, endDate);
+              const duration = intervalToDuration(inter);
+
+              // Only the start date was selected
+              if (clickCount === 0) {
+                setClickCount(1);
+              } else {
+                // End date was selected
+                // If the selected range is only one day, or less than 7 days, make it 7 days
+                if (isSameDay(startDate, endDate)) {
+                  selection.endDate = addDays(endDate, 7);
+                } else if (duration.days < 7) {
+                  selection.endDate = addDays(endDate, 7 - duration.days);
+                }
+                setClickCount(0);
+              }
+
+              setSelectedRange([selection]);
+            }}
+            showSelectionPreview={true}
+            months={2}
+            minDate={new Date()}
+            ranges={selectedRange}
+            direction="horizontal"
+            showDateDisplay={false}
+            disabledDates={disabledDates}
+            rangeColors={["#c41c1c"]}
+            color="red"
+            fixedHeight
+            dragSelectionEnabled={false}
+          />
+        </>
+      ) : (
+        <List variant="outlined">
+          {availability.map((m, i) => (
+            <ListItem>
+              <ListItemButton
+                onClick={() => {
+                  dispatch({ type: "setUnitId", value: m.unit_id });
+                  setDisabledDates(
+                    m.periods
+                      .map((x) =>
+                        eachDayOfInterval(interval(x.start_date, x.end_date))
+                      )
+                      .flat()
+                  );
+                  setSelected(m);
+                }}
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                }}
+              >
+                Ejemplar {i + 1}
+                <ArrowRightRoundedIcon />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      )}
     </Sheet>
   );
 }

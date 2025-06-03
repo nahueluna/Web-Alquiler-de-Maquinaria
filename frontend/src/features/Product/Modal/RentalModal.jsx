@@ -59,10 +59,12 @@ function reducer(state, action) {
 }
 
 function RentalModal({ setOpen, open, machine, locations }) {
-  // const { user, refresh } = useContext(UserContext);
   const [activeStep, setActiveStep] = useState(0);
   const [mlId, setMlId] = useState("");
   const [loadingMl, setLoadingMl] = useState(false);
+  const [availability, setAvailability] = useState(null);
+  const [disable, setDisable] = useState(false);
+
   const { post } = useAuth();
   const [state, dispatch] = useReducer(reducer, {
     machine,
@@ -77,7 +79,16 @@ function RentalModal({ setOpen, open, machine, locations }) {
       name: "Elegir ubicacion",
       component: <Location dispatch={dispatch} locations={locations} />,
     },
-    { name: "Elegir duracion", component: <Duration dispatch={dispatch} /> },
+    {
+      name: "Elegir duracion",
+      component: (
+        <Duration
+          availability={availability}
+          setDisable={setDisable}
+          dispatch={dispatch}
+        />
+      ),
+    },
     { name: "Realizar pago", component: <Summary info={state} /> },
   ];
 
@@ -90,7 +101,17 @@ function RentalModal({ setOpen, open, machine, locations }) {
   }
 
   async function handleNext() {
-    if (activeStep === 1) {
+    if (activeStep === 0) {
+      setLoadingMl(true);
+      const {
+        data: { units_and_their_unavailable_dates },
+      } = await post(
+        `/rental/availability?model_id=${state.machine.id}&location_id=${state.selectedLocation.id}`
+      );
+
+      setLoadingMl(false);
+      setAvailability(units_and_their_unavailable_dates);
+    } else if (activeStep === 1) {
       setLoadingMl(true);
       const { data } = await axios.post("http://localhost:3000/pago", state);
 
@@ -193,6 +214,7 @@ function RentalModal({ setOpen, open, machine, locations }) {
             <Button
               loading={loadingMl}
               onClick={handleNext}
+              disabled={disable}
               variant="solid"
               color="danger"
             >
