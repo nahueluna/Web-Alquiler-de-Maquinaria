@@ -206,9 +206,9 @@ function RentalModal({ setOpen, open, machine, locations }) {
                 };
                 const { data } = await post("/rental/new", body);
 
-                console.log(data);
+                window.localStorage.setItem("rentalInfo", JSON.stringify(data));
               }}
-              initialization={{ preferenceId: mlId, redirectMode: "blank" }}
+              initialization={{ preferenceId: mlId }}
               customization={{
                 theme: "dark",
                 customStyle: {
