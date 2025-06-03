@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import useAuth from "../utils/useAuth";
 import { useEffect } from "react";
 import { Link, Sheet, Typography } from "@mui/joy";
@@ -11,10 +11,6 @@ import SuccessImage from "../../assets/PaymentSuccessful.png";
 import Stack from "@mui/joy/Stack";
 import { Link as RouterLink } from "react-router-dom";
 
-/* URL PRUEBA
-  /payment?payment_id=123456789&status=approved&merchant_order_id=987654321&preference_id=abc123
-*/
-
 function PaymentPage() {
   const { post } = useAuth();
   const { search } = useLocation();
@@ -22,6 +18,8 @@ function PaymentPage() {
   const paymentId = params.get("payment_id");
   const status = params.get("status");
   const { user } = useContext(UserContext);
+  const [rentalInfo, setRentalInfo] = useState(null);
+  const nav = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState({
@@ -29,17 +27,24 @@ function PaymentPage() {
     message: "",
   });
 
-  // Para cuando tenga la rental id
-  const rentalId = 21;
+  useEffect(() => {
+    const ls = window.localStorage.getItem("rentalInfo");
+
+    if (!ls) nav("/");
+    const json = JSON.parse(ls);
+
+    setRentalInfo(json);
+  }, []);
 
   useEffect(() => {
     const handlePayment = async () => {
+      window.localStorage.removeItem("rentalInfo");
       if (paymentId && status) {
         try {
           await post(
             `/payment/check?payment_id=${paymentId}&status=${status}`,
             {
-              rental_id: rentalId,
+              rental_id: rentalInfo.rental_id,
             }
           );
           setResult({
@@ -92,8 +97,10 @@ function PaymentPage() {
       setLoading(false);
     };
 
-    handlePayment();
-  }, [user]);
+    if (user && rentalInfo) {
+      handlePayment();
+    }
+  }, [user, rentalInfo]);
 
   return (
     <Sheet
@@ -103,7 +110,6 @@ function PaymentPage() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        minHeight: "100vh",
         backgroundColor: {
           sm: "#f4f4f4",
         },
@@ -131,7 +137,6 @@ function PaymentPage() {
             sm: 5,
           },
           py: 5,
-          borderRadius: "md",
         }}
       >
         {loading ? (
