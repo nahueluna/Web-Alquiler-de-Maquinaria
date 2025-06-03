@@ -353,6 +353,7 @@ const Rentals = () => {
         open={openSnack}
         onClose={() => setOpenSnack(false)}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        autoHideDuration={5000}
         startDecorator={
           status.isError ? (
             <ErrorOutlineIcon />
