@@ -34,11 +34,12 @@ NumericFormatAdapter.propTypes = {
   onChange: PropTypes.func.isRequired,
 };
 
-export default function MoneyInput({ placeholder, name }) {
+export default function MoneyInput({ placeholder, name, required = false }) {
   const [value, setValue] = React.useState("");
   return (
     <FormControl>
       <Input
+        required={required}
         name={name ? name : "money-input"}
         value={value}
         onChange={(event) => setValue(event.target.value)}

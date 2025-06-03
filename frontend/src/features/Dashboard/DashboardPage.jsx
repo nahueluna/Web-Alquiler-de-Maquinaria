@@ -14,16 +14,34 @@ import { useState } from "react";
 import Employees from "./Employees";
 import Machines from "./Machines";
 import Rentals from "./Rentals";
+import { useEffect } from "react";
+import useAuth from "../utils/useAuth";
 
 function Dashboard() {
   const [selected, setSelected] = useState(0);
+  const [categories, setCategories] = useState([]);
+  const { get } = useAuth();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await get("/explore?search=ZZZZZZZZZZZZZZZZZZ");
+        setCategories(response.data.all_categories);
+        console.log("Categories fetched:", response.data.all_categories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const renderContent = () => {
     switch (selected) {
       case 0:
         return <Rentals />;
       case 1:
-        return <Machines />;
+        return <Machines categories={categories} />;
       case 2:
         return <Employees />;
       default:
