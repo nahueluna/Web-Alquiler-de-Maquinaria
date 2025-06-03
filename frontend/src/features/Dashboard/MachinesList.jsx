@@ -13,14 +13,14 @@ import {
   Select,
   Option,
   Snackbar,
-  Alert
+  Alert,
 } from "@mui/joy";
 import { useState, useEffect, useContext } from "react";
-import axios from "axios"
-import UserContext from "../../context/UserContext"
+import axios from "axios";
+import UserContext from "../../context/UserContext";
 import useAuth from "../utils/useAuth";
 
-export const MachinesList = () => {
+export const MachinesList = ({ refreshMachines }) => {
   const { user } = useContext(UserContext);
   const [machinesData, setMachinesData] = useState([]);
   const [feedback, setFeedback] = useState("");
@@ -39,31 +39,31 @@ export const MachinesList = () => {
   const token = user?.access || "";
   const [ubicaciones, setUbicaciones] = useState([]);
 
-useEffect(() => {
-  if (!token) return;
-  post("/locations", { access: token })
-    .then((res) => {
-      console.log("Ubicaciones recibidas:", res.data);
-      const locationsData = res.data.locations || res.data.Locations || [];
-      setUbicaciones(locationsData);
-    })
-    .catch((err) => {
-      console.error("Error al obtener ubicaciones:", err);
-    });
-}, [token]);
+  useEffect(() => {
+    if (!token) return;
+    post("/locations", { access: token })
+      .then((res) => {
+        console.log("Ubicaciones recibidas:", res.data);
+        const locationsData = res.data.locations || res.data.Locations || [];
+        setUbicaciones(locationsData);
+      })
+      .catch((err) => {
+        console.error("Error al obtener ubicaciones:", err);
+      });
+  }, [token]);
 
   useEffect(() => {
-      get("/explore")
+    get("/explore")
       .then((response) => {
-        console.log(response.data.items[0])
+        console.log(response.data.items[0]);
         setMachinesData(response.data.items || []);
       })
       .catch((error) => {
         console.error("Error cargando máquinas:", error);
       });
-  }, []);
+  }, [refreshMachines]);
 
-    const handleSubmit = (e, machine) => {
+  const handleSubmit = (e, machine) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const serial_number = formData.get("numeroSerie");
@@ -77,20 +77,20 @@ useEffect(() => {
     };
     const location_id = parseInt(ubicacion);
 
-      post(
-        "/newunit",
-        {
-          access: token,
-          serial_number,
-          model_id: machine.id,
-          location_id,
+    post(
+      "/newunit",
+      {
+        access: token,
+        serial_number,
+        model_id: machine.id,
+        location_id,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      )
+      }
+    )
       .then((res) => {
         setSnackbar({
           open: true,
@@ -131,7 +131,8 @@ useEffect(() => {
             case 404:
               setSnackbar({
                 open: true,
-                message: "Error: No se pudo encontrar a la máquina o al usuario.",
+                message:
+                  "Error: No se pudo encontrar a la máquina o al usuario.",
                 color: "danger",
                 duration: 3000,
               });
@@ -161,31 +162,35 @@ useEffect(() => {
             duration: 3000,
           });
         }
-});
+      });
   };
 
   return (
     <>
-    <Sheet
-      variant="outlined"
-      sx={{ borderRadius: "sm", width: "60%", minWidth: "600px" }}
-    >
-      <AccordionGroup>
-        {machinesData.map((machine) => (
-          <Accordion
-            key={machine.id}
-            expanded={expandedId === machine.id}
-            onChange={(_, expanded) =>
-              setExpandedId(expanded ? machine.id : null)
-            }
-          >
-            <AccordionSummary>
-              <Avatar src={machine.main_image} sx={{ mr: 2, width: 56, height: 56 }} alt={machine.name} />
-              <Typography level="title-md" sx={{ flex: 1 }}>
-                {machine.name + " " + machine.brand + " " + machine.model}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
+      <Sheet
+        variant="outlined"
+        sx={{ borderRadius: "sm", width: "60%", minWidth: "600px" }}
+      >
+        <AccordionGroup>
+          {machinesData.map((machine) => (
+            <Accordion
+              key={machine.id}
+              expanded={expandedId === machine.id}
+              onChange={(_, expanded) =>
+                setExpandedId(expanded ? machine.id : null)
+              }
+            >
+              <AccordionSummary>
+                <Avatar
+                  src={machine.main_image}
+                  sx={{ mr: 2, width: 56, height: 56 }}
+                  alt={machine.name}
+                />
+                <Typography level="title-md" sx={{ flex: 1 }}>
+                  {machine.name + " " + machine.brand + " " + machine.model}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
                 <Button
                   size="sm"
                   color="danger"
@@ -203,54 +208,59 @@ useEffect(() => {
                 </Button>
 
                 {openFormId === machine.id && (
-              <form
-                onSubmit={(e) => handleSubmit(e, machine)}
-                style={{ display: "flex", flexDirection: "column", gap: "1rem", marginTop: "1rem" }}
-              >
-                <FormControl>
-                  <FormLabel>Número de serie</FormLabel>
-                  <Input name="numeroSerie" required />
-                </FormControl>
+                  <form
+                    onSubmit={(e) => handleSubmit(e, machine)}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1rem",
+                      marginTop: "1rem",
+                    }}
+                  >
+                    <FormControl>
+                      <FormLabel>Número de serie</FormLabel>
+                      <Input name="numeroSerie" required />
+                    </FormControl>
 
-                <FormControl>
-                  <FormLabel>Estado</FormLabel>
-                  <Select name="estado" defaultValue="disponible" required>
-                    <Option value="disponible">Disponible</Option>
-                    <Option value="mantenimiento">En mantenimiento</Option>
-                    <Option value="noDisponible">No disponible</Option>
-                  </Select>
-                </FormControl>
-                <FormControl>
-                  <FormLabel>Ubicación</FormLabel>
-                  <Select name="ubicacion" required>
-                    {ubicaciones.map((ubicacion) => (
-                      <Option key={ubicacion.id} value={ubicacion.id}>
-                        {ubicacion.city}
-                      </Option>
-                    ))}
-                  </Select>
-                </FormControl>
-                <Button type="submit" color="danger" variant="solid">
-                  Confirmar
-                </Button>
-              </form>
-            )}
-          </AccordionDetails>
-        </Accordion>
-      ))}
-    </AccordionGroup>
-  </Sheet>
-  <Snackbar
-    open={snackbar.open}
-    onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-    autoHideDuration={3000}
-    anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-    variant="soft"
-    color={snackbar.color}
-  >
-    {snackbar.message}
-  </Snackbar>
-  </>
+                    <FormControl>
+                      <FormLabel>Estado</FormLabel>
+                      <Select name="estado" defaultValue="disponible" required>
+                        <Option value="disponible">Disponible</Option>
+                        <Option value="mantenimiento">En mantenimiento</Option>
+                        <Option value="noDisponible">No disponible</Option>
+                      </Select>
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel>Ubicación</FormLabel>
+                      <Select name="ubicacion" required>
+                        {ubicaciones.map((ubicacion) => (
+                          <Option key={ubicacion.id} value={ubicacion.id}>
+                            {ubicacion.city}
+                          </Option>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <Button type="submit" color="danger" variant="solid">
+                      Confirmar
+                    </Button>
+                  </form>
+                )}
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </AccordionGroup>
+      </Sheet>
+      <Snackbar
+        open={snackbar.open}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        autoHideDuration={3000}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        variant="soft"
+        color={snackbar.color}
+      >
+        {snackbar.message}
+      </Snackbar>
+    </>
   );
 };
 

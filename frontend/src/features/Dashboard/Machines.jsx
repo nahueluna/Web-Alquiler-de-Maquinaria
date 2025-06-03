@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 const Machines = ({ categories }) => {
   const [registerForm, setRegisterForm] = useState(false);
   const [openSnack, setOpenSnack] = useState(false);
+  const [refreshMachines, setRefreshMachines] = useState(false);
   const [status, setStatus] = useState({
     isError: false,
     message: "",
@@ -61,9 +62,10 @@ const Machines = ({ categories }) => {
               setRegisterForm={setRegisterForm}
               setOpenSnack={setOpenSnack}
               setStatus={setStatus}
+              setRefreshMachines={setRefreshMachines}
             />
           )}
-          <MachinesList />
+          <MachinesList refreshMachines={refreshMachines} />
         </Stack>
       </Sheet>
     </>

@@ -25,6 +25,7 @@ const RegisterMachineForm = ({
   setRegisterForm,
   setOpenSnack,
   setStatus,
+  setRefreshMachines,
 }) => {
   const { post } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -98,6 +99,9 @@ const RegisterMachineForm = ({
         isError: false,
         message: "Modelo registrado correctamente.",
       });
+      // Refrescar lista de maquinas
+      setRefreshMachines((prev) => !prev);
+      // Mover todo a un solo state?
       setMainImage(null);
       setExtraImages([]);
       setSelectedCategories([]);
