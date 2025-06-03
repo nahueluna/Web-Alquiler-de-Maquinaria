@@ -16,11 +16,14 @@ import Machines from "./Machines";
 import Rentals from "./Rentals";
 import { useEffect } from "react";
 import useAuth from "../utils/useAuth";
+import UserContext from "../../context/UserContext";
+import { useContext } from "react";
 
 function Dashboard() {
   const [selected, setSelected] = useState(0);
   const [categories, setCategories] = useState([]);
   const { get } = useAuth();
+  const { user } = useContext(UserContext);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -76,18 +79,19 @@ function Dashboard() {
                 Administrar maquinas
               </ListItemButton>
             </ListItem>
-
-            <ListItem>
-              <ListItemButton
-                selected={selected === 2}
-                onClick={() => setSelected(2)}
-              >
-                <ListItemDecorator>
-                  <GroupIcon />
-                </ListItemDecorator>
-                Administrar empleados
-              </ListItemButton>
-            </ListItem>
+            {user.pub_user.role === 0 && (
+              <ListItem>
+                <ListItemButton
+                  selected={selected === 2}
+                  onClick={() => setSelected(2)}
+                >
+                  <ListItemDecorator>
+                    <GroupIcon />
+                  </ListItemDecorator>
+                  Administrar empleados
+                </ListItemButton>
+              </ListItem>
+            )}
           </List>
         </Sheet>
         <Divider orientation="vertical" />
