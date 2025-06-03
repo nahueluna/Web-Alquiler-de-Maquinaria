@@ -37,6 +37,20 @@ export const MachinesList = () => {
   const { get, post } = useAuth();
 
   const token = user?.access || "";
+  const [ubicaciones, setUbicaciones] = useState([]);
+
+useEffect(() => {
+  if (!token) return;
+  post("/locations", { access: token })
+    .then((res) => {
+      console.log("Ubicaciones recibidas:", res.data);
+      const locationsData = res.data.locations || res.data.Locations || [];
+      setUbicaciones(locationsData);
+    })
+    .catch((err) => {
+      console.error("Error al obtener ubicaciones:", err);
+    });
+}, [token]);
 
   useEffect(() => {
       get("/explore")
@@ -61,7 +75,7 @@ export const MachinesList = () => {
       bahiaBlanca: 2,
       caballito: 3,
     };
-    const location_id = locationMap[ubicacion];
+    const location_id = parseInt(ubicacion);
 
       post(
         "/newunit",
@@ -133,7 +147,7 @@ export const MachinesList = () => {
             default:
               setSnackbar({
                 open: true,
-                message: "Error desconocido.",
+                message: "Ha ocurrido un error. Inténtalo de nuevo más tarde.",
                 color: "danger",
                 duration: 3000,
               });
@@ -206,17 +220,17 @@ export const MachinesList = () => {
                     <Option value="noDisponible">No disponible</Option>
                   </Select>
                 </FormControl>
-
                 <FormControl>
                   <FormLabel>Ubicación</FormLabel>
-                  <Select name="ubicacion" defaultValue="marDelPlata" required>
-                    <Option value="marDelPlata">Mar del Plata</Option>
-                    <Option value="bahiaBlanca">Bahía Blanca</Option>
-                    <Option value="caballito">Caballito</Option>
+                  <Select name="ubicacion" required>
+                    {ubicaciones.map((ubicacion) => (
+                      <Option key={ubicacion.id} value={ubicacion.id}>
+                        {ubicacion.city}
+                      </Option>
+                    ))}
                   </Select>
                 </FormControl>
-
-                <Button type="submit" color="primary" variant="solid">
+                <Button type="submit" color="danger" variant="solid">
                   Confirmar
                 </Button>
               </form>

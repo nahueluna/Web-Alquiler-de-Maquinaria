@@ -115,7 +115,6 @@ function RecoverPassword() {
               placeholder="tucorreo@ejemplo.com"
               value={formik.values.email}
               onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
               disabled={loading}
               sx={{ fontSize: "1.1rem", py: 1 }}
             />
