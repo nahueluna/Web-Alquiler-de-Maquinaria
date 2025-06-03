@@ -68,17 +68,19 @@ function Dashboard() {
                 Ver alquileres
               </ListItemButton>
             </ListItem>
-            <ListItem>
-              <ListItemButton
-                selected={selected === 1}
-                onClick={() => setSelected(1)}
-              >
-                <ListItemDecorator>
-                  <AgricultureIcon />
-                </ListItemDecorator>
-                Administrar maquinas
-              </ListItemButton>
-            </ListItem>
+            {user.pub_user.role === 0 && (
+              <ListItem>
+                <ListItemButton
+                  selected={selected === 1}
+                  onClick={() => setSelected(1)}
+                >
+                  <ListItemDecorator>
+                    <AgricultureIcon />
+                  </ListItemDecorator>
+                  Administrar maquinas
+                </ListItemButton>
+              </ListItem>
+            )}
             {user.pub_user.role === 0 && (
               <ListItem>
                 <ListItemButton
