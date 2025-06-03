@@ -41,12 +41,19 @@ function reducer(state, action) {
       };
     }
 
+    case "setUnitId":
+      return {
+        ...state,
+        unitId: action.value,
+      };
+
     case "clear":
       return {
         machine: state.machine,
         selectedLocation: {},
         dates: [],
         days: 0,
+        unitId: 0,
       };
   }
 }
@@ -62,6 +69,7 @@ function RentalModal({ setOpen, open, machine, locations }) {
     selectedLocation: {},
     dates: [],
     days: 0,
+    unitId: 0,
   });
 
   const steps = [
