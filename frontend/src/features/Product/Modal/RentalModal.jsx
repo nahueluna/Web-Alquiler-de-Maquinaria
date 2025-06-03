@@ -131,7 +131,13 @@ function RentalModal({ setOpen, open, machine, locations }) {
     >
       <Sheet
         variant="outlined"
-        sx={{ width: 600, borderRadius: "md", p: 3, boxShadow: "lg" }}
+        sx={{
+          minWidth: 600,
+          maxWidth: 714,
+          borderRadius: "md",
+          p: 3,
+          boxShadow: "lg",
+        }}
       >
         <ModalClose variant="plain" sx={{ m: 1 }} />
         <Typography
