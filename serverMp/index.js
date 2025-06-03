@@ -40,8 +40,8 @@ app.post("/pago", (req, res) => {
           },
         ],
         back_urls: {
-          success: `${process.env.NGROK}/payment/success`,
-          failure: `${process.env.NGROK}/payment/failure`,
+          success: `${process.env.NGROK}/payment`,
+          failure: `${process.env.NGROK}/payment`,
         },
       },
     })
