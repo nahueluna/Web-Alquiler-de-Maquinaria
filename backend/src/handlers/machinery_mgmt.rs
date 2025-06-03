@@ -12,6 +12,7 @@ use axum::{
 use axum_extra::extract::Query;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use chrono::Duration;
 use chrono::{Local, NaiveDate, NaiveDateTime};
 use image::ImageFormat;
 use serde_json::json;
@@ -807,8 +808,15 @@ pub async fn new_rental(
             }
         };
 
+        let end_date_with_maintenance_period = end_date + Duration::days(7);
+
         let is_overlap = unavailable_dates.iter().any(|period| {
-            date_is_overlap(start_date, end_date, period.start_date, period.end_date)
+            date_is_overlap(
+                start_date,
+                end_date_with_maintenance_period,
+                period.start_date,
+                period.end_date,
+            )
         });
 
         let duration_days = (end_date - start_date).num_days();
@@ -827,7 +835,8 @@ pub async fn new_rental(
             return (
                 StatusCode::CONFLICT,
                 Json(json!({
-                    "message": "Las fechas de inicio y fin se superponen con un alquiler existente",
+                    "message": "Las fechas de inicio y fin se superponen con un alquiler existente,
+                        considerando el período de mantenimiento planificado",
                 })),
             );
         }
