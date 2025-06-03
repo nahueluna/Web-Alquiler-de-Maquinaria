@@ -41,6 +41,8 @@ const Rentals = () => {
   const handleConfirmedCancel = async (rentalId, reason = null) => {
     setLoading(true);
     try {
+      console.log("Cancelling rental with ID:", rentalId);
+      console.log("Reason for cancellation:", reason);
       const response = await post("/rental/cancel", {
         rental_id: rentalId,
         reason: reason.trim() == "" ? null : reason,
@@ -56,7 +58,7 @@ const Rentals = () => {
       switch (error.response?.status) {
         case 400:
           errorMsg =
-            "No se puede realizar la acción: fecha de inicio del alquiler es mayor a la actual";
+            "El alquiler ya comenzo y aun no finalizo, o ya ha sido retirado.";
           break;
         case 404:
           errorMsg =
