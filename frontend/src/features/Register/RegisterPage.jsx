@@ -21,6 +21,7 @@ import { useFormik } from "formik";
 import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 
+import { useNavigate } from "react-router-dom";
 import * as yup from "yup";
 import useAuth from "../utils/useAuth";
 
@@ -87,6 +88,7 @@ const RegisterPage = () => {
   const [openSnack, setOpenSnack] = useState(false);
   const [status, setStatus] = useState({ isError: false, message: "" });
   const { post } = useAuth();
+  const nav = useNavigate();
 
   const formik = useFormik({
     initialValues: {
@@ -119,11 +121,28 @@ const RegisterPage = () => {
           birth_date: fecha.split("-").reverse().join("-"),
           phone,
         });
-        setStatus({ isError: false, message: data.message });
+        setStatus({ isError: false, message: "Usuario creado exitosamente." });
         setOpenSnack(true);
+        setTimeout(() => {
+          nav("/login");
+        }, 2000);
       } catch (error) {
         console.error(error);
-        setStatus({ isError: true, message: "Complete los campos correctamente." });
+        let errorMsg;
+        switch (error.response?.status) {
+          case 409:
+            errorMsg = "El correo ya está registrado.";
+            break;
+          case 403:
+            errorMsg = "El usuario es menor de edad";
+            break;
+          default:
+            errorMsg = "Error al crear el usuario. Intente nuevamente.";
+        }
+        setStatus({
+          isError: true,
+          message: errorMsg,
+        });
         setOpenSnack(true);
       } finally {
         setLoading(false);
@@ -347,6 +366,7 @@ const RegisterPage = () => {
                 sx={{ width: "50%" }}
                 type="submit"
                 loading={loading}
+                disabled={!(formik.isValid && formik.dirty)}
               >
                 Registrarse
               </Button>
