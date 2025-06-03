@@ -135,7 +135,7 @@ function Product() {
                   setLocations(locations);
                   setOpen(true);
                 }}
-                disabled={!user}
+                disabled={!user || user?.pub_user.role !== 2}
                 loading={loadingButton}
               >
                 Alquilar
