@@ -35,7 +35,6 @@ const Rentals = () => {
   const [selectedLocation, setSelectedLocation] = useState("");
   const { user } = useContext(UserContext);
   const token = user?.access || "";
-  const [returnDate, setReturnDate] = useState("");
 
   useEffect(() => {
     fetchRentals();
@@ -125,7 +124,7 @@ const Rentals = () => {
   useEffect(() => {
     if (!token) return;
 
-    post("/locations", { access: token })
+    post("/locations")
       .then((res) => {
         console.log("Ubicaciones recibidas:", res.data);
         const locationsData = res.data.locations || res.data.Locations || [];
@@ -257,20 +256,9 @@ const Rentals = () => {
         return (
           <>
             <Typography level="h4" mb={2}>
-              Cargar fecha de devolución
+              Cargar devolución
             </Typography>
-
-            {/* Selector de fecha */}
-            <FormLabel htmlFor="return-date">Fecha de devolución</FormLabel>
-            <Input
-              id="return-date"
-              type="date"
-              value={returnDate}
-              onChange={(e) => setReturnDate(e.target.value)}
-              required
-              sx={{ mb: 2 }}
-            />
-
+            
             {/* Selector de ubicación */}
             <FormLabel htmlFor="ubicacion">Ubicación</FormLabel>
             <Select
@@ -298,7 +286,6 @@ const Rentals = () => {
                 onClick={() => {
                   setOpen(false);
                   setSelectedLocation("");
-                  setReturnDate("");
                 }}
               >
                 Cancelar
@@ -310,11 +297,10 @@ const Rentals = () => {
                   handleConfirmedReturn(
                     rentalInfo.rentalId,
                     selectedLocation,
-                    returnDate
                   )
                 }
                 loading={loading}
-                disabled={!selectedLocation || !returnDate} // Se desactiva si falta algo
+                disabled={!selectedLocation} // Se desactiva si falta algo
               >
                 Confirmar devolución
               </Button>
