@@ -131,7 +131,7 @@ const RegisterPage = () => {
         let errorMsg;
         switch (error.response?.status) {
           case 409:
-            errorMsg = "El correo ya está registrado.";
+            errorMsg = "Ya existe un usuario con esa informacion";
             break;
           case 403:
             errorMsg = "El usuario es menor de edad";
