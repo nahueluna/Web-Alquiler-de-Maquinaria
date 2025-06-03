@@ -25,6 +25,7 @@ export default function MachineCard({
       onClick={onClick}
       sx={{
         cursor: "pointer",
+        "& *": { cursor: "pointer" }, // aplico a todos los hijos si no Joy no aplica el cursor,
         transition: "transform 0.2s, box-shadow 0.2s",
         transform: "scale(1)",
         "&:hover": {
