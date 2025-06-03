@@ -89,7 +89,7 @@ function TwoFactor() {
 
   async function handleVerify() {
     setIsLoading(true);
-    editInputs(true);
+    editInputs(true); // disable inputs
     try {
       const user = await login({ ...state }, parseInt(code.join("")));
 
@@ -98,10 +98,10 @@ function TwoFactor() {
         message: "Inicio de sesion exitoso, redirigiendo en 5 segundos...",
       });
       setOpenSnack(true);
+      setIsComplete(false); // keep the button disabled but not loading
+
       setTimeout(() => {
         setUser(user);
-        setIsLoading(false);
-        editInputs(false);
       }, 5000);
     } catch (error) {
       console.error(error);
@@ -120,8 +120,9 @@ function TwoFactor() {
           });
       }
       setOpenSnack(true);
+      editInputs(false); // enable the inputs
     } finally {
-      editInputs(false);
+      setIsLoading(false);
     }
   }
 
