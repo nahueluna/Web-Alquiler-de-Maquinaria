@@ -24,34 +24,34 @@ const MyRentalsPage = () => {
 
     const fetchRentals = async () => {
       try {
-        const response = await post(
-          "/myrentals",
-          {
-            access: user.access,
-          }
-        );
+        const response = await post("/myrentals", {
+          access: user.access,
+        });
 
         setRentalsData(response.data.rentals);
       } catch (error) {
         if (error.response) {
           switch (error.response.status) {
             case 401:
-                setStatus({ isError: true, message: "Token inválido." });
-                setOpenSnack(true);
+              setStatus({ isError: true, message: "Token inválido." });
+              setOpenSnack(true);
               break;
             case 403:
-                setStatus({ isError: true, message: "No eres cliente." });
-                setOpenSnack(true);
+              setStatus({ isError: true, message: "No eres cliente." });
+              setOpenSnack(true);
               break;
             case 500:
-                setStatus({ isError: true, message: "Error interno del servidor." });
-                setOpenSnack(true);
+              setStatus({
+                isError: true,
+                message: "Error interno del servidor.",
+              });
+              setOpenSnack(true);
               break;
             default:
-              // No hacemos nada
+            // No hacemos nada
           }
         } else {
-            console.error(error);
+          console.error(error);
         }
       } finally {
         setLoading(false);
@@ -63,54 +63,55 @@ const MyRentalsPage = () => {
 
   return (
     <>
-    <Sheet
-      sx={{
-        width: "80%",
-        minWidth: "800px",
-        height: "100%",
-        backgroundColor: "white",
-        boxShadow: "0 1px 4px rgba(0, 0, 0, 0.1)",
-      }}
-    >
-      <Stack spacing={2} sx={{ padding: 5 }}>
-        <Typography level="h2">Mis alquileres</Typography>
-        {rentalsData.length === 0 ? (
-          <Typography level="body-lg" color="text.secondary">
-            Oopsie. Parece que no tenes alquileres registrados. Sumale una magia
-            mas alquilando una maquina de nuestro{" "}
-            <Link component={RouterLink} to={"/explore"}>
-              catalogo
-            </Link>
-            .
-          </Typography>
-        ) : (
-          <Stack spacing={1}>
-            {rentalsData.map((rental, index) => (
-              <MyRentalCard
-                key={rental.rental_id}
-                rentalID={rental.rental_id}
-                imageUrl={rental.model_image}
-                modelName={rental.model_name}
-                withdrawnDate={rental.retirement_date}
-                startDate={rental.start_date}
-                endDate={rental.end_date}
-                amountPaid={rental.total_price}
-                days={
-                  rental.start_date && rental.end_date
-                    ? Math.round(
-                      (new Date(rental.end_date) - new Date(rental.start_date)) /
-                        (1000 * 60 * 60 * 24)
-                    )
-                    : "-"
-                }
-                status={rental.status}
-              />
-            ))}
-          </Stack>
-        )}
-      </Stack>
-    </Sheet>
-          <Snackbar
+      <Sheet
+        sx={{
+          width: "80%",
+          minWidth: "800px",
+          height: "100%",
+          backgroundColor: "white",
+          boxShadow: "0 1px 4px rgba(0, 0, 0, 0.1)",
+        }}
+      >
+        <Stack spacing={2} sx={{ padding: 5 }}>
+          <Typography level="h2">Mis alquileres</Typography>
+          {rentalsData.length === 0 ? (
+            <Typography level="body-lg" color="text.secondary">
+              Parece que no tenes alquileres registrados. Podes alquilar una
+              maquina desde nuestro{" "}
+              <Link component={RouterLink} to={"/explore"}>
+                catalogo
+              </Link>
+              .
+            </Typography>
+          ) : (
+            <Stack spacing={1}>
+              {rentalsData.map((rental, index) => (
+                <MyRentalCard
+                  key={rental.rental_id}
+                  rentalID={rental.rental_id}
+                  imageUrl={rental.model_image}
+                  modelName={rental.model_name}
+                  withdrawnDate={rental.retirement_date}
+                  startDate={rental.start_date}
+                  endDate={rental.end_date}
+                  amountPaid={rental.total_price}
+                  days={
+                    rental.start_date && rental.end_date
+                      ? Math.round(
+                          (new Date(rental.end_date) -
+                            new Date(rental.start_date)) /
+                            (1000 * 60 * 60 * 24)
+                        )
+                      : "-"
+                  }
+                  status={rental.status}
+                />
+              ))}
+            </Stack>
+          )}
+        </Stack>
+      </Sheet>
+      <Snackbar
         variant="soft"
         color={status.isError ? "danger" : "success"}
         open={openSnack}
