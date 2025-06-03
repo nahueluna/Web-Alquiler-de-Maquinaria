@@ -2,7 +2,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { FormControl, Input, Sheet, Stack, Textarea } from "@mui/joy";
 import RentalCard from "./RentalCard";
 import React, { use } from "react";
-import { useEffect } from "react";
+import { useEffect, useContext } from "react";
 import useAuth from "../utils/useAuth";
 import { useState } from "react";
 import Modal from "@mui/joy/Modal";
@@ -12,6 +12,8 @@ import Snackbar from "@mui/joy/Snackbar";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheck";
 import { Box } from "@mui/joy";
+import UserContext from "../../context/UserContext"
+import { FormLabel, Select, Option } from "@mui/joy";
 
 const Rentals = () => {
   const { post } = useAuth();
@@ -29,6 +31,11 @@ const Rentals = () => {
     modelName: "",
     modelModel: "",
   });
+  const [locations, setLocations] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const { user } = useContext(UserContext);
+  const token = user?.access || "";
+  const [returnDate, setReturnDate] = useState("");
 
   useEffect(() => {
     fetchRentals();
@@ -82,13 +89,14 @@ const Rentals = () => {
     setLoading(true);
     try {
       const response = await post("/loadretirement", { rental_id: rentalId });
-      // Por que no hacer un fetchRentals() directamente? Polque no hay polque
       setRefreshRentals((prev) => !prev);
       setOpenSnack(true);
       setStatus({
         isError: false,
         message: `Se registro el retiro para el alquiler ID ${rentalId}.`,
       });
+      // Por que no hacer un fetchRentals() directamente? Polque no hay polque
+      setRefreshRentals((prev) => !prev);
     } catch (error) {
       let errorMsg = "Ocurrió un error inesperado. Intente nuevamente.";
       switch (error.response?.status) {
@@ -113,8 +121,59 @@ const Rentals = () => {
     }
   };
 
-  const handleConfirmedReturn = () => {
-    console.log("Confirming action...");
+  // AGARRAMOS LAS LOCATIONS
+useEffect(() => {
+  if (!token) return;
+
+  post("/locations", { access: token })
+    .then((res) => {
+      console.log("Ubicaciones recibidas:", res.data);
+      const locationsData = res.data.locations || res.data.Locations || [];
+      setLocations(locationsData);
+    })
+    .catch((err) => {
+      console.error("Error al obtener ubicaciones:", err);
+      setLocations([]); // en caso de error, dejamos el array vacío
+    });
+}, [token]);
+
+  // LOGICA DEL HANDLE CONFIRM RETURN
+  const handleConfirmedReturn = async (rentalId, locationId) => {
+    try {
+      setLoading(true);
+      const payload = {
+        access: token,
+        rental_id: rentalId,
+        location_id: locationId,
+      };
+      console.log("Payload que se envía:", payload);
+      const response = await post("/loadreturn", payload);
+
+      if (response.status === 201) {
+        const { message, days_late, fine } = response.data;
+        setOpenSnack(true);
+        setStatus({
+          isError: false,
+          message: `Devolución exitosa. (Días de atraso: ${days_late}) (Multa: $${fine})`,
+        });
+        setOpen(false); // cerrar modal
+      } else {
+        setOpenSnack(true);
+      setStatus({
+        isError: true,
+        message: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde.",
+      });
+      }
+    } catch (error) {
+       console.error("ERROR AL CARGAR DEVOLUCIÓN:", error.response?.status, error.response?.data);
+      setOpenSnack(true);
+      setStatus({
+        isError: true,
+        message: "Ocurrió un error.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getModalContent = () => {
@@ -192,32 +251,74 @@ const Rentals = () => {
       case "return":
         return (
           <>
-            <Typography level="h4" mb={2}>
-              Cargar fecha de devolución
-            </Typography>
+  <Typography level="h4" mb={2}>
+    Cargar fecha de devolución
+  </Typography>
 
-            <Stack direction="row" justifyContent="flex-end" spacing={1}>
-              <Button
-                variant="soft"
-                color="neutral"
-                onClick={() => setOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="solid"
-                color="danger"
-                onClick={() => handleConfirmedReturn(rentalInfo.rentalId)}
-                loading={loading}
-              >
-                Confirmar devolución
-              </Button>
-            </Stack>
+  {/* Selector de fecha */}
+  <FormLabel htmlFor="return-date">Fecha de devolución</FormLabel>
+  <Input
+    id="return-date"
+    type="date"
+    value={returnDate}
+    onChange={(e) => setReturnDate(e.target.value)}
+    required
+    sx={{ mb: 2 }}
+  />
+
+  {/* Selector de ubicación */}
+  <FormLabel htmlFor="ubicacion">Ubicación</FormLabel>
+  <Select
+    id="ubicacion"
+    value={selectedLocation}
+    onChange={(e, newValue) => setSelectedLocation(newValue)}
+    placeholder="Selecciona una ubicación"
+    required
+    sx={{ mb: 2 }}
+  >
+    <Option value="" disabled>
+      Selecciona una ubicación
+    </Option>
+    {locations.map((loc) => (
+      <Option key={loc.id} value={loc.id}>
+        {loc.name || loc.city}
+      </Option>
+    ))}
+  </Select>
+
+  <Stack direction="row" justifyContent="flex-end" spacing={1}>
+    <Button
+      variant="soft"
+      color="neutral"
+      onClick={() => {
+        setOpen(false);
+        setSelectedLocation("");
+        setReturnDate("");
+      }}
+    >
+      Cancelar
+    </Button>
+    <Button
+      variant="solid"
+      color="danger"
+      onClick={() =>
+        handleConfirmedReturn(rentalInfo.rentalId, selectedLocation, returnDate)
+      }
+      loading={loading}
+      disabled={!selectedLocation || !returnDate} // Se desactiva si falta algo
+    >
+      Confirmar devolución
+    </Button>
+  </Stack>
           </>
         );
       default:
         return null;
     }
+  };
+
+  const handleConfirm = () => {
+    console.log("Confirming action...");
   };
 
   const fetchRentals = async (rentalId = null) => {
@@ -229,6 +330,10 @@ const Rentals = () => {
       setRentals([]);
     }
   };
+
+  useEffect(() => {
+    fetchRentals();
+  }, []);
 
   const handleChange = (event) => {
     const cleaned = event.target.value.replace(/[^\d]/g, "");
@@ -322,7 +427,7 @@ const Rentals = () => {
             alignItems: "center",
           }}
         >
-          <form>
+          <form onSubmit={handleConfirm}>
             <Sheet
               sx={{
                 p: 3,
