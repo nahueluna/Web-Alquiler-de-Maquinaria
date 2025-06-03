@@ -2024,3 +2024,61 @@ pub async fn get_staff_rentals(
         }
     }
 }
+
+pub async fn get_locations(
+    State(state): State<AppState>,
+    Json(payload): Json<Access>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    }
+    .claims;
+
+    if claims.role != 0 && claims.role != 1 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(
+                json!({"message": "Solo empleados y administradores pueden acceder a esta información"}),
+            ),
+        );
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    json!({"message": "Se produjo un error interno al intentar conectarse a la base de datos"}),
+                ),
+            );
+        }
+    };
+
+    match client
+        .query("SELECT * FROM locations ORDER BY city;", &[])
+        .await
+    {
+        Ok(rows) => {
+            let locations: Vec<Location> = rows
+                .iter()
+                .map(|row| Location::build_from_row(row))
+                .collect();
+            return (StatusCode::OK, Json(json!({"locations": locations})));
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    json!({"message": "Se produjo un error interno al intentar obtener las ubicaciones"}),
+                ),
+            );
+        }
+    };
+}

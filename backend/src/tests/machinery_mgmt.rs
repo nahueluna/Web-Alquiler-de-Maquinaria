@@ -1948,3 +1948,51 @@ async fn test_get_staff_rentals() {
     assert_eq!(late_machine.unwrap()["days_late"].as_u64().unwrap(), 3);
     assert!(!late_machine.unwrap()["percentage_per_late_day"].is_null());
 }
+
+#[tokio::test]
+async fn test_get_locations() {
+    setup().await;
+    let client = Client::new();
+
+    // Get an admin token
+    let jwt = get_test_jwt("alice@example.com", true).await;
+
+    // ----------- Admin retrieves all locations
+
+    let res = client
+        .post(backend_url("/locations"))
+        .json(&serde_json::json!({
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 200);
+
+    let value = res.json::<serde_json::Value>().await.unwrap();
+
+    assert!(value["locations"].as_array().unwrap().len() > 0);
+
+    // ----------- Client user tries to retrieve locations
+
+    let user_jwt = get_test_jwt("dave@example.com", false).await;
+
+    let res = client
+        .post(backend_url("/locations"))
+        .json(&serde_json::json!({
+            "access": user_jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 403);
+
+    let res_json = res.json::<serde_json::Value>().await.unwrap();
+
+    assert_eq!(
+        res_json["message"].as_str().unwrap(),
+        "Solo empleados y administradores pueden acceder a esta información"
+    );
+}
