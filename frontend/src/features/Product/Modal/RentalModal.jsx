@@ -199,7 +199,7 @@ function RentalModal({ setOpen, open, machine, locations }) {
               // Create rental on the backend when the button is pressed
               onSubmit={async () => {
                 const body = {
-                  machine_id: state.machine.id,
+                  machine_id: state.unitId,
                   start_date: state.dates[0],
                   end_date: state.dates[1],
                   total_price: state.days * state.machine.price,
