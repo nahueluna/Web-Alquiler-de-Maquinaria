@@ -15,7 +15,7 @@ function Summary({ info }) {
       >
         <tbody>
           <tr>
-            <td>Maquina</td>{" "}
+            <td>Maquina</td>
             <td>
               {name} {model}
             </td>
