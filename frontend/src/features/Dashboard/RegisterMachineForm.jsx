@@ -29,6 +29,7 @@ const RegisterMachineForm = ({
 }) => {
   const { post } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [policy, setPolicy] = useState("");
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
   const [mainImage, setMainImage] = useState(null);
@@ -139,7 +140,6 @@ const RegisterMachineForm = ({
     const brand = form.brand.value;
     const model = form.model.value;
     const year = Number(form.year.value);
-    const policy = form.policy.value;
     const description = form.description.value;
     const price = Number(form.price.value.replace(/[^\d]/g, ""));
 
@@ -154,7 +154,7 @@ const RegisterMachineForm = ({
       brand,
       model,
       year,
-      policy,
+      policy: policy,
       description,
       price,
       categories: selectedCategories,
@@ -215,6 +215,8 @@ const RegisterMachineForm = ({
             <Select
               name="policy"
               placeholder="Elegi una politica de cancelacion"
+              value={policy}
+              onChange={(event, newValue) => setPolicy(newValue)}
               required
             >
               <Option value="total">Total</Option>
@@ -392,7 +394,6 @@ const RegisterMachineForm = ({
               variant="plain"
               onClick={() => {
                 setRegisterForm(false);
-                setImages([]);
               }}
             >
               Cancelar
