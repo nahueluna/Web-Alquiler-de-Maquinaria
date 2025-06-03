@@ -15,6 +15,7 @@ import Terms from "../features/Terms/TermsPage";
 import TwoFactor from "../features/TwoFactorAuth/TwoFactor";
 import MainLayout from "../layout/MainLayout";
 import ProtectedRoute from "./ProtectedRoutes";
+import PaymentPage from "../features/Payment/PaymentPage";
 
 export default function AppRoutes() {
   return (
@@ -65,6 +66,7 @@ export default function AppRoutes() {
           }
         />
       </Route>
+      <Route path="/payment" element={<PaymentPage />} />
       <Route path="/two-factor" element={<TwoFactor />} />
     </Routes>
   );
