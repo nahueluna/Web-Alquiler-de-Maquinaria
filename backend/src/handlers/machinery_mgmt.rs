@@ -114,7 +114,7 @@ pub async fn explore_catalog(
         let where_clause = if where_clauses.is_empty() {
             "".to_string()
         } else {
-            format!("WHERE {}", where_clauses.join(" AND "))
+            format!("AND {}", where_clauses.join(" AND "))
         };
 
         let order_clause = if let Some(order_by) = &query_params.order_by {
@@ -146,18 +146,25 @@ pub async fn explore_catalog(
 
         let all_joins = join_clauses.join(" ");
 
+        let exists_clause = "EXISTS
+        (SELECT * FROM machinery_units mu2 
+        WHERE mu2.model_id = mm.id)";
+
         let select_query = format!(
             "SELECT DISTINCT mm.* FROM machinery_models mm 
-            {} {} {} LIMIT ${} OFFSET ${};",
-            all_joins, where_clause, order_clause, limit_param_idx, offset_param_idx
+            {} WHERE {} {} {} LIMIT ${} OFFSET ${};",
+            all_joins, exists_clause, where_clause, order_clause, limit_param_idx, offset_param_idx
         );
 
         let count_query = if categories.is_empty() {
-            format!("SELECT COUNT(*) FROM machinery_models mm {};", where_clause)
+            format!(
+                "SELECT COUNT(*) FROM machinery_models mm WHERE {} {};",
+                exists_clause, where_clause
+            )
         } else {
             format!(
-                "SELECT COUNT(DISTINCT mm.id) FROM machinery_models mm {} {};",
-                all_joins, where_clause
+                "SELECT COUNT(DISTINCT mm.id) FROM machinery_models mm {} WHERE {} {};",
+                all_joins, exists_clause, where_clause
             )
         };
 
@@ -394,7 +401,7 @@ pub async fn get_machine_locations(
 
     if let Ok(client) = state.pool.get().await {
         let locations_query = "
-            SELECT l.* FROM machinery_models mm
+            SELECT DISTINCT l.* FROM machinery_models mm
             INNER JOIN machinery_units mu ON mm.id = mu.model_id 
             INNER JOIN locations l ON mu.location_id = l.id
             WHERE mm.id = $1;
