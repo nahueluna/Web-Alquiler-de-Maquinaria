@@ -1,4 +1,4 @@
-import { List, ListItem, ListItemButton, Sheet } from "@mui/joy";
+import { Box, List, ListItem, ListItemButton, Sheet } from "@mui/joy";
 import {
   areIntervalsOverlapping,
   formatISO,
@@ -34,6 +34,10 @@ function Duration({ availability, setDisable, dispatch }) {
     if (clickCount === 0) {
       // Make intervals
       const selectedInterval = interval(range.startDate, range.endDate);
+      const maintentanceInterval = interval(
+        addDays(selectedInterval.end, 1),
+        addDays(range.endDate, 7)
+      );
       const disabledIntervals = selected.periods.map((x) =>
         interval(x.start_date, x.end_date)
       );
@@ -43,10 +47,16 @@ function Duration({ availability, setDisable, dispatch }) {
         if (
           areIntervalsOverlapping(d, selectedInterval, {
             inclusive: true,
+          }) ||
+          areIntervalsOverlapping(d, maintentanceInterval, {
+            inclusive: true,
           })
         ) {
           selectedInterval.start = addDays(d.end, 1);
           selectedInterval.end = addDays(selectedInterval.start, 7);
+
+          maintentanceInterval.start = addDays(selectedInterval.end, 1);
+          maintentanceInterval.end = addDays(selectedInterval.end, 7);
         }
       }
 
@@ -55,6 +65,11 @@ function Duration({ availability, setDisable, dispatch }) {
           startDate: selectedInterval.start,
           endDate: selectedInterval.end,
           key: "selection",
+        },
+        {
+          startDate: maintentanceInterval.start,
+          endDate: maintentanceInterval.end,
+          key: "maintenance",
         },
       ]);
 
@@ -83,7 +98,48 @@ function Duration({ availability, setDisable, dispatch }) {
       }}
     >
       {selected !== null ? (
-        <>
+        <Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-around",
+              mb: 1,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <Box
+                sx={{
+                  width: "15px",
+                  aspectRatio: "1/1",
+                  background: "#c41c1c",
+                  mr: 1,
+                }}
+              ></Box>{" "}
+              <span>Periodo seleccionado</span>
+            </Box>
+
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <Box
+                sx={{
+                  width: "15px",
+                  aspectRatio: "1/1",
+                  background: "#ed8a26",
+                  mr: 1,
+                }}
+              ></Box>{" "}
+              <span>Mantenimiento planificado</span>
+            </Box>
+          </Box>
           <DateRange
             onChange={(item) => {
               let { selection } = item;
@@ -117,12 +173,11 @@ function Duration({ availability, setDisable, dispatch }) {
             direction="horizontal"
             showDateDisplay={false}
             disabledDates={disabledDates}
-            rangeColors={["#c41c1c"]}
-            color="red"
+            rangeColors={["#c41c1c", "#ed8a26"]}
             fixedHeight
             dragSelectionEnabled={false}
           />
-        </>
+        </Box>
       ) : (
         <List variant="outlined">
           {availability.map((m, i) => (
