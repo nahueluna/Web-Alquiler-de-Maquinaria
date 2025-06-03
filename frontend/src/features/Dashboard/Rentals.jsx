@@ -12,7 +12,7 @@ import Snackbar from "@mui/joy/Snackbar";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheck";
 import { Box } from "@mui/joy";
-import UserContext from "../../context/UserContext"
+import UserContext from "../../context/UserContext";
 import { FormLabel, Select, Option } from "@mui/joy";
 
 const Rentals = () => {
@@ -122,20 +122,20 @@ const Rentals = () => {
   };
 
   // AGARRAMOS LAS LOCATIONS
-useEffect(() => {
-  if (!token) return;
+  useEffect(() => {
+    if (!token) return;
 
-  post("/locations", { access: token })
-    .then((res) => {
-      console.log("Ubicaciones recibidas:", res.data);
-      const locationsData = res.data.locations || res.data.Locations || [];
-      setLocations(locationsData);
-    })
-    .catch((err) => {
-      console.error("Error al obtener ubicaciones:", err);
-      setLocations([]); // en caso de error, dejamos el array vacío
-    });
-}, [token]);
+    post("/locations", { access: token })
+      .then((res) => {
+        console.log("Ubicaciones recibidas:", res.data);
+        const locationsData = res.data.locations || res.data.Locations || [];
+        setLocations(locationsData);
+      })
+      .catch((err) => {
+        console.error("Error al obtener ubicaciones:", err);
+        setLocations([]); // en caso de error, dejamos el array vacío
+      });
+  }, [token]);
 
   // LOGICA DEL HANDLE CONFIRM RETURN
   const handleConfirmedReturn = async (rentalId, locationId) => {
@@ -159,13 +159,18 @@ useEffect(() => {
         setOpen(false); // cerrar modal
       } else {
         setOpenSnack(true);
-      setStatus({
-        isError: true,
-        message: "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde.",
-      });
+        setStatus({
+          isError: true,
+          message:
+            "Ha ocurrido un error inesperado. Inténtalo de nuevo más tarde.",
+        });
       }
     } catch (error) {
-       console.error("ERROR AL CARGAR DEVOLUCIÓN:", error.response?.status, error.response?.data);
+      console.error(
+        "ERROR AL CARGAR DEVOLUCIÓN:",
+        error.response?.status,
+        error.response?.data
+      );
       setOpenSnack(true);
       setStatus({
         isError: true,
@@ -251,65 +256,69 @@ useEffect(() => {
       case "return":
         return (
           <>
-  <Typography level="h4" mb={2}>
-    Cargar fecha de devolución
-  </Typography>
+            <Typography level="h4" mb={2}>
+              Cargar fecha de devolución
+            </Typography>
 
-  {/* Selector de fecha */}
-  <FormLabel htmlFor="return-date">Fecha de devolución</FormLabel>
-  <Input
-    id="return-date"
-    type="date"
-    value={returnDate}
-    onChange={(e) => setReturnDate(e.target.value)}
-    required
-    sx={{ mb: 2 }}
-  />
+            {/* Selector de fecha */}
+            <FormLabel htmlFor="return-date">Fecha de devolución</FormLabel>
+            <Input
+              id="return-date"
+              type="date"
+              value={returnDate}
+              onChange={(e) => setReturnDate(e.target.value)}
+              required
+              sx={{ mb: 2 }}
+            />
 
-  {/* Selector de ubicación */}
-  <FormLabel htmlFor="ubicacion">Ubicación</FormLabel>
-  <Select
-    id="ubicacion"
-    value={selectedLocation}
-    onChange={(e, newValue) => setSelectedLocation(newValue)}
-    placeholder="Selecciona una ubicación"
-    required
-    sx={{ mb: 2 }}
-  >
-    <Option value="" disabled>
-      Selecciona una ubicación
-    </Option>
-    {locations.map((loc) => (
-      <Option key={loc.id} value={loc.id}>
-        {loc.name || loc.city}
-      </Option>
-    ))}
-  </Select>
+            {/* Selector de ubicación */}
+            <FormLabel htmlFor="ubicacion">Ubicación</FormLabel>
+            <Select
+              id="ubicacion"
+              value={selectedLocation}
+              onChange={(e, newValue) => setSelectedLocation(newValue)}
+              placeholder="Selecciona una ubicación"
+              required
+              sx={{ mb: 2 }}
+            >
+              <Option value="" disabled>
+                Selecciona una ubicación
+              </Option>
+              {locations.map((loc) => (
+                <Option key={loc.id} value={loc.id}>
+                  {loc.name || loc.city}
+                </Option>
+              ))}
+            </Select>
 
-  <Stack direction="row" justifyContent="flex-end" spacing={1}>
-    <Button
-      variant="soft"
-      color="neutral"
-      onClick={() => {
-        setOpen(false);
-        setSelectedLocation("");
-        setReturnDate("");
-      }}
-    >
-      Cancelar
-    </Button>
-    <Button
-      variant="solid"
-      color="danger"
-      onClick={() =>
-        handleConfirmedReturn(rentalInfo.rentalId, selectedLocation, returnDate)
-      }
-      loading={loading}
-      disabled={!selectedLocation || !returnDate} // Se desactiva si falta algo
-    >
-      Confirmar devolución
-    </Button>
-  </Stack>
+            <Stack direction="row" justifyContent="flex-end" spacing={1}>
+              <Button
+                variant="soft"
+                color="neutral"
+                onClick={() => {
+                  setOpen(false);
+                  setSelectedLocation("");
+                  setReturnDate("");
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="solid"
+                color="danger"
+                onClick={() =>
+                  handleConfirmedReturn(
+                    rentalInfo.rentalId,
+                    selectedLocation,
+                    returnDate
+                  )
+                }
+                loading={loading}
+                disabled={!selectedLocation || !returnDate} // Se desactiva si falta algo
+              >
+                Confirmar devolución
+              </Button>
+            </Stack>
           </>
         );
       default:
@@ -330,10 +339,6 @@ useEffect(() => {
       setRentals([]);
     }
   };
-
-  useEffect(() => {
-    fetchRentals();
-  }, []);
 
   const handleChange = (event) => {
     const cleaned = event.target.value.replace(/[^\d]/g, "");
