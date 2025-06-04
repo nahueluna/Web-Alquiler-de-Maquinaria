@@ -126,6 +126,24 @@ function TwoFactor() {
     }
   }
 
+  async function handleNewCodeRequest() {
+    try {
+      const response = await login({ ...state });
+      setOpenSnack(true);
+      setStatus({
+        isError: false,
+        message: "Se envio un nuevo codigo a tu correo.",
+      });
+    } catch (error) {
+      setOpenSnack(true);
+      setStatus({
+        isError: true,
+        message:
+          "Ocurrió un error al enviar el nuevo código. Intentalo mas tarde",
+      });
+    }
+  }
+
   return (
     <>
       <Snackbar
@@ -238,7 +256,8 @@ function TwoFactor() {
               </Button>
 
               <Typography level="body-sm">
-                No recibiste el codigo? <Link>Reenviar codigo</Link>
+                No recibiste el codigo?{" "}
+                <Link onClick={handleNewCodeRequest}>Reenviar codigo</Link>
               </Typography>
             </Box>
           </Box>
