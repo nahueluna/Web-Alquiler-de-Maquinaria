@@ -128,7 +128,8 @@ export default function RentalCard({
             </Typography>
             {status === "active" &&
               !onSameDay(endDate) &&
-              !isAfterEndDate(endDate) && (
+              !isAfterEndDate(endDate) &&
+              (onSameDay(startDate) || isAfterEndDate(startDate)) && (
                 <Button
                   color="danger"
                   variant="plain"
