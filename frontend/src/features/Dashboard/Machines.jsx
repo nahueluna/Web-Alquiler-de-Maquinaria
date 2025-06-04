@@ -46,12 +46,15 @@ const Machines = ({ categories }) => {
       >
         <Stack spacing={4} sx={{ padding: 2, width: "100%", height: "100%" }}>
           <Stack direction={"row"} spacing={2}>
+            {/* 
+              
             <FormControl>
               <Input
                 endDecorator={<SearchIcon />}
                 placeholder="Buscar por modelo..."
               />
             </FormControl>
+              */}
             <Button color="danger" onClick={() => setRegisterForm(true)}>
               Registrar nuevo modelo
             </Button>
