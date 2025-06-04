@@ -86,6 +86,7 @@ function RentalModal({ setOpen, open, machine, locations }) {
           availability={availability}
           setDisable={setDisable}
           dispatch={dispatch}
+          loading={loadingMl}
         />
       ),
     },

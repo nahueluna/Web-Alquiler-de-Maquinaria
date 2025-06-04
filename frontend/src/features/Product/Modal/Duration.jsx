@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { DateRange } from "@iroomit/react-date-range";
 import ArrowRightRoundedIcon from "@mui/icons-material/ArrowRightRounded";
 
-function Duration({ availability, setDisable, dispatch }) {
+function Duration({ availability, setDisable, dispatch, loading }) {
   const [selectedRange, setSelectedRange] = useState([
     {
       startDate: new Date(),
@@ -140,43 +140,64 @@ function Duration({ availability, setDisable, dispatch }) {
               <span>Mantenimiento planificado</span>
             </Box>
           </Box>
-          <DateRange
-            onChange={(item) => {
-              let { selection } = item;
-              const { startDate, endDate } = selection;
-              // Set the hour to 21, this is because the date-fns intervals are set to that
-              startDate.setHours(21);
-              endDate.setHours(21);
-              const inter = interval(startDate, endDate);
-              const duration = intervalToDuration(inter);
+          <Box
+            sx={[
+              {
+                position: "relative",
+              },
+              // Cover the calendar when the button is loading
+              loading && {
+                "&::before": {
+                  position: "absolute",
+                  content: '""',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: "transparent",
+                  zIndex: 10,
+                },
+              },
+            ]}
+          >
+            <DateRange
+              onChange={(item) => {
+                let { selection } = item;
+                const { startDate, endDate } = selection;
+                // Set the hour to 21, this is because the date-fns intervals are set to that
+                startDate.setHours(21);
+                endDate.setHours(21);
+                const inter = interval(startDate, endDate);
+                const duration = intervalToDuration(inter);
 
-              // Only the start date was selected
-              if (clickCount === 0) {
-                setClickCount(1);
-              } else {
-                // End date was selected
-                // If the selected range is only one day, or less than 7 days, make it 7 days
-                if (isSameDay(startDate, endDate)) {
-                  selection.endDate = addDays(endDate, 7);
-                } else if (duration.days < 7) {
-                  selection.endDate = addDays(endDate, 7 - duration.days);
+                // Only the start date was selected
+                if (clickCount === 0) {
+                  setClickCount(1);
+                } else {
+                  // End date was selected
+                  // If the selected range is only one day, or less than 7 days, make it 7 days
+                  if (isSameDay(startDate, endDate)) {
+                    selection.endDate = addDays(endDate, 7);
+                  } else if (duration.days < 7) {
+                    selection.endDate = addDays(endDate, 7 - duration.days);
+                  }
+                  setClickCount(0);
                 }
-                setClickCount(0);
-              }
 
-              setSelectedRange([selection]);
-            }}
-            showSelectionPreview={true}
-            months={2}
-            minDate={new Date()}
-            ranges={selectedRange}
-            direction="horizontal"
-            showDateDisplay={false}
-            disabledDates={disabledDates}
-            rangeColors={["#c41c1c", "#ed8a26"]}
-            fixedHeight
-            dragSelectionEnabled={false}
-          />
+                setSelectedRange([selection]);
+              }}
+              showSelectionPreview={true}
+              months={2}
+              minDate={new Date()}
+              ranges={selectedRange}
+              direction="horizontal"
+              showDateDisplay={false}
+              disabledDates={disabledDates}
+              rangeColors={["#c41c1c", "#ed8a26"]}
+              fixedHeight
+              dragSelectionEnabled={false}
+            />
+          </Box>
         </Box>
       ) : (
         <List variant="outlined">
