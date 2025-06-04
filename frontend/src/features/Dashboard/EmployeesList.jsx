@@ -137,7 +137,7 @@ const EmployeesList = ({ refreshEmployees }) => {
     <>
       {employees.length === 0 ? (
         <Typography variant="h6" color="textSecondary" align="center">
-          Oopsie. Parece que no hay empleados registrados.
+          No hay empleados registrados.
         </Typography>
       ) : (
         <>
