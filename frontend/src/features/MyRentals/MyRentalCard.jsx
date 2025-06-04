@@ -194,7 +194,7 @@ const response = await post("/rental/cancel", data);
               <Chip variant="solid" color="danger" size="lg">
                 {translateStatus(status)}
               </Chip>
-              {status === "pending_payment" && (
+              {(status === "pending_payment" || status === "active") && (
                 <Button
                   variant="outlined"
                   color="danger"
