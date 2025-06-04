@@ -228,23 +228,17 @@ const Profile = () => {
         <Typography level="body-sm" sx={{ minWidth: 100, fontWeight: "md" }}>
           Nacimiento:
         </Typography>
-        <Typography>
-          {userData.nacimiento ? userData.nacimiento : <i>No cargado</i>}
-        </Typography>
-      </Box>
-
-      {/* Rol */}
-      <Box sx={{ display: "flex", gap: 2, mb: 3, alignItems: "center" }}>
-        <Typography level="body-sm" sx={{ minWidth: 100, fontWeight: "md" }}>
-          Rol:
-        </Typography>
-        <Typography>
-          {userData.rol === 0
-            ? "Administrador"
-            : userData.rol === 1
-            ? "Empleado"
-            : "Cliente"}
-        </Typography>
+          <Typography>
+            {userData.nacimiento ? (
+              new Date(userData.nacimiento).toLocaleDateString("es-AR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })
+            ) : (
+              <i>No cargado</i>
+            )}
+          </Typography>
       </Box>
 
       <Box
@@ -279,7 +273,7 @@ const Profile = () => {
             color="neutral"
             onClick={() => setEditMode(true)}
           >
-            Editar
+            Editar teléfono
           </Button>
         )}
       </Box>
