@@ -9,6 +9,7 @@ import UserContext from "../../context/UserContext";
 import InputGroup from "./InputGroup";
 
 const cooldownTime = 60;
+let interval, timeout;
 
 function TwoFactor() {
   const { login, user, setUser } = useContext(UserContext);
@@ -42,6 +43,11 @@ function TwoFactor() {
   // Focus the first input when mounted
   useEffect(() => {
     refs.current[0].focus();
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, []);
 
   function editInputs(disabled) {
@@ -133,8 +139,11 @@ function TwoFactor() {
 
   async function handleNewCodeRequest() {
     setNewCodeDisable(true);
-    const interval = setInterval(() => setCooldown((prev) => prev - 1), 1000);
-    const timeout = setTimeout(() => {
+    interval = setInterval(() => {
+      setCooldown((prev) => prev - 1);
+      console.log("INTERVALO");
+    }, 1000);
+    timeout = setTimeout(() => {
       clearInterval(interval);
       setNewCodeDisable(false);
       setCooldown(cooldownTime);
