@@ -53,10 +53,10 @@ export const MachinesList = ({ refreshMachines }) => {
   }, [token]);
 
   useEffect(() => {
-    get("/explore")
+    post("/getmodels")
       .then((response) => {
-        console.log(response.data.items[0]);
-        setMachinesData(response.data.items || []);
+        console.log(response.data.models[0]);
+        setMachinesData(response.data.models || []);
       })
       .catch((error) => {
         console.error("Error cargando máquinas:", error);
