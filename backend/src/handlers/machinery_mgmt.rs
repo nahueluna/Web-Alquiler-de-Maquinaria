@@ -2119,6 +2119,16 @@ pub async fn get_locations(
 
 
 pub async fn get_models(State(state): State<AppState>, Json(payload): Json<Access>) -> Response {
+    let nginx_url = match env::var("NGINX_URL") {
+        Ok(url) => url,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "NGINX_URL must be set in the .env file"}))).into_response();
+
+        }
+    };
+
     let claims = match validate_jwt(&payload.access) {
         Some(data) => data,
         None => {
@@ -2169,7 +2179,12 @@ pub async fn get_models(State(state): State<AppState>, Json(payload): Json<Acces
                     policy: row.get("policy"),
                     description: row.get("description"),
                     price: row.get("price"),
-                    main_image: row.get("image"),
+                    main_image: format!(
+                        "{}/media/machines/{}.webp",
+                        nginx_url,
+                        row.get::<_, String>("image")
+                    ),
+
                     extra_images: Vec::new(),
                     categories: Vec::new(),
                 })
