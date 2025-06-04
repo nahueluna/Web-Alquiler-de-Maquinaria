@@ -11,8 +11,11 @@ import {
   Sheet,
   Stack,
   Typography,
+  Snackbar
 } from "@mui/joy";
-import React from "react";
+import React, { useContext, useState } from "react";
+import UserContext from "../../context/UserContext";
+import useAuth from "../utils/useAuth";
 
 const MyRentalCard = ({
   rentalID,
@@ -27,12 +30,105 @@ const MyRentalCard = ({
 }) => {
   const [open, setOpen] = React.useState(false);
   const [selectedRentalID, setSelectedRentalID] = React.useState(null);
+  const { user } = useContext(UserContext);
+  const token = user?.access || "";
+  const { post } = useAuth();
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    color: '', // o "danger"
+  });
+  
+  const translateStatus = (status) => {
+  switch (status) {
+    case "pending_payment":
+      return "Pago pendiente";
+    case "active":
+      return "Activo";
+    case "completed":
+      return "Completado";
+    case "cancelled":
+      return "Cancelado";
+    case "failed":
+      return "Fallido";
+    default:
+      return status;
+  }
+};
 
-  const handleConfirmedCancel = (rentalID) => {
-    console.log(`Canceling rental with ID: ${rentalID}`);
-    // CONECTAR A LA API
+const handleConfirmedCancel = async (rentalID) => {
+  try {
+    console.log("Antes de hacer la llamada API");
+    const data = {
+      access: token,
+  rental_id: rentalID,
+  reason: null,
+};
+console.log("Datos enviados a la API:", data);
+
+const response = await post("/rental/cancel", data);
+    console.log("-----------Respuesta de la API:-----------", response);
+
+    if (response.status === 200) {
+      setSnackbar({
+        open: true,
+        message: "Alquiler cancelado exitosamente.",
+        color: "success",
+      });
+    }
+  } catch (error) {
+    console.log("Error capturado:", error);
+    if (error.response) {
+      const { status, data } = error.response;
+      switch (status) {
+      case 400:
+        setSnackbar({
+          open: true,
+          message:
+            "No se puede cancelar este alquiler porque ya comenzó y no ha finalizado o ya fue retirado.",
+          color: "danger",
+        });
+        break;
+      case 401:
+        setSnackbar({
+          open: true,
+          message: "Token inválido. Por favor, inicia sesión de nuevo.",
+          color: "danger",
+        });
+        break;
+      case 404:
+        setSnackbar({
+          open: true,
+          message:
+            "No se encontró el alquiler o no está en un estado que pueda ser cancelado (ya cancelado, completado o fallido).",
+          color: "danger",
+        });
+        break;
+      case 500:
+        setSnackbar({
+          open: true,
+          message: "Error interno con la base de datos. Intenta más tarde.",
+          color: "danger",
+        });
+        break;
+      default:
+        setSnackbar({
+          open: true,
+          message: `Error inesperado: ${data?.mensaje || "sin detalles"}`,
+          color: "danger",
+        });
+    }
+  } else {
+    setSnackbar({
+      open: true,
+      message: "Error de conexión con el servidor.",
+      color: "danger",
+    });
+  }
+  } finally {
     setOpen(false);
-  };
+  }
+};
   return (
     <>
       <Card variant="outlined" sx={{ width: "60%", minWidth: "700px" }}>
@@ -42,7 +138,13 @@ const MyRentalCard = ({
             sx={{ py: 1, justifyContent: "space-between" }}
           >
             <Typography fontWeight="bold">ID {rentalID}</Typography>
-            <Typography>{startDate}</Typography>
+            <Typography>
+              {new Date(startDate).toLocaleDateString("es-AR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              })}
+            </Typography>
           </Stack>
           <Divider inset="context" />
         </CardOverflow>
@@ -90,9 +192,9 @@ const MyRentalCard = ({
               sx={{ minHeight: "100%" }}
             >
               <Chip variant="solid" color="danger" size="lg">
-                {status}
+                {translateStatus(status)}
               </Chip>
-              {status === "Activo" && (
+              {status === "pending_payment" && (
                 <Button
                   variant="outlined"
                   color="danger"
@@ -149,6 +251,16 @@ const MyRentalCard = ({
           </Stack>
         </Sheet>
       </Modal>
+      <Snackbar
+        variant="soft"
+        color={snackbar.color}
+        open={snackbar.open}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        autoHideDuration={5000}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        {snackbar.message}
+      </Snackbar>
     </>
   );
 };
