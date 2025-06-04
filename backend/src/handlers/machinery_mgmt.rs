@@ -2116,3 +2116,72 @@ pub async fn get_locations(
         }
     };
 }
+
+
+pub async fn get_models(State(state): State<AppState>, Json(payload): Json<Access>) -> Response {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            )
+                .into_response()
+        }
+    }
+    .claims;
+
+    if claims.role != 0 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "The user is not an admin"})),
+        )
+            .into_response();
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response()
+        }
+    };
+
+    match client
+        .query(
+            "SELECT * FROM machinery_models;",
+            &[],
+        )
+        .await
+    {
+        Ok(rows) => {
+            let models: Vec<MachineModel> = rows
+                .iter()
+                .map(|row| MachineModel {
+                    id: row.get("id"),
+                    name: row.get("name"),
+                    brand: row.get("brand"),
+                    model: row.get("model"),
+                    year: row.get("year"),
+                    policy: row.get("policy"),
+                    description: row.get("description"),
+                    price: row.get("price"),
+                    main_image: row.get("image"),
+                    extra_images: Vec::new(),
+                    categories: Vec::new(),
+                })
+                .collect();
+            return (StatusCode::OK, Json(json!({"models": models}))).into_response();
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to get the models"})),
+            )
+                .into_response()
+        }
+    };
+}
