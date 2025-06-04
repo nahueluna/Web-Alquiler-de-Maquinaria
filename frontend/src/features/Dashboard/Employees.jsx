@@ -24,12 +24,15 @@ const Employees = () => {
       <Sheet sx={{ p: 2 }}>
         <Stack spacing={2} sx={{ width: "50%", minWidth: "500px" }}>
           <Stack direction="row" spacing={2}>
+            {/* 
             <FormControl sx={{ width: "350px" }}>
               <Input
                 endDecorator={<SearchIcon />}
                 placeholder="Buscar por nombre..."
               />
             </FormControl>
+            
+            */}
             <Button color="danger" onClick={() => setRegisterForm(true)}>
               Registrar empleado
             </Button>
