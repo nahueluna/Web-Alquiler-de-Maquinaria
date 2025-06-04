@@ -1,3 +1,4 @@
+use crate::custom_types::structs::MachineModel;
 use crate::custom_types::{enums::RunningEnv, structs::MyRentalInfo};
 use crate::helpers::auth::create_pool;
 use crate::tests::helpers::*;
@@ -2033,4 +2034,23 @@ async fn test_get_locations() {
         res_json["message"].as_str().unwrap(),
         "Solo empleados y administradores pueden acceder a esta información"
     );
+}
+
+#[tokio::test]
+async fn test_get_models() {
+    setup().await;
+    let client = Client::new();
+
+    //Get the access token needed for get_employees
+    let jwt = get_test_jwt("admin2@example.com", false).await;
+    //get_employees
+    let res = client
+        .post(backend_url("/getmodels"))
+        .json(&serde_json::json!({
+            "access": jwt 
+        })).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["models"].clone();
+    let models: Vec<MachineModel> = serde_json::from_value(value).unwrap();
+    println!("{:?}", models);
 }

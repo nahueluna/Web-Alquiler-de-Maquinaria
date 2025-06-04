@@ -70,6 +70,7 @@ async fn main() {
         .route("/myrentals", post(get_my_rentals))
         .route("/loadretirement", post(load_retirement))
         .route("/loadreturn", post(load_return))
+        .route("/getmodels", post(get_models))
         .route(
             "/newmodel",
             post(new_model).layer(DefaultBodyLimit::max(20 * 1024 * 1024)),
