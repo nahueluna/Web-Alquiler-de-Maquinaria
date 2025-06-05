@@ -18,6 +18,14 @@ const isAfterEndDate = (endDate) => {
   return today > end;
 };
 
+const isBeforeStartDate = (startDate) => {
+  const today = new Date();
+  const start = new Date(startDate);
+  today.setHours(0, 0, 0, 0);
+  start.setHours(0, 0, 0, 0);
+  return today < start;
+};
+
 const translateStatus = (status) => {
   switch (status) {
     case "pending_payment":
@@ -180,7 +188,7 @@ export default function RentalCard({
         {(status === "pending_payment" ||
           (status === "active" &&
             !onSameDay(startDate) &&
-            isAfterEndDate(endDate))) && (
+            (isBeforeStartDate(startDate) || isAfterEndDate(endDate)))) && (
           <Button
             color="danger"
             size="lg"
