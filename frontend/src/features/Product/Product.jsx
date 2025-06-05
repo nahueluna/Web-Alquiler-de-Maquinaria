@@ -185,7 +185,7 @@ function Product() {
                   <td>{machine?.model}</td>
                 </tr>
                 <tr>
-                  <td>Anio</td>
+                  <td>Año</td>
                   <td>{machine?.year}</td>
                 </tr>
                 <tr>
