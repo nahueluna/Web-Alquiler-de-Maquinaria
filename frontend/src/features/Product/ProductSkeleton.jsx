@@ -81,7 +81,7 @@ function ProductSkeleton() {
               </td>
             </tr>
             <tr>
-              <td>Anio</td>
+              <td>Año</td>
               <td>
                 <Typography level="body-sm">
                   <Skeleton>Lorem ipsum</Skeleton>
