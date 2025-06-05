@@ -8,12 +8,18 @@ import { useLocation, useNavigate } from "react-router-dom";
 import UserContext from "../../context/UserContext";
 import InputGroup from "./InputGroup";
 
+const cooldownTime = 60;
+let interval, timeout;
+
 function TwoFactor() {
   const { login, user, setUser } = useContext(UserContext);
   const { state } = useLocation();
   const [code, setCode] = useState(new Array(6).fill(""));
   const [isComplete, setIsComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(cooldownTime);
+  const [newCodeDisable, setNewCodeDisable] = useState(false);
+
   const refs = useRef([]);
   const [openSnack, setOpenSnack] = useState(false);
   const [status, setStatus] = useState({ isError: false, message: "" });
@@ -37,6 +43,11 @@ function TwoFactor() {
   // Focus the first input when mounted
   useEffect(() => {
     refs.current[0].focus();
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, []);
 
   function editInputs(disabled) {
@@ -127,6 +138,16 @@ function TwoFactor() {
   }
 
   async function handleNewCodeRequest() {
+    setNewCodeDisable(true);
+    interval = setInterval(() => {
+      setCooldown((prev) => prev - 1);
+      console.log("INTERVALO");
+    }, 1000);
+    timeout = setTimeout(() => {
+      clearInterval(interval);
+      setNewCodeDisable(false);
+      setCooldown(cooldownTime);
+    }, cooldownTime * 1000);
     try {
       const response = await login({ ...state });
       setOpenSnack(true);
@@ -135,6 +156,9 @@ function TwoFactor() {
         message: "Se envio un nuevo codigo a tu correo.",
       });
     } catch (error) {
+      clearTimeout(timeout);
+      clearInterval(interval);
+      setNewCodeDisable(false);
       setOpenSnack(true);
       setStatus({
         isError: true,
@@ -257,7 +281,10 @@ function TwoFactor() {
 
               <Typography level="body-sm">
                 No recibiste el codigo?{" "}
-                <Link onClick={handleNewCodeRequest}>Reenviar codigo</Link>
+                <Link disabled={newCodeDisable} onClick={handleNewCodeRequest}>
+                  Reenviar codigo
+                </Link>{" "}
+                {newCodeDisable && <Typography>en {cooldown}s</Typography>}
               </Typography>
             </Box>
           </Box>
