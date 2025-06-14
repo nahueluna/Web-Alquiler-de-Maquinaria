@@ -8,6 +8,12 @@ import Chip from "@mui/joy/Chip";
 import Divider from "@mui/joy/Divider";
 import Typography from "@mui/joy/Typography";
 import React from "react";
+import Rating from "./Rating";
+
+const reviews = {
+  totalReviews: 53,
+  rating: 4.5,
+};
 
 export default function MachineCard({
   imageUrl,
@@ -61,6 +67,12 @@ export default function MachineCard({
         >
           {name} {model}
         </Typography>
+        {/*
+          USAR PARA CUANDO SE AGREGUEN VALORACIONES
+          
+          <Rating reviews={reviews} />
+          
+          */}
         <Box sx={{ minHeight: "4em" }}>
           {categories.map((category, index) => (
             <Chip
