@@ -381,6 +381,13 @@ pub struct NewQuestion {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct NewAnswer {
+    pub access: String,
+    pub question_id: i32,
+    pub content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SerialNumber {
     pub serial_number: String,
 }

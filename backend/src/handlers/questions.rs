@@ -94,3 +94,96 @@ pub async fn new_question(State(state): State<AppState>, Json(payload): Json<New
         }
     };
 }
+
+pub async fn new_answer(State(state): State<AppState>, Json(payload): Json<NewAnswer>) -> Response {
+
+    if payload.content.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"message": "The answer's content is empty"})),
+        )
+            .into_response();
+    }
+
+    if payload.content.len() > 256 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"message": "The answer's content is larger than 256 characters"})),
+        )
+            .into_response();
+    }
+
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            )
+                .into_response()
+        }
+    }
+    .claims;
+
+    if claims.role == 2 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Not enough permissions"})),
+        )
+            .into_response();
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response()
+        }
+    };
+
+    match client
+        .execute(
+            "INSERT INTO answers
+        (question_id, user_id, content)
+        VALUES ($1, $2, $3);",
+            &[
+                &payload.question_id,
+                &claims.user_id,
+                &payload.content,
+            ],
+        )
+        .await
+    {
+        Ok(_) => {
+            return (
+                StatusCode::CREATED,
+                Json(json!({"message": "Answer created successfully"})),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            let mut status_code = StatusCode::INTERNAL_SERVER_ERROR;
+            let mut message = "Failed to save answer";
+            if let Some(db_err) = e.as_db_error() {
+                match db_err.code() {
+                    &SqlState::UNIQUE_VIOLATION => {
+                        status_code = StatusCode::BAD_REQUEST;
+                        message = "The question has already been answered";
+                    }
+                    &SqlState::FOREIGN_KEY_VIOLATION => {
+                        let detail = db_err.message().to_lowercase();
+                        if detail.contains("question_id") {
+                            status_code = StatusCode::BAD_REQUEST;
+                            message = "question_id is invalid";
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            return (status_code, Json(json!({"message": message}))).into_response();
+        }
+    }
+}

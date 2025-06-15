@@ -17,7 +17,8 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES
 ('check_change_psw_code@example.com', 'jamie', 'hi', '2c82435c63a8d9c0afee889440e9b5c75c0b72cc717230a1dab6f0db35a7e2eb', '1212121212121212', 0, 'active'),
 ('client1@example.com', 'user17', 'one', 'nopasswordforyou', '123', 2, 'active'),
 ('loadreturn@example.com', 'user18', 'one', 'nopasswordforyoueither', '123', 0, 'active'),
-('newquestion@example.com', 'user19', 'u19', 'nopasswordforyoueither', '123', 2, 'active');
+('newquestion@example.com', 'user19', 'u19', 'nopasswordforyoueither', '123', 2, 'active'),
+('newanswer@example.com', 'user20', 'u20', 'nopasswordforyoueither', '123', 0, 'active');
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),
@@ -200,3 +201,6 @@ INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, sta
 INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status,
     retirement_employee_id, retirement_date, payment_id) VALUES
 (4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 4100.00, 'active', 2, NOW() - INTERVAL '3 days', 'PAY_00003');
+
+INSERT INTO questions (user_id, model_id, content) VALUES
+(19, 1, 'Does it come with batteries?');

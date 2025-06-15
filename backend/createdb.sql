@@ -114,3 +114,10 @@ CREATE TABLE questions (
     content varchar(256) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE answers (
+    question_id INTEGER PRIMARY KEY REFERENCES questions(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    content varchar(256) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
