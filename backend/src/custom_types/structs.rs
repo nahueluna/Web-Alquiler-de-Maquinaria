@@ -379,3 +379,63 @@ pub struct NewQuestion {
     pub model_id: i32,
     pub content: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SerialNumber {
+    pub serial_number: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetMachineUnit {
+    pub model_id: i32,
+    pub name: String,
+    pub brand: String,
+    pub model: String,
+    pub year: i32,
+    pub image: String, //base64 encoded string
+    pub unit_id: i32,
+    pub serial_number: String,
+    pub status: String,
+    pub location_id: i32,
+    pub city: String,
+    pub street: String,
+    pub number: String,
+}
+
+impl GetMachineUnit {
+    pub fn build_from_row(
+        row: &tokio_postgres::Row,
+    ) -> Result<Self, (StatusCode, Json<serde_json::Value>)> {
+        let nginx_url = match env::var("NGINX_URL") {
+            Ok(url) => url,
+            Err(_) => {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({
+                        "error": "NGINX_URL environment variable is not set. Cannot get machine image."
+                    })),
+                ))
+            }
+        };
+
+        Ok(GetMachineUnit {
+            model_id: row.get("model_id"),
+            name: row.get("name"),
+            brand: row.get("brand"),
+            model: row.get("model"),
+            year: row.get("year"),
+            image: format!(
+                "{}/media/machines/{}.webp",
+                nginx_url,
+                row.get::<_, String>("image")
+            ),
+            unit_id: row.get("unit_id"),
+            serial_number: row.get("serial_number"),
+            status: row.get::<_, String>("status"),
+            location_id: row.get("location_id"),
+            city: row.get("city"),
+            street: row.get("street"),
+            number: row.get("number"),
+        })
+    }
+}
