@@ -372,3 +372,10 @@ pub struct CancelRentalInfo {
 pub struct GetRentalQueryParams {
     pub id: Option<i32>, // Rental ID
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NewQuestion {
+    pub access: String,
+    pub model_id: i32,
+    pub content: String,
+}

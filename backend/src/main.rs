@@ -6,7 +6,7 @@ use axum::{
     Router,
 };
 use dotenvy::dotenv;
-use handlers::{auth::*, machinery_mgmt::*};
+use handlers::{auth::*, machinery_mgmt::*, questions::*};
 use helpers::auth::create_pool;
 use std::{env, sync::Arc};
 use tower_http::cors::CorsLayer;
@@ -79,6 +79,7 @@ async fn main() {
         .route("/rental/cancel", post(cancel_rental))
         .route("/staff/rentals", post(get_staff_rentals))
         .route("/locations", post(get_locations))
+        .route("/newquestion", post(new_question))
         .layer(
             CorsLayer::new()
                 .allow_origin(vec![frontend_url.parse().unwrap()])

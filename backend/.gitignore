@@ -10,3 +10,5 @@ media/*
 !media/nginx.conf
 !media/mime.types
 !media/test
+
+demo*

@@ -1,0 +1,96 @@
+use crate::custom_types::structs::*;
+use crate::helpers::auth::*;
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
+use serde_json::json;
+use tokio_postgres::error::SqlState;
+
+pub async fn new_question(State(state): State<AppState>, Json(payload): Json<NewQuestion>) -> Response {
+
+    if payload.content.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"message": "The question's content is empty"})),
+        )
+            .into_response();
+    }
+
+    if payload.content.len() > 256 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"message": "The question's content is larger than 256 characters"})),
+        )
+            .into_response();
+    }
+
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            )
+                .into_response()
+        }
+    }
+    .claims;
+
+    if claims.role != 2 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Invalid role"})),
+        )
+            .into_response();
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response()
+        }
+    };
+
+    match client
+        .execute(
+            "INSERT INTO questions
+        (user_id, model_id, content)
+        VALUES ($1, $2, $3);",
+            &[
+                &claims.user_id,
+                &payload.model_id,
+                &payload.content,
+            ],
+        )
+        .await
+    {
+        Ok(_) => {
+            return (
+                StatusCode::CREATED,
+                Json(json!({"message": "Question created successfully"})),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            if let Some(db_err) = e.as_db_error() {
+                if db_err.code() == &SqlState::FOREIGN_KEY_VIOLATION && db_err.message().contains("model_id")
+                {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(json!({"message": "model_id is invalid"})),
+                    )
+                        .into_response();
+                }
+            }
+            return (StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to save unit"}))).into_response();
+        }
+    };
+}

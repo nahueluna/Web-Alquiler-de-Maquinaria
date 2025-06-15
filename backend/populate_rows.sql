@@ -16,7 +16,8 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES
 ('admin2@example.com', 'admin', '2', '9c82435c63a8d9c0afee889440e9b5c75c0b72cc717230a1dab6f0db35a7e2eb', '1212121212121212', 0, 'active'),
 ('check_change_psw_code@example.com', 'jamie', 'hi', '2c82435c63a8d9c0afee889440e9b5c75c0b72cc717230a1dab6f0db35a7e2eb', '1212121212121212', 0, 'active'),
 ('client1@example.com', 'user17', 'one', 'nopasswordforyou', '123', 2, 'active'),
-('loadreturn@example.com', 'user18', 'one', 'nopasswordforyoueither', '123', 0, 'active');
+('loadreturn@example.com', 'user18', 'one', 'nopasswordforyoueither', '123', 0, 'active'),
+('newquestion@example.com', 'user19', 'u19', 'nopasswordforyoueither', '123', 2, 'active');
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),
@@ -26,7 +27,8 @@ INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (9, '1993-06-30', 'ID901234', '555-7890'),
 (10, '1993-06-30', '888888', '555-7890'),
 (12, '1993-06-30', '123123', '555-7890'),
-(14, '1993-06-30', '123122', '555-7890');
+(14, '1993-06-30', '123122', '555-7890'),
+(19, '1993-06-30', '123134', '555-7890');
 
 INSERT INTO change_psw_codes (id, code) VALUES
 (13, 'change_psw_code'),

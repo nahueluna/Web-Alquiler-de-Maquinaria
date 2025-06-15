@@ -106,3 +106,11 @@ CREATE TABLE model_extra_images (
     name varchar(64) PRIMARY KEY,
     id INTEGER NOT NULL REFERENCES machinery_models(id)
 );
+
+CREATE TABLE questions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    model_id INTEGER NOT NULL REFERENCES machinery_models(id),
+    content varchar(256) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
