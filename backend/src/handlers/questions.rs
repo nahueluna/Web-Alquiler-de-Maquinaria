@@ -294,3 +294,86 @@ pub async fn vote_question(State(state): State<AppState>, Json(payload): Json<Vo
         }
     }
 }
+
+pub async fn get_unanswered_questions(State(state): State<AppState>, Json(payload): Json<Access>) -> Response {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            )
+                .into_response()
+        }
+    }
+    .claims;
+
+    if claims.role == 2 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Not enough permissions"})),
+        )
+            .into_response();
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response()
+        }
+    };
+
+    match client
+        .query("SELECT
+            questions.id,
+            questions.content,
+            questions.created_at,
+            users.name AS user_name,
+            users.surname,
+            machinery_models.id AS model_id,
+            machinery_models.brand,
+            machinery_models.name AS model_name,
+            machinery_models.model
+            FROM questions
+            JOIN users ON questions.user_id = users.id
+            JOIN machinery_models ON questions.model_id = machinery_models.id
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM answers
+                WHERE answers.question_id = questions.id
+            )
+            ORDER BY questions.created_at ASC;",
+            &[],
+        )
+        .await
+    {
+        Ok(rows) => {
+            let questions: Vec<UnansweredQuestion> = rows
+                .iter()
+                .map(|row| UnansweredQuestion {
+                    question_id: row.get("id"),
+                    content: row.get("content"),
+                    created_at: row.get("created_at"),
+                    user_name: row.get("user_name"),
+                    user_surname: row.get("surname"),
+                    model_id: row.get("model_id"),
+                    model_brand: row.get("brand"),
+                    model_name: row.get("model_name"),
+                    model_model: row.get("model"),
+                })
+                .collect();
+            return (StatusCode::OK, Json(json!({"questions": questions}))).into_response();
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to get the questions"})),
+            )
+                .into_response()
+        }
+    };
+}

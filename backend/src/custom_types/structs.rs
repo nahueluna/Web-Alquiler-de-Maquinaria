@@ -453,3 +453,16 @@ impl GetMachineUnit {
         })
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UnansweredQuestion {
+    pub question_id: i32,
+    pub content: String,
+    pub created_at: NaiveDateTime,
+    pub user_name: String,
+    pub user_surname: String,
+    pub model_id: i32,
+    pub model_brand: String,
+    pub model_name: String,
+    pub model_model: String,
+}

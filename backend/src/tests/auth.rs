@@ -20,7 +20,7 @@ async fn test_create_client() {
 
     let successful_res = http_client
         .post(backend_url("/signup"))
-        .json(&serde_json::json!({"email": "user@example.com",
+        .json(&serde_json::json!({"email": "newuser@example.com",
         "name": "alice",
         "surname": "wonderland",
         "birth_date": "01-01-2000",
@@ -34,7 +34,7 @@ async fn test_create_client() {
     let successful_rows = db_client
         .query(
             "SELECT * FROM users WHERE email = $1;",
-            &[&"user@example.com"],
+            &[&"newuser@example.com"],
         )
         .await
         .unwrap();
@@ -46,7 +46,7 @@ async fn test_create_client() {
     // Uses indexation by column name (&str) and gets a String value
     let email = user_info.get::<&str, String>("email");
 
-    assert_eq!(email, "user@example.com");
+    assert_eq!(email, "newuser@example.com");
 
 
     // ----------- Used id_card

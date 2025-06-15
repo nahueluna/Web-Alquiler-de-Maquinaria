@@ -18,7 +18,8 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES
 ('client1@example.com', 'user17', 'one', 'nopasswordforyou', '123', 2, 'active'),
 ('loadreturn@example.com', 'user18', 'one', 'nopasswordforyoueither', '123', 0, 'active'),
 ('newquestion@example.com', 'user19', 'u19', 'nopasswordforyoueither', '123', 2, 'active'),
-('newanswer@example.com', 'user20', 'u20', 'nopasswordforyoueither', '123', 0, 'active');
+('newanswer@example.com', 'user20', 'u20', 'nopasswordforyoueither', '123', 0, 'active'),
+('user@example.com', 'user21', 'u21', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 2, 'active');
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),
@@ -29,7 +30,8 @@ INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (10, '1993-06-30', '888888', '555-7890'),
 (12, '1993-06-30', '123123', '555-7890'),
 (14, '1993-06-30', '123122', '555-7890'),
-(19, '1993-06-30', '123134', '555-7890');
+(19, '1993-06-30', '123134', '555-7890'),
+(21, '1993-06-30', '123534', '555-7890');
 
 INSERT INTO change_psw_codes (id, code) VALUES
 (13, 'change_psw_code'),
@@ -203,4 +205,12 @@ INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, sta
 (4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 4100.00, 'active', 2, NOW() - INTERVAL '3 days', 'PAY_00003');
 
 INSERT INTO questions (user_id, model_id, content) VALUES
-(19, 1, 'Does it come with batteries?');
+(19, 1, 'pregunta 1'),
+(19, 1, 'pregunta 2'),
+(19, 1, 'pregunta 3'),
+(19, 1, 'pregunta 3'),
+(19, 1, 'pregunta 5');
+
+INSERT INTO answers (question_id, user_id, content) VALUES
+(2, 20, 'r1 a p2'),
+(4, 20, 'r2 a p4');

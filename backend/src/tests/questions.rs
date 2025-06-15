@@ -1,4 +1,4 @@
-use crate::custom_types::enums::RunningEnv;
+use crate::custom_types::{enums::RunningEnv, structs::UnansweredQuestion};
 use crate::helpers::auth::create_pool;
 use crate::tests::helpers::*;
 use reqwest::Client;
@@ -385,6 +385,67 @@ async fn test_vote_question() {
             "access": "no",
             "question_id": 1,
             "upvote": true
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 401);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Invalid access token");
+}
+
+#[tokio::test]
+async fn test_get_unanswered_questions() {
+    setup().await;
+    let client = Client::new();
+
+    //Get the access token
+    let jwt = get_test_jwt("admin@example.com", false).await;
+    //Get the questions
+    let res = client
+        .post(backend_url("/getunansweredquestions"))
+        .json(&serde_json::json!({
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["questions"].clone();
+    let mut questions: Vec<UnansweredQuestion> = serde_json::from_value(value).unwrap();
+    assert!(questions.len() > 1);
+    //Question 1 is answered in a test above, we cant count on it
+    if questions[0].question_id == 1 {
+        questions.remove(0);
+    }
+    assert_eq!(questions[0].question_id, 3);
+    assert_eq!(questions[0].content, "pregunta 3");
+    assert_eq!(questions[0].model_id, 1);
+    assert_eq!(questions[0].user_name, "user19");
+
+    assert_eq!(questions[1].question_id, 5);
+    assert_eq!(questions[1].content, "pregunta 5");
+    assert_eq!(questions[1].model_id, 1);
+    assert_eq!(questions[1].user_name, "user19");
+
+    //Get client token
+    let jwt = get_test_jwt("user@example.com", false).await;
+    //Invalid role
+    let res = client
+        .post(backend_url("/getunansweredquestions"))
+        .json(&serde_json::json!({
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 403);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Not enough permissions");
+
+    //Invalid token
+    let res = client
+        .post(backend_url("/getunansweredquestions"))
+        .json(&serde_json::json!({
+            "access": "no"
         }))
         .send()
         .await
