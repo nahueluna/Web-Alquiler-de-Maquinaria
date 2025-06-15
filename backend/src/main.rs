@@ -81,6 +81,7 @@ async fn main() {
         .route("/locations", post(get_locations))
         .route("/newquestion", post(new_question))
         .route("/newanswer", post(new_answer))
+        .route("/votequestion", post(vote_question))
         .route("/unit/{serial_number}", post(get_machine_unit))
         .layer(
             CorsLayer::new()

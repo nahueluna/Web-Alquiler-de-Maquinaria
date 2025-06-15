@@ -121,3 +121,9 @@ CREATE TABLE answers (
     content varchar(256) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE question_votes (
+    question_id INTEGER NOT NULL REFERENCES questions(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    PRIMARY KEY (question_id, user_id)
+);

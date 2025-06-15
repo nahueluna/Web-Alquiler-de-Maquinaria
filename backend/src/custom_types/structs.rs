@@ -388,6 +388,13 @@ pub struct NewAnswer {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct VoteQuestion {
+    pub access: String,
+    pub question_id: i32,
+    pub upvote: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SerialNumber {
     pub serial_number: String,
 }

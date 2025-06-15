@@ -244,3 +244,151 @@ async fn test_new_answer() {
     assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Invalid access token");
 
 }
+
+#[tokio::test]
+async fn test_vote_question() {
+    setup().await;
+    let client = Client::new();
+
+    let pool = create_pool(RunningEnv::Testing);
+    let db_client = match pool.await.get().await {
+        Ok(c) => c,
+        Err(e) => panic!("Failed to connect to the database: {}", e),
+    };
+
+    //Get the access token needed for new_question
+    let jwt = get_test_jwt("newquestion@example.com", false).await;
+    //Vote question
+    let res = client
+        .post(backend_url("/votequestion"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "question_id": 1,
+            "upvote": true
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 201);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Vote saved successfully");
+
+    //Check the vote was saved
+    db_client.query_one("SELECT * FROM question_votes JOIN users
+        ON users.id = question_votes.user_id WHERE email = $1 AND question_id = $2;",
+            &[&"newquestion@example.com", &&1]).await.unwrap();
+
+    //Vote positive again
+    let res = client
+        .post(backend_url("/votequestion"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "question_id": 1,
+            "upvote": true
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "The vote was already saved");
+
+    //Check the vote is still there
+    db_client.query_one("SELECT * FROM question_votes JOIN users
+        ON users.id = question_votes.user_id WHERE email = $1 AND question_id = $2;",
+            &[&"newquestion@example.com", &&1]).await.unwrap();
+
+    //Vote negative
+    let res = client
+        .post(backend_url("/votequestion"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "question_id": 1,
+            "upvote": false
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 201);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Vote saved successfully");
+
+    //Check the vote was deleted
+    assert!(db_client.query_one("SELECT * FROM question_votes JOIN users
+        ON users.id = question_votes.user_id WHERE email = $1 AND question_id = $2;",
+            &[&"newquestion@example.com", &&1]).await.is_err());
+
+    //Vote negative again
+    let res = client
+        .post(backend_url("/votequestion"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "question_id": 1,
+            "upvote": false
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "The vote was already saved");
+
+    //Check the vote is still deleted
+    assert!(db_client.query_one("SELECT * FROM question_votes JOIN users
+        ON users.id = question_votes.user_id WHERE email = $1 AND question_id = $2;",
+            &[&"newquestion@example.com", &&1]).await.is_err());
+
+    //Invalid question_id with positive vote
+    let res = client
+        .post(backend_url("/votequestion"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "question_id": i32::MAX,
+            "upvote": true
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 400);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "question_id is invalid");
+
+    //Invalid question_id with negative vote
+    let res = client
+        .post(backend_url("/votequestion"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "question_id": i32::MAX,
+            "upvote": false
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 400);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "question_id is invalid");
+
+    //Get admin token
+    let jwt = get_test_jwt("newanswer@example.com", false).await;
+    //Invalid role
+    let res = client
+        .post(backend_url("/votequestion"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "question_id": 1,
+            "upvote": true
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 403);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Invalid role");
+
+    //Invalid token
+    let res = client
+        .post(backend_url("/votequestion"))
+        .json(&serde_json::json!({
+            "access": "no",
+            "question_id": 1,
+            "upvote": true
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 401);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Invalid access token");
+}
