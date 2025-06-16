@@ -377,3 +377,117 @@ pub async fn get_unanswered_questions(State(state): State<AppState>, Json(payloa
         }
     };
 }
+
+pub async fn get_questions(
+    State(state): State<AppState>,
+    Json(payload): Json<GetQuestions>,
+) -> Response {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            )
+                .into_response()
+        }
+    }
+    .claims;
+
+    if claims.role != 2 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Not enough permissions"})),
+        )
+            .into_response();
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response()
+        }
+    };
+
+    let order_clause = match payload.order_by_recent {
+        true => "questions.created_at DESC, upvote_count DESC, question_id ASC",
+        false => "upvote_count DESC, questions.created_at DESC, question_id ASC",
+    };
+
+    let query = format!("
+        SELECT
+            questions.id AS question_id,
+            questions.content,
+            questions.created_at,
+            askers.name AS user_name,
+            askers.surname AS user_surname,
+            COALESCE(uv.count, 0) AS upvote_count,
+            EXISTS (
+                SELECT 1 FROM question_votes
+                WHERE question_votes.question_id = questions.id
+                AND question_votes.user_id = $1
+            ) AS upvoted,
+            answers.question_id IS NOT NULL AS has_answer,
+            answers.content AS answer_content,
+            answers.created_at AS answer_created_at,
+            answerers.name AS answer_user_name,
+            answerers.surname AS answer_user_surname
+        FROM questions
+        JOIN users askers ON questions.user_id = askers.id
+        LEFT JOIN (
+            SELECT question_id, COUNT(*) AS count
+            FROM question_votes
+            GROUP BY question_id
+        ) uv ON questions.id = uv.question_id
+        LEFT JOIN answers ON questions.id = answers.question_id
+        LEFT JOIN users answerers ON answers.user_id = answerers.id
+        WHERE questions.model_id = $2
+        ORDER BY {order_clause};
+        "
+    );
+
+    let result = client.query(&query, &[&claims.user_id, &payload.model_id]).await;
+
+    match result {
+        Ok(rows) => {
+            let questions: Vec<Question> = rows.iter().map(|row| {
+
+                let answer = if row.get::<_, bool>("has_answer") {
+                    Some(Answer {
+                        user_name: row.get("answer_user_name"),
+                        user_surname: row.get("answer_user_surname"),
+                        created_at: row.get("answer_created_at"),
+                        content: row.get("answer_content"),
+                    })
+                } else {
+                    None
+                };
+
+                Question {
+                    question_id: row.get("question_id"),
+                    content: row.get("content"),
+                    created_at: row.get("created_at"),
+                    user_name: row.get("user_name"),
+                    user_surname: row.get("user_surname"),
+                    upvotes: row.get("upvote_count"),
+                    upvoted: row.get("upvoted"),
+                    answer,
+                }
+
+
+
+
+            }).collect();
+            (StatusCode::OK, Json(json!({ "questions": questions }))).into_response()
+        }
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({ "message": "Failed to retrieve questions" })),
+        )
+            .into_response(),
+    }
+}

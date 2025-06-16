@@ -466,3 +466,32 @@ pub struct UnansweredQuestion {
     pub model_name: String,
     pub model_model: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Answer {
+    pub user_name: String,
+    pub user_surname: String,
+    pub created_at: NaiveDateTime,
+    pub content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Question {
+    pub question_id: i32,
+    pub content: String,
+    pub created_at: NaiveDateTime,
+    pub user_name: String,
+    pub user_surname: String,
+    pub upvotes: i64,
+    pub upvoted: bool,
+    pub answer: Option<Answer>,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetQuestions {
+    pub access: String,
+    pub model_id: i32,
+    pub order_by_recent: bool,
+
+}

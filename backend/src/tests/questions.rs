@@ -1,4 +1,4 @@
-use crate::custom_types::{enums::RunningEnv, structs::UnansweredQuestion};
+use crate::custom_types::{enums::RunningEnv, structs::*};
 use crate::helpers::auth::create_pool;
 use crate::tests::helpers::*;
 use reqwest::Client;
@@ -446,6 +446,136 @@ async fn test_get_unanswered_questions() {
         .post(backend_url("/getunansweredquestions"))
         .json(&serde_json::json!({
             "access": "no"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 401);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Invalid access token");
+}
+
+#[tokio::test]
+async fn test_get_questions() {
+    setup().await;
+    let client = Client::new();
+
+    //Get the access token
+    let jwt = get_test_jwt("user@example.com", false).await;
+    //Get the questions ordered by most recent
+    let res = client
+        .post(backend_url("/getquestions"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "model_id": 1,
+            "order_by_recent": true
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["questions"].clone();
+    let mut questions: Vec<Question> = serde_json::from_value(value).unwrap();
+    assert!(questions.len() > 4);
+    //Question 6 is created in a test above
+    if questions[0].question_id == 6 {
+        questions.remove(0);
+    }
+    //As recent as Q4 but has more votes
+    assert_eq!(questions[0].question_id, 5);
+    assert_eq!(questions[0].content, "pregunta 5");
+    assert_eq!(questions[0].user_name, "user19");
+    assert_eq!(questions[0].upvoted, false);
+    assert_eq!(questions[0].upvotes, 2);
+    assert!(questions[0].answer.is_none());
+
+    assert_eq!(questions[1].question_id, 4);
+    assert_eq!(questions[1].content, "pregunta 4");
+    assert_eq!(questions[1].user_name, "user19");
+    assert_eq!(questions[1].upvoted, false);
+    assert_eq!(questions[1].upvotes, 0);
+    assert_eq!(questions[1].answer.as_ref().unwrap().content, "r2 a p4");
+
+    //As recent as Q1 and Q2 but has more votes
+    assert_eq!(questions[2].question_id, 3);
+    assert_eq!(questions[2].content, "pregunta 3");
+    assert_eq!(questions[2].user_name, "user19");
+    assert_eq!(questions[2].upvoted, false);
+    assert_eq!(questions[2].upvotes, 2);
+    assert!(questions[2].answer.is_none());
+
+    assert_eq!(questions[3].question_id, 1);
+    assert_eq!(questions[3].content, "pregunta 1");
+    assert_eq!(questions[3].user_name, "user19");
+    assert_eq!(questions[3].upvoted, true);
+    assert_eq!(questions[3].upvotes, 1);
+    assert!(questions[3].answer.is_none());
+
+    assert_eq!(questions[4].question_id, 2);
+    assert_eq!(questions[4].content, "pregunta 2");
+    assert_eq!(questions[4].user_name, "user19");
+    assert_eq!(questions[4].upvoted, false);
+    assert_eq!(questions[4].upvotes, 0);
+    assert_eq!(questions[4].answer.as_ref().unwrap().content, "r1 a p2");
+
+    //Get the questions ordered by most votes
+    let res = client
+        .post(backend_url("/getquestions"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "model_id": 1,
+            "order_by_recent": false
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["questions"].clone();
+    let mut questions: Vec<Question> = serde_json::from_value(value).unwrap();
+    assert!(questions.len() > 4);
+    //Question 6 is created in a test above
+    if questions[0].question_id == 6 {
+        questions.remove(0);
+    }
+    //As many votes as Q3 but more recent
+    assert_eq!(questions[0].question_id, 5);
+    assert_eq!(questions[0].upvotes, 2);
+
+    assert_eq!(questions[1].question_id, 3);
+    assert_eq!(questions[1].upvotes, 2);
+
+    assert_eq!(questions[2].question_id, 1);
+    assert_eq!(questions[2].upvotes, 1);
+
+    //As many votes as Q2 but more recent
+    assert_eq!(questions[3].question_id, 4);
+    assert_eq!(questions[3].upvotes, 0);
+
+    assert_eq!(questions[4].question_id, 2);
+    assert_eq!(questions[4].upvotes, 0);
+
+    //Get admin token
+    let jwt = get_test_jwt("admin@example.com", false).await;
+    //Invalid role
+    let res = client
+        .post(backend_url("/getquestions"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "model_id": 1,
+            "order_by_recent": false
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 403);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Not enough permissions");
+
+    //Invalid token
+    let res = client
+        .post(backend_url("/getquestions"))
+        .json(&serde_json::json!({
+            "access": "guagua",
+            "model_id": 1,
+            "order_by_recent": false
         }))
         .send()
         .await

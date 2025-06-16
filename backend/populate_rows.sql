@@ -204,13 +204,20 @@ INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, sta
     retirement_employee_id, retirement_date, payment_id) VALUES
 (4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 4100.00, 'active', 2, NOW() - INTERVAL '3 days', 'PAY_00003');
 
-INSERT INTO questions (user_id, model_id, content) VALUES
-(19, 1, 'pregunta 1'),
-(19, 1, 'pregunta 2'),
-(19, 1, 'pregunta 3'),
-(19, 1, 'pregunta 3'),
-(19, 1, 'pregunta 5');
+INSERT INTO questions (user_id, model_id, content, created_at) VALUES
+(19, 1, 'pregunta 1', NOW()),
+(19, 1, 'pregunta 2', NOW()),
+(19, 1, 'pregunta 3', NOW()),
+(19, 1, 'pregunta 4', NOW() + INTERVAL '1 seconds'),
+(19, 1, 'pregunta 5', NOW() + INTERVAL '1 seconds');
 
 INSERT INTO answers (question_id, user_id, content) VALUES
 (2, 20, 'r1 a p2'),
 (4, 20, 'r2 a p4');
+
+INSERT INTO question_votes (question_id, user_id) VALUES
+(5, 1),
+(5, 2),
+(3, 3),
+(3, 4),
+(1, 21);
