@@ -221,3 +221,9 @@ INSERT INTO question_votes (question_id, user_id) VALUES
 (3, 3),
 (3, 4),
 (1, 21);
+
+INSERT INTO unit_history_events (unit_id, description, previous_status, new_status) VALUES
+(1, 'Avería en el sector delantero', 'available', 'maintenance'),
+(1, 'Refacciones completadas', 'maintenance', 'available'),
+(3, 'Cambio de estado a disponible', 'maintenance', 'available'),
+(6, 'Cambio de aceite', 'maintenance', 'available');

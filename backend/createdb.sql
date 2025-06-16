@@ -127,3 +127,12 @@ CREATE TABLE question_votes (
     user_id INTEGER NOT NULL REFERENCES users(id),
     PRIMARY KEY (question_id, user_id)
 );
+
+CREATE TABLE unit_history_events (
+    id SERIAL PRIMARY KEY,
+    unit_id INTEGER NOT NULL REFERENCES machinery_units(id),
+    description TEXT NULL,
+    previous_status machine_status NOT NULL,
+    new_status machine_status NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
