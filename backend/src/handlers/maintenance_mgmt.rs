@@ -129,6 +129,18 @@ pub async fn get_unit_history(
     ";
 
     if let Ok(rows) = client.query(history_query, &[&unit_id]).await {
+        if rows.is_empty() {
+            if let Err(_) = client
+                .query_one("SELECT id FROM machinery_units WHERE id = $1", &[&unit_id])
+                .await
+            {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(json!({"message": "La unidad solicitada no existe"})),
+                );
+            }
+        }
+
         let mut history_events = Vec::new();
 
         rows.iter().for_each(|r| {

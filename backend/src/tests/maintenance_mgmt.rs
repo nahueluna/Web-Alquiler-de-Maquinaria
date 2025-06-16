@@ -184,13 +184,14 @@ async fn test_get_unit_history() {
         .await
         .unwrap();
 
-    assert_eq!(invalid_response.status(), 200);
+    assert_eq!(invalid_response.status(), 404);
 
     let invalid_response_json: serde_json::Value = invalid_response.json().await.unwrap();
 
-    let invalid_unit_history = invalid_response_json["history"].as_array().unwrap();
-
-    assert!(invalid_unit_history.is_empty());
+    assert_eq!(
+        invalid_response_json["message"],
+        "La unidad solicitada no existe"
+    );
 
     // ---------- Employee tries to get a history for a unit without it
 
