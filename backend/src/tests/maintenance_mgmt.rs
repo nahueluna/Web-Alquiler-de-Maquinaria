@@ -135,3 +135,111 @@ async fn test_get_machine_unit() {
         "Solo empleados y administradores pueden acceder a esta información"
     );
 }
+
+#[tokio::test]
+async fn test_get_unit_history() {
+    setup().await;
+    let http_client = Client::new();
+
+    let jwt = get_test_jwt("bob@example.com", true).await;
+
+    // ---------- Employee gets a valid unit history
+
+    let valid_unit_id = 1;
+    let valid_response = http_client
+        .post(format!(
+            "{}/{}/history",
+            backend_url("/unit"),
+            valid_unit_id
+        ))
+        .json(&serde_json::json!({
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(valid_response.status(), 200);
+
+    let valid_response_json: serde_json::Value = valid_response.json().await.unwrap();
+
+    let valid_unit_history = valid_response_json["history"].as_array().unwrap();
+
+    assert!(!valid_unit_history.is_empty());
+
+    // ---------- Employee gets a valid unit history with an invalid unit ID
+
+    let invalid_unit_id = 9999;
+
+    let invalid_response = http_client
+        .post(format!(
+            "{}/{}/history",
+            backend_url("/unit"),
+            invalid_unit_id
+        ))
+        .json(&serde_json::json!({
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_response.status(), 200);
+
+    let invalid_response_json: serde_json::Value = invalid_response.json().await.unwrap();
+
+    let invalid_unit_history = invalid_response_json["history"].as_array().unwrap();
+
+    assert!(invalid_unit_history.is_empty());
+
+    // ---------- Employee tries to get a history for a unit without it
+
+    let no_history_unit_id = 11;
+
+    let no_history_response = http_client
+        .post(format!(
+            "{}/{}/history",
+            backend_url("/unit"),
+            no_history_unit_id
+        ))
+        .json(&serde_json::json!({
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(no_history_response.status(), 200);
+
+    let no_history_response_json: serde_json::Value = no_history_response.json().await.unwrap();
+
+    let no_history_unit_history = no_history_response_json["history"].as_array().unwrap();
+
+    assert!(no_history_unit_history.is_empty());
+
+    // ---------- Client tries to get a unit history
+
+    let client_jwt = get_test_jwt("dave@example.com", false).await;
+
+    let client_response = http_client
+        .post(format!(
+            "{}/{}/history",
+            backend_url("/unit"),
+            valid_unit_id
+        ))
+        .json(&serde_json::json!({
+            "access": client_jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(client_response.status(), 403);
+
+    let client_response_json: serde_json::Value = client_response.json().await.unwrap();
+
+    assert_eq!(
+        client_response_json["message"],
+        "Solo empleados y administradores pueden acceder a esta información"
+    );
+}

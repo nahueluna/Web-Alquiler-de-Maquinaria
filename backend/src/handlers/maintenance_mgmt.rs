@@ -85,3 +85,68 @@ pub async fn get_machine_unit(
         Json(json!({"message": "El número de serie ingresado no existe"})),
     );
 }
+
+pub async fn get_unit_history(
+    State(state): State<AppState>,
+    Path(unit_id): Path<i32>,
+    Json(payload): Json<Access>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    }
+    .claims;
+
+    if (claims.role != 0) && (claims.role != 1) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(
+                json!({"message": "Solo empleados y administradores pueden acceder a esta información"}),
+            ),
+        );
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            );
+        }
+    };
+
+    let history_query = "
+    SELECT uhe.id AS event_id, uhe.description, uhe.previous_status::TEXT, uhe.new_status::TEXT, uhe.created_at 
+    FROM machinery_units mu INNER JOIN unit_history_events uhe ON mu.id = uhe.unit_id
+    WHERE mu.id = $1
+    ORDER BY uhe.created_at DESC;
+    ";
+
+    if let Ok(rows) = client.query(history_query, &[&unit_id]).await {
+        let mut history_events = Vec::new();
+
+        rows.iter().for_each(|r| {
+            let event = UnitHistoryEvent::build_from_row(r);
+            history_events.push(event);
+        });
+
+        return (
+            StatusCode::OK,
+            Json(json!({
+                "unit_id": unit_id,
+                "history": history_events,
+            })),
+        );
+    }
+
+    return (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({"message": "Ocurrió un error al obtener el historial de la unidad"})),
+    );
+}
