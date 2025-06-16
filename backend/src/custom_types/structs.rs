@@ -1,3 +1,5 @@
+use crate::custom_types::enums::UnitStatusEvents;
+
 use super::enums::{OrderByField, OrderDirection, PaymentStatus};
 use axum::Json;
 use chrono::{NaiveDate, NaiveDateTime};
@@ -513,4 +515,13 @@ impl UnitHistoryEvent {
             created_at: row.get("created_at"),
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateUnitHistoryInfo {
+    pub access: String,
+    pub unit_id: i32,
+    pub description: Option<String>,
+    pub previous_status: UnitStatusEvents,
+    pub new_status: UnitStatusEvents,
 }
