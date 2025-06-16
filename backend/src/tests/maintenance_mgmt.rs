@@ -1,3 +1,5 @@
+use crate::custom_types::enums::RunningEnv;
+use crate::helpers::auth::create_pool;
 use crate::tests::helpers::*;
 use reqwest::Client;
 
@@ -218,6 +220,40 @@ async fn test_get_unit_history() {
 
     assert!(no_history_unit_history.is_empty());
 
+    // ---------- Employee gets a unit history with an event without description
+
+    let unit_with_event_without_description_id = 6;
+
+    let response_with_event_without_description = http_client
+        .post(format!(
+            "{}/{}/history",
+            backend_url("/unit"),
+            unit_with_event_without_description_id
+        ))
+        .json(&serde_json::json!({
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response_with_event_without_description.status(), 200);
+
+    let response_with_event_without_description_json: serde_json::Value =
+        response_with_event_without_description
+            .json()
+            .await
+            .unwrap();
+
+    println!("{:#?}", response_with_event_without_description_json);
+
+    let unit_history_with_event_without_description = response_with_event_without_description_json
+        ["history"]
+        .as_array()
+        .unwrap();
+
+    assert!(!unit_history_with_event_without_description.is_empty());
+
     // ---------- Client tries to get a unit history
 
     let client_jwt = get_test_jwt("dave@example.com", false).await;
@@ -243,4 +279,181 @@ async fn test_get_unit_history() {
         client_response_json["message"],
         "Solo empleados y administradores pueden acceder a esta información"
     );
+}
+
+#[tokio::test]
+async fn test_update_unit_history() {
+    setup().await;
+    let http_client = Client::new();
+
+    let pool = create_pool(RunningEnv::Testing);
+    let db_client = match pool.await.get().await {
+        Ok(c) => c,
+        Err(e) => panic!("Failed to connect to the database: {}", e),
+    };
+
+    let jwt = get_test_jwt("bob@example.com", true).await;
+
+    // ---------- Employee updates a unit history with description
+
+    let valid_unit_id = 4;
+
+    match db_client
+        .query(
+            "
+        SELECT * 
+        FROM machinery_units mu
+        INNER JOIN unit_history_events uhe 
+        ON mu.id = uhe.unit_id 
+        WHERE mu.id = $1;",
+            &[&&valid_unit_id],
+        )
+        .await
+    {
+        Ok(row) => {
+            assert!(row.is_empty());
+        }
+        Err(e) => {
+            panic!("Failed to query the database: {}", e);
+        }
+    }
+
+    let update_payload = serde_json::json!({
+        "access": jwt,
+        "unit_id": valid_unit_id,
+        "new_status": "maintenance",
+        "previous_status": "available",
+        "description": "Unit underwent routine maintenance."
+    });
+
+    let update_response = http_client
+        .post(backend_url("/unit/history/update"))
+        .json(&update_payload)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(update_response.status(), 201);
+
+    let update_response_json: serde_json::Value = update_response.json().await.unwrap();
+
+    assert_eq!(
+        update_response_json["message"],
+        "El evento se ha registrado correctamente"
+    );
+
+    match db_client
+        .query(
+            "
+        SELECT * 
+        FROM machinery_units mu
+        INNER JOIN unit_history_events uhe 
+        ON mu.id = uhe.unit_id 
+        WHERE mu.id = $1;",
+            &[&&valid_unit_id],
+        )
+        .await
+    {
+        Ok(row) => {
+            assert!(!row.is_empty());
+        }
+        Err(e) => {
+            panic!("Failed to query the database: {}", e);
+        }
+    }
+
+    // ---------- Employee updates a unit history without description
+
+    let valid_unit_id_without_description = 4;
+
+    let update_payload_without_description = serde_json::json!({
+        "access": jwt,
+        "unit_id": valid_unit_id_without_description,
+        "new_status": "available",
+        "previous_status": "maintenance",
+    });
+
+    let update_response_without_description = http_client
+        .post(backend_url("/unit/history/update"))
+        .json(&update_payload_without_description)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(update_response_without_description.status(), 201);
+
+    let update_response_without_description_json: serde_json::Value =
+        update_response_without_description.json().await.unwrap();
+
+    assert_eq!(
+        update_response_without_description_json["message"],
+        "El evento se ha registrado correctamente"
+    );
+
+    // ---------- Employee tries to update a unit history with an invalid unit ID
+
+    let invalid_unit_id = 9999;
+
+    let invalid_update_payload = serde_json::json!({
+        "access": jwt,
+        "unit_id": invalid_unit_id,
+        "new_status": "maintenance",
+        "previous_status": "available",
+        "description": "This unit does not exist."
+    });
+
+    let invalid_update_response = http_client
+        .post(backend_url("/unit/history/update"))
+        .json(&invalid_update_payload)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_update_response.status(), 500);
+
+    let invalid_update_response_json: serde_json::Value =
+        invalid_update_response.json().await.unwrap();
+
+    assert_eq!(
+        invalid_update_response_json["message"],
+        "Ocurrió un error al registrar el evento en el historial"
+    );
+
+    // ---------- Employee tries to update a unit history with an invalid status
+
+    let invalid_status_payload = serde_json::json!({
+        "access": jwt,
+        "unit_id": valid_unit_id,
+        "new_status": "invalid_status",
+        "previous_status": "available",
+    });
+
+    let invalid_status_response = http_client
+        .post(backend_url("/unit/history/update"))
+        .json(&invalid_status_payload)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_status_response.status(), 422);
+
+    // ---------- Client tries to update a unit history
+
+    let client_jwt = get_test_jwt("dave@example.com", false).await;
+
+    let client_update_payload = serde_json::json!({
+        "access": client_jwt,
+        "unit_id": valid_unit_id,
+        "new_status": "maintenance",
+        "previous_status": "available",
+    });
+
+    let client_update_response = http_client
+        .post(backend_url("/unit/history/update"))
+        .json(&client_update_payload)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(client_update_response.status(), 403);
 }

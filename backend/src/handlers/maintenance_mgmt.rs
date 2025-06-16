@@ -1,3 +1,4 @@
+use crate::custom_types::enums::*;
 use crate::custom_types::structs::*;
 use crate::helpers::auth::*;
 use axum::{extract::Path, extract::State, http::StatusCode, Json};
@@ -161,4 +162,98 @@ pub async fn get_unit_history(
         StatusCode::INTERNAL_SERVER_ERROR,
         Json(json!({"message": "Ocurrió un error al obtener el historial de la unidad"})),
     );
+}
+
+pub async fn update_unit_history(
+    State(state): State<AppState>,
+    Json(payload): Json<UpdateUnitHistoryInfo>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    }
+    .claims;
+
+    if (claims.role != 0) && (claims.role != 1) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(
+                json!({"message": "Solo empleados y administradores pueden acceder a esta información"}),
+            ),
+        );
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            );
+        }
+    };
+
+    let previous_status = match payload.previous_status {
+        UnitStatusEvents::Available => "'available'",
+        UnitStatusEvents::Maintenance => "'maintenance'",
+    };
+
+    let new_status = match payload.new_status {
+        UnitStatusEvents::Available => "'available'",
+        UnitStatusEvents::Maintenance => "'maintenance'",
+    };
+
+    let update_unit_status_query = format!(
+        "
+    UPDATE machinery_units
+    SET status = {}
+    WHERE id = $1;
+    ",
+        new_status
+    );
+
+    if let Err(_) = client
+        .execute(&update_unit_status_query, &[&payload.unit_id])
+        .await
+    {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"message": "Ocurrió un error al actualizar el estado de la unidad"})),
+        );
+    }
+
+    let insert_history_event_query = format!(
+        "
+    INSERT INTO unit_history_events (unit_id, description, previous_status, new_status)
+    VALUES ($1, $2, {}, {});
+    ",
+        previous_status, new_status
+    );
+
+    match client
+        .execute(
+            &insert_history_event_query,
+            &[&payload.unit_id, &payload.description],
+        )
+        .await
+    {
+        Ok(_) => {
+            return (
+                StatusCode::CREATED,
+                Json(json!({"message": "El evento se ha registrado correctamente"})),
+            );
+        }
+
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Ocurrió un error al registrar el evento en el historial"})),
+            );
+        }
+    }
 }

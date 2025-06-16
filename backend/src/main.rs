@@ -86,6 +86,7 @@ async fn main() {
         .route("/getquestions", post(get_questions))
         .route("/unit/{serial_number}", post(get_machine_unit))
         .route("/unit/{id}/history", post(get_unit_history))
+        .route("/unit/history/update", post(update_unit_history))
         .layer(
             CorsLayer::new()
                 .allow_origin(vec![frontend_url.parse().unwrap()])
