@@ -487,11 +487,30 @@ pub struct Question {
     pub answer: Option<Answer>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetQuestions {
     pub access: String,
     pub model_id: i32,
     pub order_by_recent: bool,
+}
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UnitHistoryEvent {
+    pub event_id: i32,
+    pub description: Option<String>,
+    pub previous_status: String,
+    pub new_status: String,
+    pub created_at: NaiveDateTime,
+}
+
+impl UnitHistoryEvent {
+    pub fn build_from_row(row: &tokio_postgres::Row) -> Self {
+        UnitHistoryEvent {
+            event_id: row.get("event_id"),
+            description: row.get("description"),
+            previous_status: row.get("previous_status"),
+            new_status: row.get("new_status"),
+            created_at: row.get("created_at"),
+        }
+    }
 }
