@@ -322,7 +322,6 @@ async fn test_update_unit_history() {
         "access": jwt,
         "unit_id": valid_unit_id,
         "new_status": "maintenance",
-        "previous_status": "available",
         "description": "Unit underwent routine maintenance."
     });
 
@@ -370,7 +369,6 @@ async fn test_update_unit_history() {
         "access": jwt,
         "unit_id": valid_unit_id_without_description,
         "new_status": "available",
-        "previous_status": "maintenance",
     });
 
     let update_response_without_description = http_client
@@ -398,7 +396,6 @@ async fn test_update_unit_history() {
         "access": jwt,
         "unit_id": invalid_unit_id,
         "new_status": "maintenance",
-        "previous_status": "available",
         "description": "This unit does not exist."
     });
 
@@ -409,14 +406,14 @@ async fn test_update_unit_history() {
         .await
         .unwrap();
 
-    assert_eq!(invalid_update_response.status(), 500);
+    assert_eq!(invalid_update_response.status(), 404);
 
     let invalid_update_response_json: serde_json::Value =
         invalid_update_response.json().await.unwrap();
 
     assert_eq!(
         invalid_update_response_json["message"],
-        "Ocurrió un error al registrar el evento en el historial"
+        "La unidad indicada no existe"
     );
 
     // ---------- Employee tries to update a unit history with an invalid status
@@ -425,7 +422,6 @@ async fn test_update_unit_history() {
         "access": jwt,
         "unit_id": valid_unit_id,
         "new_status": "invalid_status",
-        "previous_status": "available",
     });
 
     let invalid_status_response = http_client
@@ -445,7 +441,6 @@ async fn test_update_unit_history() {
         "access": client_jwt,
         "unit_id": valid_unit_id,
         "new_status": "maintenance",
-        "previous_status": "available",
     });
 
     let client_update_response = http_client

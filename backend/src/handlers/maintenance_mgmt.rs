@@ -198,10 +198,23 @@ pub async fn update_unit_history(
         }
     };
 
-    let previous_status = match payload.previous_status {
-        UnitStatusEvents::Available => "'available'",
-        UnitStatusEvents::Maintenance => "'maintenance'",
+    let unit_row = match client
+        .query_one(
+            "SELECT status::TEXT FROM machinery_units WHERE id = $1",
+            &[&payload.unit_id],
+        )
+        .await
+    {
+        Ok(row) => row,
+        Err(_) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"message": "La unidad indicada no existe"})),
+            );
+        }
     };
+
+    let previous_status = format!("'{}'", unit_row.get::<_, String>(0));
 
     let new_status = match payload.new_status {
         UnitStatusEvents::Available => "'available'",
@@ -249,7 +262,8 @@ pub async fn update_unit_history(
             );
         }
 
-        Err(_) => {
+        Err(e) => {
+            eprintln!("Error al registrar el evento en el historial: {}", e);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"message": "Ocurrió un error al registrar el evento en el historial"})),

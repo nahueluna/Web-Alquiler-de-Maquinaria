@@ -522,6 +522,5 @@ pub struct UpdateUnitHistoryInfo {
     pub access: String,
     pub unit_id: i32,
     pub description: Option<String>,
-    pub previous_status: UnitStatusEvents,
     pub new_status: UnitStatusEvents,
 }
