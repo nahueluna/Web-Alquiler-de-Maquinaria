@@ -491,7 +491,7 @@ pub struct Question {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetQuestions {
-    pub access: String,
+    pub access: Option<String>,
     pub model_id: i32,
     pub order_by_recent: bool,
 }

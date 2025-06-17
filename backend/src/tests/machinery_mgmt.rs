@@ -2052,5 +2052,5 @@ async fn test_get_models() {
     assert_eq!(res.status(), 200);
     let value = res.json::<serde_json::Value>().await.unwrap()["models"].clone();
     let models: Vec<MachineModel> = serde_json::from_value(value).unwrap();
-    println!("{:?}", models);
+    assert!(models.len() > 5);
 }

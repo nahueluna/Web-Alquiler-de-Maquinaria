@@ -245,7 +245,7 @@ async fn test_get_unit_history() {
             .await
             .unwrap();
 
-    println!("{:#?}", response_with_event_without_description_json);
+    //println!("{:#?}", response_with_event_without_description_json);
 
     let unit_history_with_event_without_description = response_with_event_without_description_json
         ["history"]

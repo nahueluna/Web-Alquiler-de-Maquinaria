@@ -6,7 +6,7 @@ CREATE TYPE machine_status AS ENUM ('available', 'rented', 'maintenance', 'reser
 CREATE TYPE rental_status AS ENUM ('active', 'pending_payment', 'completed', 'cancelled', 'failed');
 
 CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY CHECK (id != 0), --get_questions endpoint relies on this check
     email varchar(254) UNIQUE NOT NULL,
     name varchar(100) NOT NULL,
     surname varchar(100) NOT NULL,

@@ -553,21 +553,40 @@ async fn test_get_questions() {
     assert_eq!(questions[4].question_id, 2);
     assert_eq!(questions[4].upvotes, 0);
 
-    //Get admin token
-    let jwt = get_test_jwt("admin@example.com", false).await;
-    //Invalid role
+    //Test without access token
     let res = client
         .post(backend_url("/getquestions"))
         .json(&serde_json::json!({
-            "access": jwt,
             "model_id": 1,
             "order_by_recent": false
         }))
         .send()
         .await
         .unwrap();
-    assert_eq!(res.status(), 403);
-    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Not enough permissions");
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["questions"].clone();
+    let mut questions: Vec<Question> = serde_json::from_value(value).unwrap();
+    assert!(questions.len() > 4);
+    //Question 6 is created in a test above
+    if questions[0].question_id == 6 {
+        questions.remove(0);
+    }
+    //As many votes as Q3 but more recent
+    assert_eq!(questions[0].question_id, 5);
+    assert_eq!(questions[0].upvotes, 2);
+
+    assert_eq!(questions[1].question_id, 3);
+    assert_eq!(questions[1].upvotes, 2);
+
+    assert_eq!(questions[2].question_id, 1);
+    assert_eq!(questions[2].upvotes, 1);
+
+    //As many votes as Q2 but more recent
+    assert_eq!(questions[3].question_id, 4);
+    assert_eq!(questions[3].upvotes, 0);
+
+    assert_eq!(questions[4].question_id, 2);
+    assert_eq!(questions[4].upvotes, 0);
 
     //Invalid token
     let res = client

@@ -382,25 +382,20 @@ pub async fn get_questions(
     State(state): State<AppState>,
     Json(payload): Json<GetQuestions>,
 ) -> Response {
-    let claims = match validate_jwt(&payload.access) {
-        Some(data) => data,
-        None => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({"message": "Invalid access token"})),
-            )
-                .into_response()
+    let user_id = if let Some(access) = payload.access {
+        match validate_jwt(&access) {
+            Some(data) => data.claims.user_id,
+            None => {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(json!({"message": "Invalid access token"})),
+                )
+                    .into_response()
+            }
         }
-    }
-    .claims;
-
-    if claims.role != 2 {
-        return (
-            StatusCode::FORBIDDEN,
-            Json(json!({"message": "Not enough permissions"})),
-        )
-            .into_response();
-    }
+    } else {
+        0 //User 0 is guaranteed to not exist, so it wont have any votes
+    };
 
     let client = match state.pool.get().await {
         Ok(c) => c,
@@ -450,7 +445,7 @@ pub async fn get_questions(
         "
     );
 
-    let result = client.query(&query, &[&claims.user_id, &payload.model_id]).await;
+    let result = client.query(&query, &[&user_id, &payload.model_id]).await;
 
     match result {
         Ok(rows) => {
