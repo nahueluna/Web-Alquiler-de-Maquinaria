@@ -5,7 +5,7 @@ import useAuth from "../utils/useAuth";
 import userContext from "../../context/UserContext";
 import { useContext } from "react";
 import { useState } from "react";
-const Question = ({ question }) => {
+const Question = ({ question, setOpenSnack, setStatus }) => {
   const { post } = useAuth();
   const { user } = useContext(userContext);
   const [loadingUpvote, setLoadingUpvote] = useState(false);
@@ -29,7 +29,24 @@ const Question = ({ question }) => {
           question.upvotes += question.upvoted ? 1 : -1;
         }
       } catch (error) {
-        console.error("Error upvoting the question:", error);
+        let errorMsg = "Ocurrio un error con el servidor. Intentalo más tarde.";
+        if (error.response) {
+          switch (error.response.status) {
+            case 403:
+              errorMsg = "Solo los clientes pueden votar.";
+              break;
+            case 401:
+              errorMsg = "Hubo un error al intentar verificar tu sesion.";
+              break;
+            case 400:
+              errorMsg = "La pregunta que intentas votar ya no existe.";
+              break;
+            default:
+              errorMsg = errorMsg;
+          }
+        }
+        setStatus({ isError: true, message: errorMsg });
+        setOpenSnack(true);
       }
     }
     setLoadingUpvote(false);
