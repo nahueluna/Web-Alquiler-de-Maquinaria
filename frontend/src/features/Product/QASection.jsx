@@ -54,7 +54,7 @@ const QASection = ({ id: id }) => {
     <Stack
       spacing={1}
       sx={{
-        width: "90%",
+        minWidth: "900px",
         p: 2,
       }}
     >

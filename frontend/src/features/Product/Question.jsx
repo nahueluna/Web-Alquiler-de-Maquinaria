@@ -1,54 +1,91 @@
 import { Box, Sheet, Typography, Stack, IconButton } from "@mui/joy";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import SubdirectoryArrowRightIcon from "@mui/icons-material/SubdirectoryArrowRight";
-
+import useAuth from "../utils/useAuth";
+import userContext from "../../context/UserContext";
+import { useContext } from "react";
+import { useState } from "react";
 const Question = ({ question }) => {
+  const { post } = useAuth();
+  const { user } = useContext(userContext);
+  const [loadingUpvote, setLoadingUpvote] = useState(false);
+
+  const handleUpvote = async () => {
+    setLoadingUpvote(true);
+    if (!user) {
+      alert("Tenes que iniciar sesion para votar este comentario.");
+    } else if (user.pub_user.role != 2) {
+      alert("No tenes permisos para votar este comentario.");
+    } else {
+      try {
+        const response = await post("/votequestion", {
+          question_id: question.question_id,
+          upvote: !question.upvoted,
+        });
+        if (response.status === 201) {
+          // Se supone que va a cambiar el boton porque es re dinamico react
+          // PD: Creo que no deberia haber incongruencia si se pone a spamear
+          question.upvoted = !question.upvoted;
+          question.upvotes += question.upvoted ? 1 : -1;
+        }
+      } catch (error) {
+        console.error("Error upvoting the question:", error);
+      }
+    }
+    setLoadingUpvote(false);
+  };
+
   return (
     <Sheet
       sx={{
         width: "80%",
         maxWidth: "800px",
-        backgroundColor: "white",
+        wordBreak: "break-word",
       }}
     >
-      <Stack direction="row">
-        <Box>
-          <Typography level="title-md" fontWeight="xs">
-            {question.content}
-          </Typography>
-          <Typography level="body-sm" fontWeight="md">
-            {question.user_name} {question.user_surname} -{" "}
-            {new Date(question.created_at).toLocaleString([], {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Typography>
-        </Box>
-        <Box
+      <Box>
+        <Stack
+          direction="row"
+          spacing={1}
           sx={{
-            ml: "auto",
-            display: "flex",
             alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          <IconButton>
-            <ThumbUpIcon />
-          </IconButton>
-          {question.upvotes}
-        </Box>
-      </Stack>
+          <Typography level="title-md" fontWeight="xs" sx={{ width: "90%" }}>
+            {question.content}
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <IconButton
+              color={question.upvoted ? "success" : "neutral"}
+              disabled={loadingUpvote}
+              onClick={() => handleUpvote()}
+            >
+              <ThumbUpIcon />
+            </IconButton>
+            {question.upvotes}
+          </Box>
+        </Stack>
+        <Typography level="body-sm" fontWeight="md">
+          {question.user_name} {question.user_surname} -{" "}
+          {new Date(question.created_at).toLocaleString([], {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Typography>
+      </Box>
       {question.answer && (
         <Stack direction="row" sx={{ mt: 1, pl: 2 }}>
           {/* Responsive una legumbre */}
           <SubdirectoryArrowRightIcon sx={{ mt: 0.5 }} />
           <Box>
-            <Typography level="title-md" fontWeight={300} textColor="#b6aeae">
+            <Typography level="title-md" fontWeight={300} textColor="#989191">
               {question.answer.content}
             </Typography>
-            <Typography level="body-sm" fontWeight={300} textColor="#b6aeae">
+            <Typography level="body-sm" fontWeight={300} textColor="#989191">
               {question.answer.user_name} {question.answer.user_surname} -{" "}
               {new Date(question.answer.created_at).toLocaleString([], {
                 year: "numeric",
