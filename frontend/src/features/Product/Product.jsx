@@ -16,6 +16,7 @@ import MachineCard from "../Explore/MachineCard";
 import RentalModal from "./Modal/RentalModal";
 import ProductSkeleton from "./ProductSkeleton";
 import useAuth from "../utils/useAuth";
+import QASection from "./QASection";
 
 function Product() {
   const [open, setOpen] = useState(false);
@@ -198,33 +199,7 @@ function Product() {
 
           <Divider sx={{ my: 5 }} />
 
-          {/* Otros productos */}
-          <Sheet
-            sx={{
-              py: 2,
-            }}
-          >
-            <Typography level="h3">Otros productos</Typography>
-            <Sheet
-              sx={{
-                display: "flex",
-                gap: 2,
-              }}
-            >
-              {products.map((machine) => (
-                <Grid key={machine.id}>
-                  <MachineCard
-                    imageUrl={machine.imageUrl}
-                    model={machine.model}
-                    category={machine.category}
-                    price={machine.price}
-                    onClick={() => nav(`/explore/${machine.id}`)}
-                    categories={machine.categories}
-                  />
-                </Grid>
-              ))}
-            </Sheet>
-          </Sheet>
+          <QASection id={id} />
         </>
       ) : (
         <Sheet>
