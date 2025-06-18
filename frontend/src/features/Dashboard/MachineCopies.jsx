@@ -256,7 +256,13 @@ const handleSubmitUpdate = async (values, { setSubmitting, resetForm }) => {
         />
       </FormControl>
 
-      <Button onClick={handleSearch} color="danger" >Buscar</Button>
+      <Button
+        onClick={handleSearch}
+        color="danger"
+        disabled={serialNumber.trim() === ""}
+      >
+        Buscar
+    </Button>
 
       {/* Resultado */}
         {result && (
@@ -350,16 +356,16 @@ const handleSubmitUpdate = async (values, { setSubmitting, resetForm }) => {
           </FormControl>
 
           <Sheet sx={{ display: "flex", gap: 1 }}>
-            <Button type="submit" variant="solid" color="primary" disabled={isSubmitting || loadingUpdate}>
+            <Button type="submit" variant="solid" color="danger" disabled={isSubmitting || loadingUpdate}>
               {loadingUpdate ? "Actualizando..." : "Guardar"}
             </Button>
             <Button
               variant="outlined"
-              color="neutral"
+              color="danger"
               onClick={() => setShowUpdateForm(false)}
               disabled={isSubmitting || loadingUpdate}
             >
-              Cancelar
+              Cerrar
             </Button>
           </Sheet>
         </Form>
