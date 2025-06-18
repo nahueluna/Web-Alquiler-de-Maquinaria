@@ -17,7 +17,9 @@ import {
   Card,
   CardCover,
   CardContent,
-
+  Stack,
+  Divider,
+  Box,
 } from "@mui/joy";
 import { Formik, Form, Field, ErrorMessage, useField } from "formik";
 import * as Yup from "yup";
@@ -127,12 +129,6 @@ const handleFetchHistory = async () => {
     if (data.history && data.history.length === 0) {
       setHistory([]);
       setHistoryMessage("La máquina no posee historial de mantenimiento.");
-      setSnackbar({
-        open: true,
-        message: "La máquina no posee historial de mantenimiento.",
-        color: "info",
-        duration: 4000,
-      });
     } else {
       setHistory(data.history);
       setHistoryMessage("");
@@ -240,19 +236,21 @@ const handleSubmitUpdate = async (values, { setSubmitting, resetForm }) => {
   }
 };
 
-  return (
-    <>
-    <Sheet sx={{ p: 3 }}>
-      <Typography level="h4" mb={2}>
+
+return (
+  <>
+    <Sheet sx={{ p: 4, maxWidth: 600, mx: "0"}}>
+      <Typography level="h4" mb={3} fontWeight="lg" textAlign="center">
         Buscar ejemplar por número de serie
       </Typography>
 
-      <FormControl sx={{ mb: 2 }}>
+      <FormControl sx={{ mb: 3 }}>
         <FormLabel>Número de serie</FormLabel>
         <Input
           placeholder="Ej: CAT-001"
           value={serialNumber}
           onChange={(e) => setSerialNumber(e.target.value)}
+          size="md"
         />
       </FormControl>
 
@@ -260,133 +258,215 @@ const handleSubmitUpdate = async (values, { setSubmitting, resetForm }) => {
         onClick={handleSearch}
         color="danger"
         disabled={serialNumber.trim() === ""}
+        size="md"
+        fullWidth
+        sx={{ mb: 4 }}
       >
         Buscar
-    </Button>
+      </Button>
 
       {/* Resultado */}
-        {result && (
-          <Card sx={{ mt: 4, maxWidth: 500 }}>
-            <CardCover>
-              <img src={result.unit_info.image} loading="lazy" />
-            </CardCover>
-            <CardContent>
-              <Typography level="h5">{result.unit_info.name}</Typography>
-              <Typography>Modelo: {result.unit_info.model}</Typography>
-              <Typography>Marca: {result.unit_info.brand}</Typography>
-              <Typography>Año: {result.unit_info.year}</Typography>
-              <Typography>Estado: {result.unit_info.status}</Typography>
-              <Typography>
-                Ubicación: {result.unit_info.street}, {result.unit_info.city}
+      {result && (
+        <Card sx={{ boxShadow: 4, borderRadius: 3 }}>
+          <CardContent>
+            <Stack spacing={1.5}>
+              <Typography level="h5" fontWeight="lg">
+                {result.unit_info.name}
               </Typography>
+              <Typography color="text.secondary">
+                <strong>Modelo:</strong> {result.unit_info.model}
+              </Typography>
+              <Typography color="text.secondary">
+                <strong>Marca:</strong> {result.unit_info.brand}
+              </Typography>
+              <Typography color="text.secondary">
+                <strong>Año:</strong> {result.unit_info.year}
+              </Typography>
+              <Typography
+                color={
+                  result.unit_info.status === "available"
+                    ? "success.main"
+                    : "warning.main"
+                }
+                fontWeight="md"
+              >
+                <strong>Estado:</strong> {result.unit_info.status}
+              </Typography>
+              <Typography color="text.secondary">
+                <strong>Ubicación:</strong> {result.unit_info.street},{" "}
+                {result.unit_info.city}
+              </Typography>              
+            </Stack>
 
-              <Sheet sx={{ mt: 2, display: "flex", gap: 2 }}>
-                <Button
-                  variant="outlined"
-                  color="danger"
-                  onClick={handleFetchHistory}
-                  disabled={loadingHistory}
-                >
-                  {loadingHistory ? "Cargando historial..." : "Ver historial de mantenimiento"}
-                </Button>
-                <Button variant="solid" color="danger" onClick={() => setShowUpdateForm(true)}>
-                  Actualizar historial de mantenimiento
-                </Button>
-              </Sheet>
+            <Divider sx={{ my: 3 }} />
 
-              {historyMessage && (
-                <Typography level="body2" sx={{ mt: 2, color: "gray" }}>
-                  {historyMessage}
-                </Typography>
-              )}
+            <Stack direction="row" spacing={2} flexWrap="nowrap" justifyContent="flex-start">
+              <Button
+                variant="outlined"
+                color="danger"
+                onClick={handleFetchHistory}
+                disabled={loadingHistory}
+                size="md"
+                sx={{ minWidth: 140 }}
+              >
+                {loadingHistory ? "Cargando historial..." : "Ver historial de mantenimiento"}
+              </Button>
+              <Button
+                variant="solid"
+                color="danger"
+                onClick={() => setShowUpdateForm(true)}
+                size="md"
+                sx={{ minWidth: 140 }}
+              >
+                Actualizar historial de mantenimiento
+              </Button>
+            </Stack>
 
-              {history && history.length > 0 && (
-                <AccordionGroup sx={{ mt: 2 }}>
-                  {history.map((event) => (
-                    <Accordion key={event.event_id}>
-                      <AccordionSummary>{new Date(event.created_at).toLocaleString()}</AccordionSummary>
-                      <AccordionDetails>
-                        <Typography>Descripción: {event.description}</Typography>
-                        <Typography>Estado anterior: {event.previous_status}</Typography>
-                        <Typography>Nuevo estado: {event.new_status}</Typography>
-                      </AccordionDetails>
-                    </Accordion>
-                  ))}
-                </AccordionGroup>
-              )}
-            </CardContent>
-          </Card>
-        )}
+            {historyMessage && (
+              <Typography
+                level="body2"
+                sx={{ mt: 2, color: "text.secondary", fontStyle: "italic" }}
+              >
+                {historyMessage}
+              </Typography>
+            )}
+
+            {history && history.length > 0 && (
+              <AccordionGroup sx={{ mt: 3 }}>
+                {history.map((event) => (
+                  <Accordion key={event.event_id} variant="outlined" sx={{ mb: 1 }}>
+                    <AccordionSummary>
+                      {new Date(event.created_at).toLocaleString()}
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <Typography>
+                        <strong>Descripción:</strong> {event.description || "-"}
+                      </Typography>
+                      <Typography>
+                        <strong>Estado anterior:</strong> {event.previous_status}
+                      </Typography>
+                      <Typography>
+                        <strong>Nuevo estado:</strong> {event.new_status}
+                      </Typography>
+                    </AccordionDetails>
+                  </Accordion>
+                ))}
+              </AccordionGroup>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </Sheet>
 
-{showUpdateForm && (
-  <Sheet sx={{ p: 2, mt: 2, border: "1px solid #ccc", borderRadius: 1, maxWidth: 400 }}>
-    <Formik
-      initialValues={{
-        description: "",
-        previous_status: "available",
-        new_status: "maintenance",
-      }}
-      validationSchema={UpdateSchema}
-      onSubmit={handleSubmitUpdate}
-    >
-      {({ isSubmitting }) => (
-        <Form>
-          <FormControl sx={{ mb: 2 }}>
-            <FormLabel>Descripción (opcional)</FormLabel>
-            <Field
-              name="description"
-              as={Input}
-              placeholder="Ingrese descripción de la actualización"
-            />
-            <ErrorMessage name="description" component="div" style={{ color: "red" }} />
-          </FormControl>
-
-          <FormControl sx={{ mb: 2 }}>
-            <FormLabel>Nuevo estado</FormLabel>
-            <Field name="new_status">
-              {({ field }) => (
-                <Select {...field} value={field.value} onChange={(_, value) => field.onChange({ target: { name: field.name, value } })}>
-                  <Option value="available">available</Option>
-                  <Option value="maintenance">maintenance</Option>
-                </Select>
-              )}
-            </Field>
-            <ErrorMessage name="new_status" component="div" style={{ color: "red" }} />
-          </FormControl>
-
-          <Sheet sx={{ display: "flex", gap: 1 }}>
-            <Button type="submit" variant="solid" color="danger" disabled={isSubmitting || loadingUpdate}>
-              {loadingUpdate ? "Actualizando..." : "Guardar"}
-            </Button>
-            <Button
-              variant="outlined"
-              color="danger"
-              onClick={() => setShowUpdateForm(false)}
-              disabled={isSubmitting || loadingUpdate}
-            >
-              Cerrar
-            </Button>
-          </Sheet>
-        </Form>
-      )}
-    </Formik>
-  </Sheet>
-)}
-
-          {/* Snackbar de error */}
-      <Snackbar
-        open={snackbar.open}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        autoHideDuration={3000}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        variant="soft"
-        color={snackbar.color}
+    {/* Formulario de actualización */}
+    {showUpdateForm && (
+      <Sheet
+        sx={{
+          p: 3,
+          mt: 0,
+          maxWidth: 538,
+          mx: 4,
+          mb: 2,
+          borderRadius: 3,
+          boxShadow: 3,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.body",
+        }}
       >
-        {snackbar.message}
-      </Snackbar>
-    </>
-  );
+        <Formik
+          initialValues={{
+            description: "",
+            previous_status: "available",
+            new_status: "maintenance",
+          }}
+          validationSchema={UpdateSchema}
+          onSubmit={handleSubmitUpdate}
+        >
+          {({ isSubmitting }) => (
+            <Form>
+              <Stack spacing={3}>
+                <FormControl>
+                  <FormLabel>Descripción (opcional)</FormLabel>
+                  <Field
+                    name="description"
+                    as={Input}
+                    placeholder="Ingrese descripción de la actualización"
+                    size="md"
+                  />
+                  <ErrorMessage
+                    name="description"
+                    component="div"
+                    style={{ color: "red", marginTop: 4 }}
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel>Nuevo estado</FormLabel>
+                  <Field name="new_status">
+                    {({ field }) => (
+                      <Select
+                        {...field}
+                        value={field.value}
+                        onChange={(_, value) =>
+                          field.onChange({
+                            target: { name: field.name, value },
+                          })
+                        }
+                        size="md"
+                      >
+                        <Option value="available">available</Option>
+                        <Option value="maintenance">maintenance</Option>
+                      </Select>
+                    )}
+                  </Field>
+                  <ErrorMessage
+                    name="new_status"
+                    component="div"
+                    style={{ color: "red", marginTop: 4 }}
+                  />
+                </FormControl>
+
+                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                  <Button
+                    type="submit"
+                    variant="solid"
+                    color="danger"
+                    disabled={isSubmitting || loadingUpdate}
+                    size="md"
+                  >
+                    {loadingUpdate ? "Actualizando..." : "Guardar"}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="danger"
+                    onClick={() => setShowUpdateForm(false)}
+                    disabled={isSubmitting || loadingUpdate}
+                    size="md"
+                  >
+                    Cerrar
+                  </Button>
+                </Stack>
+              </Stack>
+            </Form>
+          )}
+        </Formik>
+      </Sheet>
+    )}
+
+    {/* Snackbar de error */}
+    <Snackbar
+      open={snackbar.open}
+      onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+      autoHideDuration={3000}
+      anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      variant="soft"
+      color={snackbar.color}
+    >
+      {snackbar.message}
+    </Snackbar>
+  </>
+);
 };
 
 
