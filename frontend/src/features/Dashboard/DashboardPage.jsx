@@ -1,6 +1,7 @@
 import AgricultureIcon from "@mui/icons-material/Agriculture";
 import GroupIcon from "@mui/icons-material/Group";
 import WorkIcon from "@mui/icons-material/Work";
+import InventoryIcon from '@mui/icons-material/Inventory';
 import {
   Divider,
   List,
@@ -14,6 +15,7 @@ import { useState } from "react";
 import Employees from "./Employees";
 import Machines from "./Machines";
 import Rentals from "./Rentals";
+import MachineCopies from "./MachineCopies"
 import { useEffect } from "react";
 import useAuth from "../utils/useAuth";
 import UserContext from "../../context/UserContext";
@@ -47,6 +49,8 @@ function Dashboard() {
         return <Machines categories={categories} />;
       case 2:
         return <Employees />;
+      case 3:
+        return <MachineCopies />;
       default:
         return null;
     }
@@ -94,6 +98,19 @@ function Dashboard() {
                 </ListItemButton>
               </ListItem>
             )}
+            {user.pub_user.role === 0 && (
+            <ListItem>
+              <ListItemButton
+                selected={selected === 3}
+                onClick={() => setSelected(3)}
+              >
+                <ListItemDecorator>
+                  <InventoryIcon />
+                </ListItemDecorator>
+                Administrar ejemplares
+              </ListItemButton>
+            </ListItem>
+          )}
           </List>
         </Sheet>
         <Divider orientation="vertical" />
