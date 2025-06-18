@@ -1,7 +1,6 @@
 import axios from "axios";
 import { createContext, useEffect, useState } from "react";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-import { navigate } from "react-router-dom";
 
 const UserContext = createContext();
 
@@ -66,7 +65,6 @@ export function UserProvider({ children }) {
       const { data } = await axiosInstance.post("/logout", {
         access: user.access,
       });
-      navigate("/");
       console.log(data);
     } catch (error) {
       if (error.status === 401) {
