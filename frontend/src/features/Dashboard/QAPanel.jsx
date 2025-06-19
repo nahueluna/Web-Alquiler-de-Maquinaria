@@ -10,6 +10,8 @@ const QAPanel = () => {
   const [openSnack, setOpenSnack] = useState(false);
   const [status, setStatus] = useState({ isError: false, message: "" });
   const [unansweredQuestions, setUnansweredQuestions] = useState([]);
+  const [refreshUnansweredQuestions, setRefreshUnansweredQuestions] =
+    useState(false);
 
   async function getUnansweredQuestions() {
     try {
@@ -23,14 +25,20 @@ const QAPanel = () => {
 
   useEffect(() => {
     getUnansweredQuestions();
-  }, []);
+  }, [refreshUnansweredQuestions]);
 
   return (
     <>
       {unansweredQuestions && unansweredQuestions.length > 0 ? (
         <Stack spacing={2} sx={{ p: 2 }}>
           {unansweredQuestions.map((question) => (
-            <UnansweredQuestion questionData={question} />
+            <UnansweredQuestion
+              questionData={question}
+              setOpenSnack={setOpenSnack}
+              setStatus={setStatus}
+              key={question.question_id}
+              setRefreshUnansweredQuestions={setRefreshUnansweredQuestions}
+            />
           ))}
         </Stack>
       ) : (

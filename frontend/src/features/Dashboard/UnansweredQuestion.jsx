@@ -12,13 +12,21 @@ import {
   Button,
 } from "@mui/joy";
 import { useState } from "react";
+import useAuth from "../utils/useAuth";
 
 // CONTENIDO, FECHA, NOMBRE Y APELLIDO, MARCA, NOMBRE, MODELO
 // MODEL ID Y QUESTION ID
 
-const UnansweredQuestion = ({ questionData }) => {
+const UnansweredQuestion = ({
+  questionData,
+  setStatus,
+  setOpenSnack,
+  setRefreshUnansweredQuestions,
+}) => {
+  const { post } = useAuth();
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const value = e.target.value;
@@ -44,6 +52,42 @@ const UnansweredQuestion = ({ questionData }) => {
       return;
     }
     console.log("Enviando respuesta:", answer);
+    setLoading(true);
+    try {
+      await post("/newanswer", {
+        question_id: questionData.question_id,
+        content: answer,
+      });
+      setAnswer("");
+      setStatus({
+        isError: false,
+        message: "Respuesta enviada correctamente.",
+      });
+      setOpenSnack(true);
+      setRefreshUnansweredQuestions((prev) => !prev);
+    } catch (error) {
+      let errorMsg = "Ocurrio un error con el servidor. Intentalo más tarde.";
+      if (error.response) {
+        switch (error.response.status) {
+          case 403:
+            errorMsg =
+              "No tenes los permisos necesarios para realizar la accion.";
+            break;
+          case 401:
+            errorMsg = "Hubo un error al intentar verificar tu sesion.";
+            break;
+          case 400:
+            errorMsg =
+              "La pregunta ya fue respondida o la respuesta excede el limite de caracteres.";
+            break;
+          default:
+            errorMsg = errorMsg;
+        }
+      }
+      setStatus({ isError: true, message: errorMsg });
+      setOpenSnack(true);
+    }
+    setLoading(false);
   };
 
   return (
@@ -88,6 +132,7 @@ const UnansweredQuestion = ({ questionData }) => {
                 placeholder="Escribí tu respuesta"
                 value={answer}
                 onChange={handleChange}
+                disabled={loading}
                 endDecorator={
                   <Box
                     sx={{
@@ -98,7 +143,7 @@ const UnansweredQuestion = ({ questionData }) => {
                     }}
                   >
                     <FormControl sx={{ ml: "auto" }}>
-                      <Button color="danger" type="submit">
+                      <Button color="danger" type="submit" disabled={loading}>
                         Responder
                       </Button>
                     </FormControl>
