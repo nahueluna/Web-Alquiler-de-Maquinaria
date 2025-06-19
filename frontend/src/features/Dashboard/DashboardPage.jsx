@@ -1,7 +1,7 @@
 import AgricultureIcon from "@mui/icons-material/Agriculture";
 import GroupIcon from "@mui/icons-material/Group";
 import WorkIcon from "@mui/icons-material/Work";
-import InventoryIcon from '@mui/icons-material/Inventory';
+import InventoryIcon from "@mui/icons-material/Inventory";
 import {
   Divider,
   List,
@@ -15,11 +15,13 @@ import { useState } from "react";
 import Employees from "./Employees";
 import Machines from "./Machines";
 import Rentals from "./Rentals";
-import MachineCopies from "./MachineCopies"
+import MachineCopies from "./MachineCopies";
 import { useEffect } from "react";
 import useAuth from "../utils/useAuth";
 import UserContext from "../../context/UserContext";
 import { useContext } from "react";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import QAPanel from "./QAPanel";
 
 function Dashboard() {
   const [selected, setSelected] = useState(0);
@@ -51,6 +53,8 @@ function Dashboard() {
         return <Employees />;
       case 3:
         return <MachineCopies />;
+      case 4:
+        return <QAPanel />;
       default:
         return null;
     }
@@ -99,18 +103,32 @@ function Dashboard() {
               </ListItem>
             )}
             {user.pub_user.role === 0 && (
-            <ListItem>
-              <ListItemButton
-                selected={selected === 3}
-                onClick={() => setSelected(3)}
-              >
-                <ListItemDecorator>
-                  <InventoryIcon />
-                </ListItemDecorator>
-                Administrar ejemplares
-              </ListItemButton>
-            </ListItem>
-          )}
+              <ListItem>
+                <ListItemButton
+                  selected={selected === 3}
+                  onClick={() => setSelected(3)}
+                >
+                  <ListItemDecorator>
+                    <InventoryIcon />
+                  </ListItemDecorator>
+                  Administrar ejemplares
+                </ListItemButton>
+              </ListItem>
+            )}
+
+            {(user.pub_user.role === 0 || user.pub_user.role === 0) && (
+              <ListItem>
+                <ListItemButton
+                  selected={selected === 4}
+                  onClick={() => setSelected(4)}
+                >
+                  <ListItemDecorator>
+                    <SupportAgentIcon />
+                  </ListItemDecorator>
+                  Responder preguntas
+                </ListItemButton>
+              </ListItem>
+            )}
           </List>
         </Sheet>
         <Divider orientation="vertical" />
