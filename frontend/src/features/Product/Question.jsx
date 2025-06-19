@@ -13,9 +13,17 @@ const Question = ({ question, setOpenSnack, setStatus }) => {
   const handleUpvote = async () => {
     setLoadingUpvote(true);
     if (!user) {
-      alert("Tenes que iniciar sesion para votar este comentario.");
+      setStatus({
+        isError: true,
+        message: "Tenes que iniciar sesion para votar este comentario.",
+      });
+      setOpenSnack(true);
     } else if (user.pub_user.role != 2) {
-      alert("No tenes permisos para votar este comentario.");
+      setStatus({
+        isError: true,
+        message: "Solo los clientes pueden votar preguntas.",
+      });
+      setOpenSnack(true);
     } else {
       try {
         const response = await post("/votequestion", {
