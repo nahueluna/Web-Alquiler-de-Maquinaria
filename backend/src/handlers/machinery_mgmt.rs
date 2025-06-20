@@ -396,8 +396,24 @@ pub async fn get_machine_locations(
     Path(machine_id): Path<i32>,
     Json(payload): Json<Access>,
 ) -> (StatusCode, Json<serde_json::Value>) {
-    if let Some(invalid_response) = validate_client(&payload.access) {
-        return invalid_response;
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    }
+    .claims;
+
+    if (claims.role != 1) && (claims.role != 2) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(
+                json!({"message": "Solo empleados y clientes pueden acceder a esta funcionalidad"}),
+            ),
+        );
     }
 
     if let Ok(client) = state.pool.get().await {

@@ -479,9 +479,9 @@ async fn get_machine_locations() {
 
     assert_eq!(invalid_jwt_response.status(), 401);
 
-    // ----------- Get locations with a JWT of a non-client user
+    // ----------- Get locations with a JWT of an admin user
 
-    let non_client_jwt = get_test_jwt("frank@example.com", false).await;
+    let non_client_jwt = get_test_jwt("alice@example.com", false).await;
 
     let non_client_response = http_client
         .post(format!(
