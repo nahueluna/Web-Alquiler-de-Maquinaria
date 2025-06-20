@@ -537,3 +537,11 @@ pub struct GetUnitsByLocation {
     pub location_id: i32,
     pub access: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ValidateRentalDates {
+    pub start_date: NaiveDate,
+    pub end_date: NaiveDate,
+    pub unit_id: i32,
+    pub access: String,
+}

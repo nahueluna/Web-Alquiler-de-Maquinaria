@@ -92,6 +92,7 @@ async fn main() {
             "/staff/rental/getunits",
             post(get_units_by_model_and_location),
         )
+        .route("/staff/rental/validatedates", post(validate_rental_dates))
         .layer(
             CorsLayer::new()
                 .allow_origin(vec![frontend_url.parse().unwrap()])

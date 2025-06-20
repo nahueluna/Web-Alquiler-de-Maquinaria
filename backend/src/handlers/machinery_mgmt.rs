@@ -2330,3 +2330,100 @@ pub async fn get_units_by_model_and_location(
         Json(json!({"message": "Se produjo un error interno al intentar obtener las unidades"})),
     );
 }
+
+pub async fn validate_rental_dates(
+    State(state): State<AppState>,
+    Json(payload): Json<ValidateRentalDates>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    }
+    .claims;
+
+    if claims.role != 1 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Solo empleados pueden acceder a esta funcionalidad"})),
+        );
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            );
+        }
+    };
+
+    let machine_id = payload.unit_id;
+    let start_date = payload.start_date;
+    let end_date = payload.end_date;
+
+    let unavailable_dates_query = "
+            SELECT start_date, (end_date + INTERVAL '7 days')::date AS end_date
+            FROM rentals r 
+            WHERE r.status IN ('active', 'pending_payment') AND (machine_id = $1);
+        ";
+
+    let unavailable_dates = match client.query(unavailable_dates_query, &[&machine_id]).await {
+        Ok(rows) => rows
+            .iter()
+            .map(|row| DateRange {
+                start_date: row.get("start_date"),
+                end_date: row.get("end_date"),
+            })
+            .collect::<Vec<DateRange>>(),
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "Se ha producido un error al intentar obtener las fechas de alquileres no disponibles",
+                })),
+            );
+        }
+    };
+
+    let end_date_with_maintenance_period = end_date + Duration::days(7);
+
+    let is_overlap = unavailable_dates.iter().any(|period| {
+        date_is_overlap(
+            start_date,
+            end_date_with_maintenance_period,
+            period.start_date,
+            period.end_date,
+        )
+    });
+
+    let duration_days = (end_date - start_date).num_days();
+
+    if end_date < start_date || duration_days < 7 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "message": "El período indicado no es válido. Debe ser al menos 7 días y la fecha de fin no puede ser anterior a la de inicio.",
+            })),
+        );
+    }
+
+    if is_overlap {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({
+                "message": "Las fechas de inicio y fin se superponen con un alquiler existente, considerando el período de mantenimiento planificado",
+            })),
+        );
+    }
+
+    return (
+        StatusCode::OK,
+        Json(json!({"message": "Las fechas de alquiler son válidas"})),
+    );
+}

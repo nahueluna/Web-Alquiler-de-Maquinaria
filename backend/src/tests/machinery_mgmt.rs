@@ -2270,3 +2270,198 @@ async fn test_get_units_by_model_and_location() {
         "Solo empleados pueden acceder a esta funcionalidad"
     );
 }
+
+#[tokio::test]
+async fn test_validate_rental_dates() {
+    setup().await;
+    let client = Client::new();
+
+    // Get an employee token
+    let jwt = get_test_jwt("bob@example.com", true).await;
+
+    // ----------- Employee validates valid rental dates
+
+    let valid_unit_id = 18;
+    let valid_start_date = Utc::now()
+        .checked_add_signed(chrono::Duration::days(20))
+        .unwrap()
+        .date_naive();
+    let valid_end_date = valid_start_date
+        .checked_add_signed(chrono::Duration::days(7))
+        .unwrap();
+
+    let valid_dates_response = client
+        .post(backend_url("/staff/rental/validatedates"))
+        .json(&serde_json::json!({
+            "unit_id": valid_unit_id,
+            "start_date": valid_start_date,
+            "end_date": valid_end_date,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(valid_dates_response.status(), 200);
+
+    let valid_dates_body = valid_dates_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        valid_dates_body["message"].as_str().unwrap(),
+        "Las fechas de alquiler son válidas"
+    );
+
+    // ----------- Employee tries to validate rental dates with end date before start date
+
+    let invalid_start_date = Utc::now()
+        .checked_add_signed(chrono::Duration::days(20))
+        .unwrap()
+        .date_naive();
+
+    let invalid_end_date = invalid_start_date
+        .checked_sub_signed(chrono::Duration::days(7))
+        .unwrap();
+
+    let invalid_dates_response = client
+        .post(backend_url("/staff/rental/validatedates"))
+        .json(&serde_json::json!({
+            "unit_id": valid_unit_id,
+            "start_date": invalid_start_date,
+            "end_date": invalid_end_date,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_dates_response.status(), 400);
+
+    let invalid_dates_body = invalid_dates_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        invalid_dates_body["message"].as_str().unwrap(),
+        "El período indicado no es válido. Debe ser al menos 7 días y la fecha de fin no puede ser anterior a la de inicio.");
+
+    // ----------- Employee tries to validate rental dates with period lower than 7 days
+
+    let short_start_date = Utc::now()
+        .checked_add_signed(chrono::Duration::days(20))
+        .unwrap()
+        .date_naive();
+    let short_end_date = short_start_date
+        .checked_add_signed(chrono::Duration::days(6))
+        .unwrap();
+
+    let short_dates_response = client
+        .post(backend_url("/staff/rental/validatedates"))
+        .json(&serde_json::json!({
+            "unit_id": valid_unit_id,
+            "start_date": short_start_date,
+            "end_date": short_end_date,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(short_dates_response.status(), 400);
+
+    let short_dates_body = short_dates_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+            short_dates_body["message"].as_str().unwrap(),
+            "El período indicado no es válido. Debe ser al menos 7 días y la fecha de fin no puede ser anterior a la de inicio.");
+
+    // ----------- Employee tries to validate rental dates where start date overlaps with an existing rental
+
+    let overlapping_start_date = Utc::now()
+        .checked_add_signed(chrono::Duration::days(18))
+        .unwrap()
+        .date_naive();
+
+    let overlapping_end_date = overlapping_start_date
+        .checked_add_signed(chrono::Duration::days(10))
+        .unwrap();
+
+    let overlapping_dates_response = client
+        .post(backend_url("/staff/rental/validatedates"))
+        .json(&serde_json::json!({
+            "unit_id": valid_unit_id,
+            "start_date": overlapping_start_date,
+            "end_date": overlapping_end_date,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(overlapping_dates_response.status(), 409);
+
+    let overlapping_dates_body = overlapping_dates_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        overlapping_dates_body["message"].as_str().unwrap(),
+        "Las fechas de inicio y fin se superponen con un alquiler existente, considerando el período de mantenimiento planificado",
+    );
+
+    // ---------- Employee tries to validate rental dates where end date overlaps with an existing rental
+
+    let another_overlapping_start_date = Utc::now().date_naive();
+    let another_overlapping_end_date = another_overlapping_start_date
+        .checked_add_signed(chrono::Duration::days(7))
+        .unwrap();
+
+    let another_overlapping_end_dates_response = client
+        .post(backend_url("/staff/rental/validatedates"))
+        .json(&serde_json::json!({
+            "unit_id": valid_unit_id,
+            "start_date": another_overlapping_start_date,
+            "end_date": another_overlapping_end_date,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(another_overlapping_end_dates_response.status(), 409);
+
+    let another_overlapping_end_dates_body = another_overlapping_end_dates_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        another_overlapping_end_dates_body["message"].as_str().unwrap(),
+        "Las fechas de inicio y fin se superponen con un alquiler existente, considerando el período de mantenimiento planificado",
+    );
+
+    // ---------- Employee tries to validate rental dates with an invalid unit ID
+
+    let invalid_unit_id = 9999;
+
+    let invalid_unit_dates_response = client
+        .post(backend_url("/staff/rental/validatedates"))
+        .json(&serde_json::json!({
+            "unit_id": invalid_unit_id,
+            "start_date": valid_start_date,
+            "end_date": valid_end_date,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_unit_dates_response.status(), 200);
+}
