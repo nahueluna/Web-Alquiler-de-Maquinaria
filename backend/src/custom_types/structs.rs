@@ -524,3 +524,9 @@ pub struct UpdateUnitHistoryInfo {
     pub description: Option<String>,
     pub new_status: UnitStatusEvents,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VerifyClient {
+    pub access: String,
+    pub email: String,
+}

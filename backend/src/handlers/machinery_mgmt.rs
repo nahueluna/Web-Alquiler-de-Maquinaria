@@ -2117,15 +2117,15 @@ pub async fn get_locations(
     };
 }
 
-
 pub async fn get_models(State(state): State<AppState>, Json(payload): Json<Access>) -> Response {
     let nginx_url = match env::var("NGINX_URL") {
         Ok(url) => url,
         Err(_) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"message": "NGINX_URL must be set in the .env file"}))).into_response();
-
+                Json(json!({"message": "NGINX_URL must be set in the .env file"})),
+            )
+                .into_response();
         }
     };
 
@@ -2160,13 +2160,7 @@ pub async fn get_models(State(state): State<AppState>, Json(payload): Json<Acces
         }
     };
 
-    match client
-        .query(
-            "SELECT * FROM machinery_models;",
-            &[],
-        )
-        .await
-    {
+    match client.query("SELECT * FROM machinery_models;", &[]).await {
         Ok(rows) => {
             let models: Vec<MachineModel> = rows
                 .iter()
@@ -2199,4 +2193,62 @@ pub async fn get_models(State(state): State<AppState>, Json(payload): Json<Acces
                 .into_response()
         }
     };
+}
+
+pub async fn verify_client(
+    State(state): State<AppState>,
+    Json(payload): Json<VerifyClient>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    }
+    .claims;
+
+    if claims.role != 1 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Solo empleados pueden acceder a esta funcionalidad"})),
+        );
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            );
+        }
+    };
+
+    let verify_user_query = "
+        SELECT id FROM users
+        WHERE email = $1 AND role = 2;
+        ";
+
+    if let Ok(rows) = client.query(verify_user_query, &[&payload.email]).await {
+        if rows.len() == 0 {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"message": "El email no corresponde a un cliente registrado"})),
+            );
+        }
+
+        if let Some(row) = rows.first() {
+            let user_id = row.get::<_, i32>("id");
+
+            return (StatusCode::OK, Json(json!({"user_id": user_id})));
+        }
+    }
+
+    return (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({"message": "Se produjo un error interno al intentar verificar el usuario"})),
+    );
 }

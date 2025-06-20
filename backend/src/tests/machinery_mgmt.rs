@@ -2047,10 +2047,120 @@ async fn test_get_models() {
     let res = client
         .post(backend_url("/getmodels"))
         .json(&serde_json::json!({
-            "access": jwt 
-        })).send().await.unwrap();
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
     assert_eq!(res.status(), 200);
     let value = res.json::<serde_json::Value>().await.unwrap()["models"].clone();
     let models: Vec<MachineModel> = serde_json::from_value(value).unwrap();
     assert!(models.len() > 5);
+}
+
+#[tokio::test]
+async fn test_verify_client() {
+    setup().await;
+    let client = Client::new();
+
+    // Get an employee token
+    let jwt = get_test_jwt("bob@example.com", true).await;
+
+    // ----------- Employee verifies a valid client
+
+    let valid_client_email = "dave@example.com";
+
+    let valid_client_response = client
+        .post(backend_url("/staff/rental/verifyclient"))
+        .json(&serde_json::json!({
+            "email": valid_client_email,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(valid_client_response.status(), 200);
+
+    let valid_client_body = valid_client_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(valid_client_body["user_id"].as_i64().unwrap(), 4);
+
+    // ----------- Employee tries to verify an unregistered email
+
+    let invalid_client_email = "notaregistereduser@example.com";
+
+    let invalid_client_response = client
+        .post(backend_url("/staff/rental/verifyclient"))
+        .json(&serde_json::json!({
+            "email": invalid_client_email,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_client_response.status(), 404);
+
+    let invalid_client_body = invalid_client_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        invalid_client_body["message"].as_str().unwrap(),
+        "El email no corresponde a un cliente registrado"
+    );
+
+    // ----------- Employee tries to verify a user that is not a client
+
+    let non_client_email = "alice@example.com";
+
+    let non_client_response = client
+        .post(backend_url("/staff/rental/verifyclient"))
+        .json(&serde_json::json!({
+            "email": non_client_email,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(non_client_response.status(), 404);
+
+    let non_client_body = non_client_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        non_client_body["message"].as_str().unwrap(),
+        "El email no corresponde a un cliente registrado"
+    );
+
+    // ----------- Client tries to use the verify endpoint
+
+    let user_jwt = get_test_jwt("dave@example.com", false).await;
+
+    let user_response = client
+        .post(backend_url("/staff/rental/verifyclient"))
+        .json(&serde_json::json!({
+            "email": valid_client_email,
+            "access": user_jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(user_response.status(), 403);
+
+    let user_body = user_response.json::<serde_json::Value>().await.unwrap();
+
+    assert_eq!(
+        user_body["message"].as_str().unwrap(),
+        "Solo empleados pueden acceder a esta funcionalidad"
+    );
 }
