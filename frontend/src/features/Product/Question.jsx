@@ -83,7 +83,7 @@ const Question = ({ question, setOpenSnack, setStatus }) => {
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <IconButton
               color={question.upvoted ? "success" : "neutral"}
-              disabled={loadingUpvote}
+              disabled={!user || user.pub_user.role != 2 || loadingUpvote}
               onClick={() => handleUpvote()}
             >
               <ThumbUpIcon />

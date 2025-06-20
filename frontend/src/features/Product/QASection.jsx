@@ -160,31 +160,40 @@ const QASection = ({ id: id }) => {
         }}
       >
         <Typography level="h2">Preguntas</Typography>
-        <form onSubmit={handleSubmit}>
-          <Stack direction="row" spacing={1}>
-            <FormControl sx={{ width: "70%" }} error={!!error}>
-              <Input
-                placeholder="Escribi tu pregunta"
-                size="lg"
-                value={question}
-                onChange={(e) => handleChange(e)}
-                disabled={loading || (user && user.pub_user.role !== 2)}
-                maxLength={256}
-              />
-              <FormHelperText>{error || ""}</FormHelperText>
-            </FormControl>
-            <FormControl>
-              <Button
-                color="danger"
-                size="lg"
-                type="submit"
-                disabled={loading || (user && user.pub_user.role !== 2)}
-              >
-                Preguntar
-              </Button>
-            </FormControl>
-          </Stack>
-        </form>
+        {user && user.pub_user.role === 2 && (
+          <form onSubmit={handleSubmit}>
+            <Stack direction="row" spacing={1}>
+              <FormControl sx={{ width: "70%" }} error={!!error}>
+                <Input
+                  placeholder="Escribi tu pregunta"
+                  size="lg"
+                  value={question}
+                  onChange={(e) => handleChange(e)}
+                  disabled={loading || (user && user.pub_user.role !== 2)}
+                  maxLength={256}
+                />
+                <FormHelperText>{error || ""}</FormHelperText>
+              </FormControl>
+              <FormControl>
+                {/* Me estoy cagando en el FormHelperText cuando es menos de 1 caracter y todos los snackbar
+                  al deshabilitar el boton de pregunta pero bueno, ing2 */}
+                <Button
+                  color="danger"
+                  size="lg"
+                  type="submit"
+                  disabled={
+                    loading ||
+                    (user && user.pub_user.role !== 2) ||
+                    question.length < 1 ||
+                    question.length > 256
+                  }
+                >
+                  Preguntar
+                </Button>
+              </FormControl>
+            </Stack>
+          </form>
+        )}
         <Box
           sx={{
             width: "20%",
