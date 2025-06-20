@@ -65,69 +65,71 @@ function Dashboard() {
       <Stack direction={"row"} sx={{ minHeight: "100%", width: "100%" }}>
         <Sheet sx={{ minWidth: "15%" }}>
           <List>
-            <ListItem>
-              <ListItemButton
-                selected={selected === 0}
-                onClick={() => setSelected(0)}
-              >
-                <ListItemDecorator>
-                  <WorkIcon />
-                </ListItemDecorator>
-                Ver alquileres
-              </ListItemButton>
-            </ListItem>
             {user.pub_user.role === 0 && (
               <ListItem>
                 <ListItemButton
-                  selected={selected === 1}
-                  onClick={() => setSelected(1)}
+                  selected={selected === 0}
+                  onClick={() => setSelected(0)}
                 >
                   <ListItemDecorator>
-                    <AgricultureIcon />
+                    <WorkIcon />
                   </ListItemDecorator>
-                  Administrar maquinas
+                  Ver alquileres
                 </ListItemButton>
               </ListItem>
             )}
             {user.pub_user.role === 0 && (
-              <ListItem>
-                <ListItemButton
-                  selected={selected === 2}
-                  onClick={() => setSelected(2)}
-                >
-                  <ListItemDecorator>
-                    <GroupIcon />
-                  </ListItemDecorator>
-                  Administrar empleados
-                </ListItemButton>
-              </ListItem>
-            )}
-            {user.pub_user.role === 0 && (
-              <ListItem>
-                <ListItemButton
-                  selected={selected === 3}
-                  onClick={() => setSelected(3)}
-                >
-                  <ListItemDecorator>
-                    <InventoryIcon />
-                  </ListItemDecorator>
-                  Administrar ejemplares
-                </ListItemButton>
-              </ListItem>
+              <>
+                <ListItem>
+                  <ListItemButton
+                    selected={selected === 1}
+                    onClick={() => setSelected(1)}
+                  >
+                    <ListItemDecorator>
+                      <AgricultureIcon />
+                    </ListItemDecorator>
+                    Administrar maquinas
+                  </ListItemButton>
+                </ListItem>
+                <ListItem>
+                  <ListItemButton
+                    selected={selected === 2}
+                    onClick={() => setSelected(2)}
+                  >
+                    <ListItemDecorator>
+                      <GroupIcon />
+                    </ListItemDecorator>
+                    Administrar empleados
+                  </ListItemButton>
+                </ListItem>
+              </>
             )}
 
-            {(user.pub_user.role === 0 || user.pub_user.role === 0) && (
-              <ListItem>
-                <ListItemButton
-                  selected={selected === 4}
-                  onClick={() => setSelected(4)}
-                >
-                  <ListItemDecorator>
-                    <SupportAgentIcon />
-                  </ListItemDecorator>
-                  Responder preguntas
-                </ListItemButton>
-              </ListItem>
+            {(user.pub_user.role === 0 || user.pub_user.role === 1) && (
+              <>
+                <ListItem>
+                  <ListItemButton
+                    selected={selected === 3}
+                    onClick={() => setSelected(3)}
+                  >
+                    <ListItemDecorator>
+                      <InventoryIcon />
+                    </ListItemDecorator>
+                    Administrar ejemplares
+                  </ListItemButton>
+                </ListItem>
+                <ListItem>
+                  <ListItemButton
+                    selected={selected === 4}
+                    onClick={() => setSelected(4)}
+                  >
+                    <ListItemDecorator>
+                      <SupportAgentIcon />
+                    </ListItemDecorator>
+                    Responder preguntas
+                  </ListItemButton>
+                </ListItem>
+              </>
             )}
           </List>
         </Sheet>
