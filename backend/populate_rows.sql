@@ -90,7 +90,8 @@ INSERT INTO machinery_units (serial_number, status, assigned_at, model_id, locat
 
 -- Modelo 6 (test load return)
 ('CAT-0016', 'rented', NOW() - INTERVAL '5 days', 6, 1),
-('CAT-0017', 'rented', NOW() - INTERVAL '5 days', 6, 1);
+('CAT-0017', 'rented', NOW() - INTERVAL '5 days', 6, 1),
+('CAT-0018', 'available', NOW() - INTERVAL '5 days', 6, 1);
 
 -- Insert sample data into the machinery_location_history table
 INSERT INTO machinery_location_history (unit_id, location_id, assigned_at, unassigned_at) VALUES
@@ -203,6 +204,11 @@ INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, sta
 INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status,
     retirement_employee_id, retirement_date, payment_id) VALUES
 (4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 4100.00, 'active', 2, NOW() - INTERVAL '3 days', 'PAY_00003');
+
+-- To test validate dates
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status) VALUES
+(10, 18, NOW() + INTERVAL '5 days', NOW() + INTERVAL '12 days', 3950.00, 'pending_payment');
+
 
 INSERT INTO questions (user_id, model_id, content, created_at) VALUES
 (19, 1, 'pregunta 1', NOW()),
