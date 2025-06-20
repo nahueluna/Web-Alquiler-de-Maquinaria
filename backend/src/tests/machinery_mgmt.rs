@@ -2164,3 +2164,109 @@ async fn test_verify_client() {
         "Solo empleados pueden acceder a esta funcionalidad"
     );
 }
+
+#[tokio::test]
+async fn test_get_units_by_model_and_location() {
+    setup().await;
+    let client = Client::new();
+
+    // Get an employee token
+    let jwt = get_test_jwt("bob@example.com", true).await;
+
+    // ----------- Employee retrieves units by valid location ID
+
+    let valid_model_id = 1;
+    let valid_location_id = 1;
+
+    let valid_units_response = client
+        .post(backend_url("/staff/rental/getunits"))
+        .json(&serde_json::json!({
+            "model_id": valid_model_id,
+            "location_id": valid_location_id,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(valid_units_response.status(), 200);
+
+    let valid_units_body = valid_units_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    let units = valid_units_body["units_id"].as_array().unwrap();
+
+    assert!(!units.is_empty());
+
+    // ----------- Employee tries to retrieve units not availables for that model and location
+
+    let invalid_model_id = 1;
+    let invalid_location_id = 3;
+
+    let invalid_units_response = client
+        .post(backend_url("/staff/rental/getunits"))
+        .json(&serde_json::json!({
+            "model_id": invalid_model_id,
+            "location_id": invalid_location_id,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_units_response.status(), 404);
+
+    let invalid_units_body = invalid_units_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        invalid_units_body["message"].as_str().unwrap(),
+        "No se encontraron unidades disponibles en la ubicación especificada"
+    );
+
+    // ----------- Employee tries to retrieve units with invalid model ID and location ID
+
+    let invalid_model_id = 9999;
+    let invalid_location_id = 9999;
+
+    let invalid_request_response = client
+        .post(backend_url("/staff/rental/getunits"))
+        .json(&serde_json::json!({
+            "model_id": invalid_model_id,
+            "location_id": invalid_location_id,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_request_response.status(), 404);
+
+    // ---------- Not employee tries to access units
+
+    let user_jwt = get_test_jwt("dave@example.com", false).await;
+
+    let user_response = client
+        .post(backend_url("/staff/rental/getunits"))
+        .json(&serde_json::json!({
+            "model_id": valid_model_id,
+            "location_id": valid_location_id,
+            "access": user_jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(user_response.status(), 403);
+
+    let user_body = user_response.json::<serde_json::Value>().await.unwrap();
+
+    assert_eq!(
+        user_body["message"].as_str().unwrap(),
+        "Solo empleados pueden acceder a esta funcionalidad"
+    );
+}

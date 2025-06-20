@@ -88,6 +88,10 @@ async fn main() {
         .route("/unit/{id}/history", post(get_unit_history))
         .route("/unit/history/update", post(update_unit_history))
         .route("/staff/rental/verifyclient", post(verify_client))
+        .route(
+            "/staff/rental/getunits",
+            post(get_units_by_model_and_location),
+        )
         .layer(
             CorsLayer::new()
                 .allow_origin(vec![frontend_url.parse().unwrap()])

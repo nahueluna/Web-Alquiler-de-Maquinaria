@@ -2268,3 +2268,65 @@ pub async fn verify_client(
         Json(json!({"message": "Se produjo un error interno al intentar verificar el usuario"})),
     );
 }
+
+pub async fn get_units_by_model_and_location(
+    State(state): State<AppState>,
+    Json(payload): Json<GetUnitsByLocation>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    }
+    .claims;
+
+    if claims.role != 1 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Solo empleados pueden acceder a esta funcionalidad"})),
+        );
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            );
+        }
+    };
+
+    let get_units_query = "
+        SELECT mu.id
+        FROM machinery_units mu
+        INNER JOIN machinery_models mm ON mu.model_id = mm.id
+        WHERE mm.id = $1 AND mu.location_id = $2;
+    ";
+
+    if let Ok(rows) = client
+        .query(get_units_query, &[&payload.model_id, &payload.location_id])
+        .await
+    {
+        if rows.is_empty() {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(
+                    json!({"message": "No se encontraron unidades disponibles en la ubicación especificada"}),
+                ),
+            );
+        }
+
+        let units_id: Vec<i32> = rows.iter().map(|row| row.get("id")).collect();
+        return (StatusCode::OK, Json(json!({"units_id": units_id})));
+    }
+
+    return (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({"message": "Se produjo un error interno al intentar obtener las unidades"})),
+    );
+}

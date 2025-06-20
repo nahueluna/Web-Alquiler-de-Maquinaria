@@ -530,3 +530,10 @@ pub struct VerifyClient {
     pub access: String,
     pub email: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetUnitsByLocation {
+    pub model_id: i32,
+    pub location_id: i32,
+    pub access: String,
+}
