@@ -19,7 +19,9 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES
 ('loadreturn@example.com', 'user18', 'one', 'nopasswordforyoueither', '123', 0, 'active'),
 ('newquestion@example.com', 'user19', 'u19', 'nopasswordforyoueither', '123', 2, 'active'),
 ('newanswer@example.com', 'user20', 'u20', 'nopasswordforyoueither', '123', 0, 'active'),
-('user@example.com', 'user21', 'u21', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 2, 'active');
+('user@example.com', 'user21', 'u21', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 2, 'active'),
+('employee1@example.com', 'user22', 'u22', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 1, 'active'),
+('employee2@example.com', 'user23', 'u23', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 1, 'active');
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),
@@ -31,7 +33,9 @@ INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (12, '1993-06-30', '123123', '555-7890'),
 (14, '1993-06-30', '123122', '555-7890'),
 (19, '1993-06-30', '123134', '555-7890'),
-(21, '1993-06-30', '123534', '555-7890');
+(21, '1993-06-30', '123534', '555-7890'),
+(22, '1993-06-30', '12123534', '555-7890'),
+(23, '1993-06-30', '1asdad23534', '555-7890');
 
 INSERT INTO change_psw_codes (id, code) VALUES
 (13, 'change_psw_code'),
@@ -262,3 +266,19 @@ INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, cre
 (10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
 (10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
 (10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active');
+
+-- Stats by employee test
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, created_at, status, rental_employee_id) VALUES
+-- AUG Current year user22
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
+-- AUG 2024 user22
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active',22),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active',22),
+-- AUG Current year user23
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',23),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',23),
+-- AUG 2024 user23
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active',23);

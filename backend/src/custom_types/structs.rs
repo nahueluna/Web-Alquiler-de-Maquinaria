@@ -553,5 +553,11 @@ pub struct GetStats {
     pub group_by: StatGroupBy,
     pub year: Option<i32>,
     pub period: Option<[NaiveDate; 2]>,
-    pub option: Option<StatOrder>,
+    pub order: Option<StatOrder>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NameValue {
+    pub name: String,
+    pub value: f64,
 }

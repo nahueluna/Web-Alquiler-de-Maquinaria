@@ -547,7 +547,7 @@ async fn test_register_get_and_delete_employees() {
     let value = res.json::<serde_json::Value>().await.unwrap()["employees"].clone();
     let employees: Vec<PubUserWithInfo> = serde_json::from_value(value).unwrap();
     //Increment if more employees are added to the test DB
-    assert_eq!(employees.len(), 2);
+    assert_eq!(employees.len(), 4);
     assert_eq!(employees[0].email, "bob@example.com");
     assert_eq!(employees[0].id, 2);
     assert_eq!(employees[0].role, 1);
@@ -579,7 +579,7 @@ async fn test_register_get_and_delete_employees() {
     let value = res.json::<serde_json::Value>().await.unwrap()["employees"].clone();
     let employees: Vec<PubUserWithInfo> = serde_json::from_value(value).unwrap();
     //Increment if more employees are added to the test DB
-    assert_eq!(employees.len(), 1);
+    assert_eq!(employees.len(), 3);
     assert_eq!(employees[0].email, "frank@example.com");
     assert_eq!(employees[0].role, 1);
     assert_eq!(employees[0].id_card, "ID678901");
@@ -613,10 +613,10 @@ async fn test_register_get_and_delete_employees() {
     let value = res.json::<serde_json::Value>().await.unwrap()["employees"].clone();
     let employees: Vec<PubUserWithInfo> = serde_json::from_value(value).unwrap();
     //Increment if more employees are added to the test DB
-    assert_eq!(employees.len(), 2);
-    assert_eq!(employees[1].email, "emp1@example.com");
-    assert_eq!(employees[1].role, 1);
-    assert_eq!(employees[1].id_card, "GAAAAAA");
+    assert_eq!(employees.len(), 4);
+    assert_eq!(employees[3].email, "emp1@example.com");
+    assert_eq!(employees[3].role, 1);
+    assert_eq!(employees[3].id_card, "GAAAAAA");
 
     //Used email
     let res = client
