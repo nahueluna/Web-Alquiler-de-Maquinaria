@@ -48,7 +48,9 @@ INSERT INTO machinery_models (name, brand, model, year, policy, description, pri
 ('Cargadora frontal', 'Komatsu', 'WA270', 2021, 'Se aplica un reembolso parcial según el tiempo de aviso previo.', 'Cargadora con gran potencia', 120000.00, 'imagecode'),
 ('Miniexcavadora', 'Bobcat', 'E35', 2022, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Compacta para espacios reducidos', 75000.00, 'imagecode'),
 ('Grúa torre', 'Liebherr', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode'),
-('testloadreturn', 'model6', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode');
+('testloadreturn', 'model6', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode'),
+('teststats', 'model7', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode'),
+('teststats1', 'model8', 'EC-B', 2023, 'Reembolso total disponible si se cancela con suficiente antelación.', 'Grúa de gran altura', 200000.00, 'imagecode');
 
 -- Insert sample data into the extra images table
 INSERT INTO model_extra_images (name, id) VALUES 
@@ -95,7 +97,13 @@ INSERT INTO machinery_units (serial_number, status, assigned_at, model_id, locat
 -- Modelo 6 (test load return)
 ('CAT-0016', 'rented', NOW() - INTERVAL '5 days', 6, 1),
 ('CAT-0017', 'rented', NOW() - INTERVAL '5 days', 6, 1),
-('CAT-0018', 'available', NOW() - INTERVAL '5 days', 6, 1);
+('CAT-0018', 'available', NOW() - INTERVAL '5 days', 6, 1),
+
+-- Modelo 7
+('CAT-0019', 'rented', NOW() - INTERVAL '5 days', 7, 1),
+
+-- Modelo 8
+('CAT-0020', 'rented', NOW() - INTERVAL '5 days', 8, 1);
 
 -- Insert sample data into the machinery_location_history table
 INSERT INTO machinery_location_history (unit_id, location_id, assigned_at, unassigned_at) VALUES
@@ -120,28 +128,26 @@ INSERT INTO categories (name) VALUES
 
 -- Modelo 1: Excavadora Caterpillar → Construcción pesada
 INSERT INTO machinery_categories (model_id, category_id) VALUES
-(1, 1);
+(1, 1),
 
 -- Modelo 2: Retroexcavadora John Deere → Obras urbanas, Movimiento de tierra, Compactación
-INSERT INTO machinery_categories (model_id, category_id) VALUES
 (2, 2),
 (2, 3),
-(2, 5);
+(2, 5),
 
 -- Modelo 3: Cargadora frontal Komatsu → Movimiento de tierra, Compactación
-INSERT INTO machinery_categories (model_id, category_id) VALUES
 (3, 3),
-(3, 5);
+(3, 5),
 
 -- Modelo 4: Miniexcavadora Bobcat → Obras urbanas, Movimiento de tierra
-INSERT INTO machinery_categories (model_id, category_id) VALUES
 (4, 2),
-(4, 3);
+(4, 3),
 
 -- Modelo 5: Grúa torre Liebherr → Construcción pesada, Elevación
-INSERT INTO machinery_categories (model_id, category_id) VALUES
 (5, 1),
-(5, 4);
+(5, 4),
+(6, 2),
+(7, 1);
 
 -- Insert sample data into the rentals table
 INSERT INTO rentals (
@@ -243,42 +249,53 @@ INSERT INTO unit_history_events (unit_id, description, previous_status, new_stat
 -- Stats by month test
 INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, created_at, status) VALUES
 -- FEB Current year
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
 -- DEC Current year
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
 -- MAR 2024
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
 -- APR 2024
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active');
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active');
 
 -- Stats by employee test
 INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, created_at, status, rental_employee_id) VALUES
 -- AUG Current year user22
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',22),
 -- AUG 2024 user22
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active',22),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active',22),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active',22),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active',22),
 -- AUG Current year user23
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',23),
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',23),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',23),
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,8,1,0,0,0),'active',23),
 -- AUG 2024 user23
-(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active',23);
+(10,20,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active',23);
+
+-- Stats by category test
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, created_at, status) VALUES
+-- 2024 obras urbanas
+(10,17,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active'),
+(10,17,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active'),
+(10,17,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active'),
+(10,17,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active'),
+-- 2024 construccion pesada
+(10,19,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active'),
+(10,19,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active');

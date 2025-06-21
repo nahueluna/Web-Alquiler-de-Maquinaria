@@ -1,23 +1,15 @@
-use crate::constants::CHANGE_PSW_CODE_EXP_MINS;
 use crate::custom_types::structs::*;
 use crate::custom_types::enums::{StatType, StatGroupBy, StatOrder};
 use crate::helpers::auth::*;
 use axum::{
     extract::State,
-    http::{header, HeaderMap, HeaderValue, StatusCode},
+    http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
-use axum_extra::TypedHeader;
 use deadpool_postgres::GenericClient;
-use headers::Cookie;
-use hex;
-use rand::RngCore;
 use serde_json::json;
-use std::env;
-use tokio_postgres::error::SqlState;
-use validator::Validate;
-use chrono::{Datelike, Local, NaiveDate};
+use chrono::{Datelike, Local};
 use std::collections::HashMap;
 
 
@@ -175,11 +167,77 @@ pub async fn get_stats_by_employee(state: AppState, payload: GetStats) -> Respon
 }
 
 pub async fn get_stats_by_category(state: AppState, payload: GetStats) -> Response {
-            (
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"message": "Get Stats By Category: WIP"})),
+                Json(json!({"message": "Failed to connect to the DB"})),
             )
-                .into_response()
+            .into_response();
+        }
+    };
+
+    let value_expr = match payload.stat_type {
+        StatType::Rentals => "COUNT(*)::float",
+        StatType::Income => "SUM(rentals.total_price)::float",
+    };
+
+    let order_expr = payload.order.unwrap_or(StatOrder::Desc);
+
+    let mut query = format!(
+        "
+        SELECT
+            categories.name AS name,
+            {value_expr} AS value
+        FROM rentals
+        JOIN machinery_units ON rentals.machine_id = machinery_units.id
+        JOIN machinery_categories ON machinery_units.model_id = machinery_categories.model_id
+        JOIN categories ON machinery_categories.category_id = categories.id
+        "
+    );
+
+    let mut params: Vec<&(dyn tokio_postgres::types::ToSql + Sync)> = Vec::new();
+
+    let result = match payload.period {
+        Some(p) => {
+            let start = p[0].and_hms_opt(0, 0, 0).unwrap();
+            let end = p[1].and_hms_opt(23, 59, 59).unwrap();
+            params.push(&start);
+            params.push(&end);
+
+            query.push_str("WHERE rentals.created_at BETWEEN $1 AND $2\n");
+            query.push_str("GROUP BY categories.name\n");
+            query.push_str(&format!("ORDER BY value {order_expr};"));
+
+            client.query(&query, &params).await
+        }
+        None => {
+            query.push_str("GROUP BY categories.name\n");
+            query.push_str(&format!("ORDER BY value {order_expr};"));
+
+            client.query(&query, &params).await
+        }
+    };
+
+    match result {
+        Ok(rows) => {
+            let stats: Vec<NameValue> = rows
+                .into_iter()
+                .map(|row| NameValue {
+                    name: row.get("name"),
+                    value: row.get("value"),
+                })
+                .collect();
+
+            (StatusCode::OK, Json(json!({ "stats": stats }))).into_response()
+        }
+        Err(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to retrieve stats by category"})),
+            )
+                .into_response(),
+    }
 }
 
 pub async fn get_stats(State(state): State<AppState>, Json(payload): Json<GetStats>) -> Response {

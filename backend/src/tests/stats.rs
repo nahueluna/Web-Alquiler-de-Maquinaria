@@ -1,9 +1,6 @@
-use crate::custom_types::{enums::RunningEnv, structs::*};
-use crate::helpers::auth::{create_pool, send_mail, validate_jwt, encode_password};
+use crate::custom_types::structs::*;
 use crate::tests::helpers::*;
-use chrono::Datelike;
 use reqwest::Client;
-use tokio_postgres::Error;
 use std::collections::HashMap;
 
 #[tokio::test]
@@ -243,4 +240,142 @@ async fn test_get_stats_by_employee() {
     assert_eq!(stats[0].value, 2000.0);
     assert_eq!(stats[1].name, "user23 u23");
     assert_eq!(stats[1].value, 1000.0);
+}
+
+#[tokio::test]
+async fn test_get_stats_by_category() {
+    setup().await;
+    let client = Client::new();
+
+    //Get the access token needed
+    let jwt = get_test_jwt("admin2@example.com", false).await;
+    //Get rentals by category - all time
+    let res = client
+        .post(backend_url("/stats"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "stat_type": "rentals",
+            "group_by": "category"
+        })).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+
+    let value = res.json::<serde_json::Value>().await.unwrap()["stats"].clone();
+    let stats: Vec<NameValue> = serde_json::from_value(value).unwrap();
+    assert!(stats.len() >= 5);
+    let mut previous = 0.0;
+    for nv in stats {
+        if previous == 0.0 {
+            previous = nv.value;
+        } else {
+            assert!(nv.value<=previous)
+        }
+    }
+
+    //Get rentals by category - all time - asc order
+    let res = client
+        .post(backend_url("/stats"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "stat_type": "rentals",
+            "group_by": "category",
+            "order": "asc"
+        })).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+
+    let value = res.json::<serde_json::Value>().await.unwrap()["stats"].clone();
+    let stats: Vec<NameValue> = serde_json::from_value(value).unwrap();
+    assert!(stats.len() >= 5);
+    let mut previous = 0.0;
+    for nv in stats {
+        if previous == 0.0 {
+            previous = nv.value;
+        } else {
+            assert!(nv.value>=previous)
+        }
+    }
+
+    //Get rentals by category - 2024 - explicit desc order
+    let res = client
+        .post(backend_url("/stats"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "stat_type": "rentals",
+            "group_by": "category",
+            "order": "desc",
+            "period": ["2024-01-01", "2024-12-31"]
+        })).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+
+    let value = res.json::<serde_json::Value>().await.unwrap()["stats"].clone();
+    let stats: Vec<NameValue> = serde_json::from_value(value).unwrap();
+    assert_eq!(stats.len(), 2);
+    assert_eq!(stats[0].name, "obras urbanas");
+    assert_eq!(stats[0].value, 4.0);
+    assert_eq!(stats[1].name, "construccion pesada");
+    assert_eq!(stats[1].value, 2.0);
+
+    //Get income by category - all time
+    let res = client
+        .post(backend_url("/stats"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "stat_type": "income",
+            "group_by": "category"
+        })).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+
+    let value = res.json::<serde_json::Value>().await.unwrap()["stats"].clone();
+    let stats: Vec<NameValue> = serde_json::from_value(value).unwrap();
+    assert!(stats.len() >= 5);
+    let mut previous = 0.0;
+    for nv in stats {
+        if previous == 0.0 {
+            previous = nv.value;
+        } else {
+            assert!(nv.value<=previous)
+        }
+    }
+
+    //Get income by category - all time - asc order
+    let res = client
+        .post(backend_url("/stats"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "stat_type": "income",
+            "group_by": "category",
+            "order": "asc"
+        })).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+
+    let value = res.json::<serde_json::Value>().await.unwrap()["stats"].clone();
+    let stats: Vec<NameValue> = serde_json::from_value(value).unwrap();
+    assert!(stats.len() >= 5);
+    let mut previous = 0.0;
+    for nv in stats {
+        if previous == 0.0 {
+            previous = nv.value;
+        } else {
+            assert!(nv.value>=previous)
+        }
+    }
+
+    //Get income by category - 2024 - explicit desc order
+    let res = client
+        .post(backend_url("/stats"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "stat_type": "income",
+            "group_by": "category",
+            "order": "desc",
+            "period": ["2024-01-01", "2024-12-31"]
+        })).send().await.unwrap();
+    assert_eq!(res.status(), 200);
+
+    let value = res.json::<serde_json::Value>().await.unwrap()["stats"].clone();
+    let stats: Vec<NameValue> = serde_json::from_value(value).unwrap();
+    assert_eq!(stats.len(), 2);
+    assert_eq!(stats[0].name, "obras urbanas");
+    assert_eq!(stats[0].value, 4000.0);
+    assert_eq!(stats[1].name, "construccion pesada");
+    assert_eq!(stats[1].value, 2000.0);
 }
