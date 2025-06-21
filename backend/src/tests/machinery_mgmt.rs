@@ -1319,7 +1319,7 @@ async fn test_get_my_rentals() {
         rental.end_date,
         NaiveDate::from_ymd_opt(2025, 1, 12).unwrap()
     );
-    assert_eq!(rental.total_price, 4300.0);
+    assert_eq!(rental.total_price, 1000.0);
     assert_eq!(rental.status, "completed");
     assert_eq!(rental.unit_id, 5);
     assert_eq!(rental.unit_serial_number, "JD-002");

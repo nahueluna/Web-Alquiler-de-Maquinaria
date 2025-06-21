@@ -142,72 +142,72 @@ INSERT INTO machinery_categories (model_id, category_id) VALUES
 -- Insert sample data into the rentals table
 INSERT INTO rentals (
     user_id, machine_id, start_date, end_date, total_price, status,
-    retirement_employee_id, return_employee_id, retirement_date, return_date, payment_id
+    retirement_employee_id, return_employee_id, retirement_date, return_date, payment_id, created_at
 )
 VALUES (
-    4, 2, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 5000.00, 'completed',
-    2, 6, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 'PAY_00001'
+    4, 2, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 1000.00, 'completed',
+    2, 6, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 'PAY_00001', DATE_TRUNC('year', NOW())
 ),
 (
-    8, 5, '2025-1-3', '2025-1-12', 4300.00, 'completed',
-    6, 2, '2025-1-3', '2025-1-12', 'PAY_00002'
+    8, 5, '2025-1-3', '2025-1-12', 1000.00, 'completed',
+    6, 2, '2025-1-3', '2025-1-12', 'PAY_00002', DATE_TRUNC('year', NOW())
 ),
 (
-    17, 16,'2025-1-3', '2025-1-12', 5000.00, 'completed',
-    2, 6, '2025-1-3', '2025-1-12', 'PAY_00001'
+    17, 16,'2025-1-3', '2025-1-12', 1000.00, 'completed',
+    2, 6, '2025-1-3', '2025-1-12', 'PAY_00001', DATE_TRUNC('year', NOW())
 ),
 (
-    17, 17, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 5000.00, 'completed',
-    2, 6, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 'PAY_00001'
+    17, 17, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 1000.00, 'completed',
+    2, 6, NOW() - INTERVAL '179 days', NOW() - INTERVAL '170 days', 'PAY_00001', DATE_TRUNC('year', NOW())
 );
 
 INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status,
-    retirement_employee_id, retirement_date, payment_id) VALUES
-(4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 4100.00, 'active', 2, NOW() - INTERVAL '3 days', 'PAY_00003');
+    retirement_employee_id, retirement_date, payment_id, created_at) VALUES
+(4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 1000.00, 'active', 2, NOW() - INTERVAL '3 days', 'PAY_00003', DATE_TRUNC('year', NOW()));
 
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status) VALUES
-(4, 9, NOW(), NOW() + INTERVAL '13 days', 3950.00, 'active'),
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, created_at) VALUES
+(4, 9, NOW(), NOW() + INTERVAL '13 days', 1000.00, 'active', DATE_TRUNC('year', NOW())),
 
-(9, 3, NOW() + INTERVAL '18 days', NOW() + INTERVAL '28 days', 6200.00, 'pending_payment'),
+(9, 3, NOW() + INTERVAL '18 days', NOW() + INTERVAL '28 days', 1000.00, 'pending_payment', DATE_TRUNC('year', NOW())),
 
-(9, 7, NOW() + INTERVAL '23 days', NOW() + INTERVAL '30 days', 4000.00, 'pending_payment'),
+(9, 7, NOW() + INTERVAL '23 days', NOW() + INTERVAL '30 days', 1000.00, 'pending_payment', DATE_TRUNC('year', NOW())),
 
-(10, 8, NOW() + INTERVAL '15 days', NOW() + INTERVAL '29 days', 4300.00, 'pending_payment'),
+(10, 8, NOW() + INTERVAL '15 days', NOW() + INTERVAL '29 days', 1000.00, 'pending_payment', DATE_TRUNC('year', NOW())),
 
-(10, 2, NOW() + INTERVAL '4 days', NOW() + INTERVAL '13 days', 5500.00, 'cancelled'),
+(10, 2, NOW() + INTERVAL '4 days', NOW() + INTERVAL '13 days', 1000.00, 'cancelled', DATE_TRUNC('year', NOW())),
 
-(10, 3, NOW() + INTERVAL '4 days', NOW() + INTERVAL '11 days', 5800.00, 'active'),
+(10, 3, NOW() + INTERVAL '4 days', NOW() + INTERVAL '11 days', 1000.00, 'active', DATE_TRUNC('year', NOW())),
 
-(10, 1, NOW() + INTERVAL '6 days', NOW() + INTERVAL '13 days', 4600.00, 'failed'),
+(10, 1, NOW() + INTERVAL '6 days', NOW() + INTERVAL '13 days', 1000.00, 'failed', DATE_TRUNC('year', NOW())),
 
-(4, 10, NOW() + INTERVAL '8 days', NOW() + INTERVAL '18 days', 6000.00, 'active'),
+(4, 10, NOW() + INTERVAL '8 days', NOW() + INTERVAL '18 days', 1000.00, 'active', DATE_TRUNC('year', NOW())),
 
-(9, 10, NOW() + INTERVAL '28 days', NOW() + INTERVAL '38 days', 6000.00, 'pending_payment'),
+(9, 10, NOW() + INTERVAL '28 days', NOW() + INTERVAL '38 days', 1000.00, 'pending_payment', DATE_TRUNC('year', NOW())),
 
 -- To test cancel rental
-(9, 15, NOW() + INTERVAL '23 days', NOW() + INTERVAL '30 days', 4000.00, 'pending_payment'),
-(9, 15, NOW() + INTERVAL '40 days', NOW() + INTERVAL '47 days', 4000.00, 'pending_payment'),
+(9, 15, NOW() + INTERVAL '23 days', NOW() + INTERVAL '30 days', 1000.00, 'pending_payment', DATE_TRUNC('year', NOW())),
+(9, 15, NOW() + INTERVAL '40 days', NOW() + INTERVAL '47 days', 1000.00, 'pending_payment', DATE_TRUNC('year', NOW())),
 
 
 -- To test get staff rentals - late rent
-(9, 15, NOW() - INTERVAL '10 days', NOW() - INTERVAL '3 days', 4000.00, 'active'),
+(9, 15, NOW() - INTERVAL '10 days', NOW() - INTERVAL '3 days', 1000.00, 'active', DATE_TRUNC('year', NOW())),
 
-(4, 2, NOW() - INTERVAL '10 days', NOW() + INTERVAL '3 days', 4000.00, 'active'),
+(4, 2, NOW() - INTERVAL '10 days', NOW() + INTERVAL '3 days', 1000.00, 'active', DATE_TRUNC('year', NOW())),
 
-(4, 2, NOW() - INTERVAL '10 days', NOW() + INTERVAL '3 days', 4000.00, 'completed'),
+(4, 2, NOW() - INTERVAL '10 days', NOW() + INTERVAL '3 days', 1000.00, 'completed', DATE_TRUNC('year', NOW())),
 
-(4, 2, NOW() - INTERVAL '10 days', NOW(), 4000.00, 'active'),
+(4, 2, NOW() - INTERVAL '10 days', NOW(), 1000.00, 'active', DATE_TRUNC('year', NOW())),
 
 -- To test cancel rental start date in the past
-(9, 15, NOW() - INTERVAL '40 days', NOW() + INTERVAL '2 days', 4000.00, 'pending_payment');
+(9, 15, NOW() - INTERVAL '40 days', NOW() + INTERVAL '2 days', 1000.00, 'pending_payment', DATE_TRUNC('year', NOW()));
 
 INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status,
-    retirement_employee_id, retirement_date, payment_id) VALUES
-(4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 4100.00, 'active', 2, NOW() - INTERVAL '3 days', 'PAY_00003');
+    retirement_employee_id, retirement_date, payment_id, created_at) VALUES
+(4, 6, NOW() - INTERVAL '3 days', NOW() + INTERVAL '8 days', 1000.00, 'active', 2, NOW() - INTERVAL '3 days', 'PAY_00003', DATE_TRUNC('year', NOW()));
 
 -- To test validate dates
-INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status) VALUES
-(10, 18, NOW() + INTERVAL '5 days', NOW() + INTERVAL '12 days', 3950.00, 'pending_payment');
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, status, created_at) VALUES
+(10, 18, NOW() + INTERVAL '5 days', NOW() + INTERVAL '12 days', 1000.00, 'pending_payment', DATE_TRUNC('year', NOW()));
 
 
 INSERT INTO questions (user_id, model_id, content, created_at) VALUES
@@ -235,3 +235,30 @@ INSERT INTO unit_history_events (unit_id, description, previous_status, new_stat
 (3, 'Cambio de estado a disponible', 'maintenance', 'available'),
 (6, 'Cambio de aceite', 'maintenance', 'available'),
 (6, NULL, 'available', 'maintenance');
+
+-- Stats by month test
+INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, created_at, status) VALUES
+-- FEB Current year
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,2,1,0,0,0),'active'),
+-- DEC Current year
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(EXTRACT(YEAR FROM NOW())::INT,12,1,0,0,0),'active'),
+-- MAR 2024
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,3,1,0,0,0),'active'),
+-- APR 2024
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active'),
+(10,18,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,4,1,0,0,0),'active');

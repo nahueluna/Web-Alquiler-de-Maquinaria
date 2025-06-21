@@ -1,6 +1,6 @@
 use crate::custom_types::enums::UnitStatusEvents;
 
-use super::enums::{OrderByField, OrderDirection, PaymentStatus};
+use super::enums::*;
 use axum::Json;
 use chrono::{NaiveDate, NaiveDateTime};
 use deadpool_postgres::Pool;
@@ -544,4 +544,14 @@ pub struct ValidateRentalDates {
     pub end_date: NaiveDate,
     pub unit_id: i32,
     pub access: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetStats {
+    pub access: String,
+    pub stat_type: StatType,
+    pub group_by: StatGroupBy,
+    pub year: Option<i32>,
+    pub period: Option<[NaiveDate; 2]>,
+    pub option: Option<StatOrder>,
 }

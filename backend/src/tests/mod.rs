@@ -8,3 +8,5 @@ pub mod machinery_mgmt;
 pub mod maintenance_mgmt;
 #[cfg(test)]
 pub mod questions;
+#[cfg(test)]
+pub mod stats;
