@@ -1,7 +1,9 @@
 use crate::custom_types::enums::RunningEnv;
+use crate::custom_types::structs::ServiceReview;
 use crate::helpers::auth::create_pool;
 use crate::tests::helpers::*;
 use reqwest::Client;
+use chrono::NaiveDateTime;
 
 #[tokio::test]
 async fn test_new_machine_review() {
@@ -463,6 +465,137 @@ async fn test_new_service_review() {
             "rental_id": 60,
             "rating": 3,
             "content": "a"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 401);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Invalid access token");
+}
+
+#[tokio::test]
+async fn test_get_service_reviews() {
+    setup().await;
+    let client = Client::new();
+
+    //Get the access token
+    let jwt = get_test_jwt("admin@example.com", false).await;
+    //Get the reviews - ordered by recent by default
+    let res = client
+        .post(backend_url("/reviews/service/get"))
+        .json(&serde_json::json!({
+            "access": jwt,
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["reviews"].clone();
+    let reviews: Vec<ServiceReview> = serde_json::from_value(value).unwrap();
+    assert!(reviews.len() >= 5);
+    let mut previous = NaiveDateTime::MAX;
+    for r in reviews {
+        assert!(r.created_at < previous);
+        previous = r.created_at;
+    }
+
+    //Get the reviews - ordered by recent
+    let res = client
+        .post(backend_url("/reviews/service/get"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "order":"recent"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["reviews"].clone();
+    let reviews: Vec<ServiceReview> = serde_json::from_value(value).unwrap();
+    assert!(reviews.len() >= 5);
+    let mut previous = NaiveDateTime::MAX;
+    for r in reviews {
+        assert!(r.created_at < previous);
+        previous = r.created_at;
+    }
+
+    //Get the reviews - ordered by more rating
+    let res = client
+        .post(backend_url("/reviews/service/get"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "order":"more_rating"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["reviews"].clone();
+    let reviews: Vec<ServiceReview> = serde_json::from_value(value).unwrap();
+    assert!(reviews.len() >= 5);
+    let mut previous = i16::MAX;
+    for r in reviews {
+        assert!(r.rating < previous);
+        previous = r.rating;
+    }
+
+    //Get the reviews - ordered by less rating
+    let res = client
+        .post(backend_url("/reviews/service/get"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "order":"less_rating"
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["reviews"].clone();
+    let reviews: Vec<ServiceReview> = serde_json::from_value(value).unwrap();
+    assert!(reviews.len() >= 5);
+    let mut previous = i16::MIN;
+    for r in reviews {
+        assert!(r.rating > previous);
+        previous = r.rating;
+    }
+
+    //Get the reviews - filter by rating
+    let res = client
+        .post(backend_url("/reviews/service/get"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "rating":3
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap()["reviews"].clone();
+    let reviews: Vec<ServiceReview> = serde_json::from_value(value).unwrap();
+    assert!(reviews.len() >= 1);
+    for r in reviews {
+        assert_eq!(r.rating, 3);
+    }
+
+    //Invalid role
+    let jwt = get_test_jwt("user@example.com", false).await;
+    let res = client
+        .post(backend_url("/reviews/service/get"))
+        .json(&serde_json::json!({
+            "access": jwt,
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 403);
+    assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Not enough permissions");
+
+    //Invalid token
+    let res = client
+        .post(backend_url("/reviews/service/get"))
+        .json(&serde_json::json!({
+            "access": "anything at all",
         }))
         .send()
         .await

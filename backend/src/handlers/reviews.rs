@@ -1,4 +1,5 @@
 use crate::custom_types::structs::*;
+use crate::custom_types::enums::ReviewOrder;
 use crate::helpers::auth::*;
 use axum::{
     extract::State,
@@ -259,4 +260,117 @@ pub async fn new_service_review(State(state): State<AppState>, Json(payload): Js
             (status_code, Json(json!({"message": message}))).into_response()
         }
     }
+}
+
+pub async fn get_service_reviews(
+    State(state): State<AppState>,
+    Json(payload): Json<GetServiceReviews>,
+) -> Response {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data.claims,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            )
+                .into_response();
+        }
+    };
+
+    if claims.role != 0 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Not enough permissions"})),
+        )
+            .into_response();
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response();
+        }
+    };
+
+    // Construct ORDER BY clause
+    let order_clause = match payload.order {
+        Some(ReviewOrder::MoreRating) => "ORDER BY sr.rating DESC, sr.created_at DESC",
+        Some(ReviewOrder::LessRating) => "ORDER BY sr.rating ASC, sr.created_at DESC",
+        Some(ReviewOrder::Recent) | None => "ORDER BY sr.created_at DESC",
+    };
+
+    // Construct WHERE clause
+    let rating;
+    let (where_clause, params): (&str, Vec<&(dyn tokio_postgres::types::ToSql + Sync)>) =
+        if let Some(r) = payload.rating {
+            rating = r;
+            ("WHERE sr.rating = $1", vec![&rating])
+        } else {
+            ("", vec![])
+        };
+
+    // Execute query
+    let query = format!(
+        "
+        SELECT
+            CONCAT(u.name, ' ', u.surname) AS user_name,
+            sr.rating,
+            sr.content,
+            sr.created_at,
+            CONCAT(rental_emp.name, ' ', rental_emp.surname) AS rental_employee_name,
+            CONCAT(retirement_emp.name, ' ', retirement_emp.surname) AS retirement_employee_name,
+            CONCAT(return_emp.name, ' ', return_emp.surname) AS return_employee_name,
+            r.id AS rental_id,
+            mm.brand AS model_brand,
+            mm.name AS model_name,
+            mm.model AS model_model,
+            mu.serial_number
+        FROM service_reviews sr
+        JOIN users u ON sr.user_id = u.id
+        JOIN rentals r ON sr.rental_id = r.id
+        JOIN machinery_units mu ON r.machine_id = mu.id
+        JOIN machinery_models mm ON mu.model_id = mm.id
+        LEFT JOIN users rental_emp ON r.rental_employee_id = rental_emp.id
+        LEFT JOIN users retirement_emp ON r.retirement_employee_id = retirement_emp.id
+        LEFT JOIN users return_emp ON r.return_employee_id = return_emp.id
+        {where_clause}
+        {order_clause};
+        "
+    );
+
+    let rows = match client.query(&query, &params).await {
+        Ok(rows) => rows,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to retrieve service reviews"})),
+            )
+                .into_response();
+        }
+    };
+
+    // Build response
+    let reviews: Vec<ServiceReview> = rows
+        .into_iter()
+        .map(|row| ServiceReview {
+            user_name: row.get("user_name"),
+            rating: row.get("rating"),
+            content: row.get("content"),
+            created_at: row.get("created_at"),
+            rental_employee_name: row.get("rental_employee_name"),
+            retirement_employee_name: row.get("retirement_employee_name"),
+            return_employee_name: row.get("return_employee_name"),
+            rental_id: row.get("rental_id"),
+            model_brand: row.get("model_brand"),
+            model_name: row.get("model_name"),
+            model_model: row.get("model_model"),
+            serial_number: row.get("serial_number"),
+        })
+        .collect();
+
+    (StatusCode::OK, Json(json!({ "reviews": reviews }))).into_response()
 }

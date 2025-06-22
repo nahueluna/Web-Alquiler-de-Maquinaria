@@ -569,3 +569,26 @@ pub struct NewReview {
     pub rating: i16,
     pub content: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetServiceReviews {
+    pub access: String,
+    pub order: Option<ReviewOrder>,
+    pub rating: Option<i16>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ServiceReview {
+    pub user_name: String,
+    pub rating: i16,
+    pub content: Option<String>,
+    pub created_at: NaiveDateTime,
+    pub rental_employee_name: Option<String>,
+    pub retirement_employee_name: Option<String>,
+    pub return_employee_name: Option<String>,
+    pub rental_id: i32,
+    pub model_brand: String,
+    pub model_name: String,
+    pub model_model: String,
+    pub serial_number: String,
+}

@@ -66,3 +66,11 @@ impl fmt::Display for StatOrder {
         write!(f, "{}", s)
     }
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum ReviewOrder{
+    MoreRating,
+    LessRating,
+    Recent,
+}
