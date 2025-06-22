@@ -298,4 +298,8 @@ INSERT INTO rentals (user_id, machine_id, start_date, end_date, total_price, cre
 (10,17,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active'),
 -- 2024 construccion pesada
 (10,19,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active'),
-(10,19,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active');
+(10,19,NOW(),NOW(),1000.00,MAKE_TIMESTAMP(2024,8,1,0,0,0),'active'),
+
+-- Test new machine review - user21 - unit20 - model 8
+(21,20,NOW(),NOW(),1000.00,DATE_TRUNC('year', NOW()),'active'), -- id 59
+(21,20,NOW(),NOW(),1000.00,DATE_TRUNC('year', NOW()),'completed'); -- id 60

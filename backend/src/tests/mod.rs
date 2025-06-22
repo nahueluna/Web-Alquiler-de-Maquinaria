@@ -10,3 +10,5 @@ pub mod maintenance_mgmt;
 pub mod questions;
 #[cfg(test)]
 pub mod stats;
+#[cfg(test)]
+pub mod reviews;

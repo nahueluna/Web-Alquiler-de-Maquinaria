@@ -137,3 +137,11 @@ CREATE TABLE unit_history_events (
     new_status machine_status NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE machine_reviews (
+    rental_id INTEGER PRIMARY KEY REFERENCES rentals(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    model_id INTEGER NOT NULL REFERENCES machinery_models(id),
+    rating smallint NOT NULL,
+    content varchar(256) NULL
+);

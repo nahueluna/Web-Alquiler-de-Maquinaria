@@ -561,3 +561,11 @@ pub struct NameValue {
     pub name: String,
     pub value: f64,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NewMachineReview {
+    pub access: String,
+    pub rental_id: i32,
+    pub rating: i16,
+    pub content: Option<String>,
+}

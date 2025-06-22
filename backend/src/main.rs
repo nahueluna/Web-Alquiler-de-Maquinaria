@@ -10,7 +10,8 @@ use handlers::{auth::*,
     machinery_mgmt::*,
     maintenance_mgmt::*,
     questions::*,
-    stats::*};
+    stats::*,
+    reviews::*};
 use helpers::auth::create_pool;
 use std::{env, sync::Arc};
 use tower_http::cors::CorsLayer;
@@ -97,6 +98,7 @@ async fn main() {
             post(get_units_by_model_and_location),
         )
         .route("/staff/rental/validatedates", post(validate_rental_dates))
+        .route("/reviews/machines/new", post(new_machine_review))
         .route("/stats", post(get_stats))
         .layer(
             CorsLayer::new()
