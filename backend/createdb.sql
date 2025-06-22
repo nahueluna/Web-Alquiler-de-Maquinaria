@@ -145,3 +145,10 @@ CREATE TABLE machine_reviews (
     rating smallint NOT NULL,
     content varchar(256) NULL
 );
+
+CREATE TABLE service_reviews (
+    rental_id INTEGER PRIMARY KEY REFERENCES rentals(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    rating smallint NOT NULL,
+    content varchar(256) NULL
+);

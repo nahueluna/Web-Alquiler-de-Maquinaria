@@ -563,7 +563,7 @@ pub struct NameValue {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct NewMachineReview {
+pub struct NewReview {
     pub access: String,
     pub rental_id: i32,
     pub rating: i16,

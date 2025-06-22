@@ -99,6 +99,7 @@ async fn main() {
         )
         .route("/staff/rental/validatedates", post(validate_rental_dates))
         .route("/reviews/machines/new", post(new_machine_review))
+        .route("/reviews/service/new", post(new_service_review))
         .route("/stats", post(get_stats))
         .layer(
             CorsLayer::new()
