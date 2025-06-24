@@ -1,26 +1,27 @@
 import React from "react";
-import useAuth from "../utils/useAuth";
-import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend,
 } from "chart.js";
+import { Line } from "react-chartjs-2";
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend
 );
 
-const BarChart = ({ statsData, typeName }) => {
+const LineChart = ({ statsData, typeName }) => {
   const mesesOrdenados = [
     { en: "january", es: "Enero" },
     { en: "february", es: "Febrero" },
@@ -71,9 +72,9 @@ const BarChart = ({ statsData, typeName }) => {
 
   return (
     <div style={{ minWidth: "600px", width: "60%", minHeight: "400px" }}>
-      <Bar data={data} options={options} />
+      <Line data={data} options={options} />
     </div>
   );
 };
 
-export default BarChart;
+export default LineChart;

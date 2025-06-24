@@ -6,7 +6,7 @@ import Menu from "@mui/joy/Menu";
 import MenuItem from "@mui/joy/MenuItem";
 import ArrowDropDown from "@mui/icons-material/ArrowDropDown";
 import Dropdown from "@mui/joy/Dropdown";
-import BarChart from "./BarChart";
+import LineChart from "./LineChart";
 import useAuth from "../utils/useAuth";
 import Typography from "@mui/joy/Typography";
 import Snackbar from "@mui/joy/Snackbar";
@@ -164,7 +164,7 @@ const Statistics = () => {
           <p>Cargando...</p>
         ) : statsData ? (
           groupBy.value === "month" ? (
-            <BarChart typeName={type.label} statsData={statsData} />
+            <LineChart typeName={type.label} statsData={statsData} />
           ) : (
             Array.isArray(statsData) && (
               <HorizontalBarChart typeName={type.label} statsData={statsData} />
