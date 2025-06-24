@@ -2,6 +2,7 @@ import AgricultureIcon from "@mui/icons-material/Agriculture";
 import GroupIcon from "@mui/icons-material/Group";
 import WorkIcon from "@mui/icons-material/Work";
 import InventoryIcon from "@mui/icons-material/Inventory";
+import BarChartIcon from "@mui/icons-material/BarChart";
 import {
   Divider,
   List,
@@ -22,9 +23,10 @@ import UserContext from "../../context/UserContext";
 import { useContext } from "react";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import QAPanel from "./QAPanel";
+import Statistics from "./Statistics";
 
 function Dashboard() {
-  const [selected, setSelected] = useState(0);
+  const [selected, setSelected] = useState(-1);
   const [categories, setCategories] = useState([]);
   const { get } = useAuth();
   const { user } = useContext(UserContext);
@@ -45,8 +47,10 @@ function Dashboard() {
 
   const renderContent = () => {
     switch (selected) {
-      case 0:
+      case -1:
         return <Rentals />;
+      case 0:
+        return <Statistics />;
       case 1:
         return <Machines categories={categories} />;
       case 2:
@@ -66,17 +70,30 @@ function Dashboard() {
         <Sheet sx={{ minWidth: "15%" }}>
           <List>
             {user.pub_user.role === 0 && (
-              <ListItem>
-                <ListItemButton
-                  selected={selected === 0}
-                  onClick={() => setSelected(0)}
-                >
-                  <ListItemDecorator>
-                    <WorkIcon />
-                  </ListItemDecorator>
-                  Ver alquileres
-                </ListItemButton>
-              </ListItem>
+              <>
+                <ListItem>
+                  <ListItemButton
+                    selected={selected === -1}
+                    onClick={() => setSelected(-1)}
+                  >
+                    <ListItemDecorator>
+                      <WorkIcon />
+                    </ListItemDecorator>
+                    Ver alquileres
+                  </ListItemButton>
+                </ListItem>
+                <ListItem>
+                  <ListItemButton
+                    selected={selected === 0}
+                    onClick={() => setSelected(0)}
+                  >
+                    <ListItemDecorator>
+                      <BarChartIcon />
+                    </ListItemDecorator>
+                    Ver estadisticas
+                  </ListItemButton>
+                </ListItem>
+              </>
             )}
             {user.pub_user.role === 0 && (
               <>
