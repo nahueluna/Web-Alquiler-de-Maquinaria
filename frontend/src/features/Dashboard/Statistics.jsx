@@ -17,6 +17,9 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { FormControl, FormHelperText, FormLabel } from "@mui/joy";
 import IconButton from "@mui/joy/IconButton";
 import Box from "@mui/joy/Box";
+import Link from "@mui/joy/Link";
+import { Link as RouterLink } from "react-router-dom";
+import Typography from "@mui/joy/Typography";
 
 const Statistics = () => {
   const { post } = useAuth();
@@ -296,6 +299,25 @@ const Statistics = () => {
               </Dropdown>
             </Stack>
             <FormHelperText>{formError ? formError : ""}</FormHelperText>
+            {optionalSettings.period.length > 0 && (
+              <Typography>
+                <Link
+                  onClick={() => {
+                    setFechaInicio("");
+                    setFechaFin("");
+                    setFormError("");
+                    setOptionalSettings({
+                      ...optionalSettings,
+                      period: [],
+                    });
+                  }}
+                  level="body-sm"
+                  sx={{ fontWeight: "400" }}
+                >
+                  Limpiar fechas
+                </Link>
+              </Typography>
+            )}
           </Stack>
         )}
         {loading ? (
