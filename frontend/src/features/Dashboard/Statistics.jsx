@@ -8,14 +8,28 @@ import ArrowDropDown from "@mui/icons-material/ArrowDropDown";
 import Dropdown from "@mui/joy/Dropdown";
 import LineChart from "./LineChart";
 import useAuth from "../utils/useAuth";
-import Typography from "@mui/joy/Typography";
 import Snackbar from "@mui/joy/Snackbar";
 import Button from "@mui/joy/Button";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheckCircleRounded";
+import Input from "@mui/joy/Input";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { FormControl, FormHelperText, FormLabel } from "@mui/joy";
+import IconButton from "@mui/joy/IconButton";
+import Box from "@mui/joy/Box";
 
 const Statistics = () => {
   const { post } = useAuth();
+
+  const [fechaInicio, setFechaInicio] = React.useState("");
+  const [fechaFin, setFechaFin] = React.useState("");
+  const [optionalSettings, setOptionalSettings] = React.useState({
+    order: {
+      label: "Descendente",
+      value: "desc",
+    },
+    period: [],
+  });
 
   const [statsData, setStatsData] = React.useState([]);
   const [type, setType] = React.useState({
@@ -35,14 +49,45 @@ const Statistics = () => {
     message: "",
   });
 
+  const [formError, setFormError] = React.useState("");
+
+  const handleDateSubmit = () => {
+    if (fechaInicio && fechaFin && fechaInicio <= fechaFin) {
+      setOptionalSettings({
+        ...optionalSettings,
+        period: [fechaInicio, fechaFin],
+      });
+      setFormError("");
+      return;
+    }
+    if (!fechaInicio && !fechaFin) {
+      setFormError("Tenes que indicar un rango de fechas");
+    }
+    if (fechaInicio && !fechaFin) {
+      setFormError("Tenes que indicar la fecha de fin");
+    }
+    if (!fechaInicio && fechaFin) {
+      setFormError("Tenes que indicar la fecha de inicio");
+    }
+    if (fechaInicio && fechaFin && fechaInicio > fechaFin) {
+      setFormError("La fecha de inicio no puede ser mayor a la fecha de fin");
+    }
+  };
   async function getStats(type, groupBy) {
     setStatsData([]);
     console.log("getStats", type, groupBy);
     try {
-      const { data } = await post("/stats", {
+      const parameters = {
         stat_type: type,
         group_by: groupBy,
-      });
+      };
+      if (optionalSettings.period.length > 0) {
+        parameters.period = optionalSettings.period;
+      }
+      if (optionalSettings.order) {
+        parameters.order = optionalSettings.order.value;
+      }
+      const { data } = await post("/stats", parameters);
       console.log("getStats data", data.stats);
       setStatsData(data.stats);
     } catch (error) {
@@ -60,6 +105,7 @@ const Statistics = () => {
       setOpenSnack(true);
     }
   }
+
   useEffect(() => {
     const getNewStats = async () => {
       setLoading(true);
@@ -69,17 +115,17 @@ const Statistics = () => {
     };
 
     getNewStats();
-  }, [type, groupBy]);
+  }, [type, groupBy, optionalSettings]);
   return (
     <>
-      <Stack spacing={3}>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{
-            pl: 2,
-          }}
-        >
+      <Stack
+        spacing={2}
+        sx={{
+          pl: 2,
+          pt: 2,
+        }}
+      >
+        <Stack direction="row" spacing={1}>
           <Dropdown>
             <MenuButton
               endDecorator={<ArrowDropDown />}
@@ -160,6 +206,98 @@ const Statistics = () => {
             </Menu>
           </Dropdown>
         </Stack>
+        {groupBy.value != "month" && (
+          <Stack
+            sx={{
+              width: 520,
+              backgroundColor: "#f5f5f5",
+              padding: 1,
+              borderRadius: "8px",
+            }}
+          >
+            <Stack spacing={1} direction="row">
+              <FormControl>
+                <FormLabel>Fecha de inicio</FormLabel>
+                <Input
+                  type="date"
+                  value={fechaInicio}
+                  onChange={(e) => {
+                    setFechaInicio(e.target.value);
+                    if (fechaFin && e.target.value > fechaFin) setFechaFin("");
+                  }}
+                  slotProps={{
+                    input: {
+                      max: "9999-12-12",
+                    },
+                  }}
+                  placeholder="Fecha de inicio"
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Fecha de fin</FormLabel>
+                <Input
+                  type="date"
+                  value={fechaFin}
+                  onChange={(e) => setFechaFin(e.target.value)}
+                  slotProps={{
+                    input: {
+                      max: "9999-12-12",
+                    },
+                  }}
+                  placeholder="Fecha de fin"
+                />
+              </FormControl>
+              <Box
+                sx={{
+                  alignContent: "flex-end",
+                  alignSelf: "flex-end",
+                }}
+              >
+                <IconButton>
+                  <ChevronRightIcon onClick={handleDateSubmit} />
+                </IconButton>
+              </Box>
+              <Dropdown>
+                <MenuButton
+                  endDecorator={<ArrowDropDown />}
+                  sx={{
+                    minWidth: 130,
+                    height: 20,
+                    alignSelf: "flex-end",
+                    backgroundColor: "white",
+                  }}
+                >
+                  {optionalSettings.order.label}
+                </MenuButton>
+                <Menu>
+                  <MenuItem
+                    selected={optionalSettings.order.label === "Descendente"}
+                    onClick={() => {
+                      setOptionalSettings({
+                        ...optionalSettings,
+                        order: { label: "Descendente", value: "desc" },
+                      });
+                    }}
+                  >
+                    Descendente
+                  </MenuItem>
+                  <MenuItem
+                    selected={optionalSettings.order.label === "Ascendente"}
+                    onClick={() => {
+                      setOptionalSettings({
+                        ...optionalSettings,
+                        order: { label: "Ascendente", value: "asc" },
+                      });
+                    }}
+                  >
+                    Ascendente
+                  </MenuItem>
+                </Menu>
+              </Dropdown>
+            </Stack>
+            <FormHelperText>{formError ? formError : ""}</FormHelperText>
+          </Stack>
+        )}
         {loading ? (
           <p>Cargando...</p>
         ) : statsData ? (
