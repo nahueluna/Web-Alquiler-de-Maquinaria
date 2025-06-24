@@ -120,7 +120,7 @@ function TwoFactor() {
         case 400:
           setStatus({
             isError: true,
-            message: "Codigo de verificación inválido o expirado.",
+            message: "Ocurrió un error al verificar el código. Inténtalo de nuevo.",
           });
           break;
         default:

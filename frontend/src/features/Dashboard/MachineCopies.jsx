@@ -47,7 +47,11 @@ const MachineCopies = () => {
   // Actualizar historial
   const [showUpdateForm, setShowUpdateForm] = useState(false);
   const [loadingUpdate, setLoadingUpdate] = useState(false);
-
+  // Poronga para traducir
+  const estados = {
+    available: "Disponible",
+    maintenance: "En mantenimiento",
+  };
 
 const handleSearch = async () => {
   const trimmedSerial = serialNumber.trim();
@@ -190,6 +194,13 @@ const handleSubmitUpdate = async (values, { setSubmitting, resetForm }) => {
     const response = await post("unit/history/update", payload, { withCredentials: true });
 
     if (response.status === 201) {
+            setResult(prev => ({
+        ...prev,
+        unit_info: {
+          ...prev.unit_info,
+          status: payload.new_status,
+        },
+      }));
       setSnackbar({
         open: true,
         message: "Historial actualizado con éxito.",
@@ -290,7 +301,7 @@ return (
                 }
                 fontWeight="md"
               >
-                <strong>Estado:</strong> {result.unit_info.status}
+                <strong>Estado:</strong> {estados[result.unit_info.status] || result.unit_info.status}
               </Typography>
               <Typography color="text.secondary">
                 <strong>Ubicación:</strong> {result.unit_info.street},{" "}
@@ -343,10 +354,10 @@ return (
                         <strong>Descripción:</strong> {event.description || "-"}
                       </Typography>
                       <Typography>
-                        <strong>Estado anterior:</strong> {event.previous_status}
+                        <strong>Estado anterior:</strong> {estados[event.previous_status] || event.previous_status}
                       </Typography>
                       <Typography>
-                        <strong>Nuevo estado:</strong> {event.new_status}
+                        <strong>Nuevo estado:</strong> {estados[event.new_status] || event.new_status}
                       </Typography>
                     </AccordionDetails>
                   </Accordion>
@@ -401,31 +412,48 @@ return (
                   />
                 </FormControl>
 
-                <FormControl>
-                  <FormLabel>Nuevo estado</FormLabel>
-                  <Field name="new_status">
-                    {({ field }) => (
-                      <Select
-                        {...field}
-                        value={field.value}
-                        onChange={(_, value) =>
-                          field.onChange({
-                            target: { name: field.name, value },
-                          })
-                        }
-                        size="md"
-                      >
-                        <Option value="available">available</Option>
-                        <Option value="maintenance">maintenance</Option>
-                      </Select>
-                    )}
-                  </Field>
-                  <ErrorMessage
-                    name="new_status"
-                    component="div"
-                    style={{ color: "red", marginTop: 4 }}
-                  />
-                </FormControl>
+        <FormControl>
+          <FormLabel>Nuevo estado</FormLabel>
+            <Field name="new_status">
+              {({ field }) => {
+                const currentStatus = result.unit_info.status;
+                const options = [];
+
+                if (currentStatus === "rented") {
+                  options.push({ value: "available", label: "Disponible" });
+                  options.push({ value: "maintenance", label: "En mantenimiento" });
+                } else if (currentStatus === "available") {
+                  options.push({ value: "maintenance", label: "En mantenimiento" });
+                } else if (currentStatus === "maintenance") {
+                  options.push({ value: "available", label: "Disponible" });
+                }
+
+                return (
+                  <Select
+                    {...field}
+                    value={field.value}
+                    onChange={(_, value) =>
+                      field.onChange({
+                        target: { name: field.name, value },
+                      })
+                    }
+                    size="md"
+                  >
+                    {options.map((opt) => (
+                      <Option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </Option>
+                    ))}
+                  </Select>
+                );
+              }}
+            </Field>
+            <ErrorMessage
+              name="new_status"
+              component="div"
+              style={{ color: "red", marginTop: 4 }}
+            />
+          </FormControl>
 
                 <Stack direction="row" spacing={2} justifyContent="flex-end">
                   <Button
