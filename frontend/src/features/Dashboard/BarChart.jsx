@@ -21,12 +21,24 @@ ChartJS.register(
 );
 
 const BarChart = ({ statsData, typeName }) => {
-  const labels = Object.keys(statsData);
-  const values = Object.values(statsData);
+  const mesesOrdenados = [
+    { en: "january", es: "Enero" },
+    { en: "february", es: "Febrero" },
+    { en: "march", es: "Marzo" },
+    { en: "april", es: "Abril" },
+    { en: "may", es: "Mayo" },
+    { en: "june", es: "Junio" },
+    { en: "july", es: "Julio" },
+    { en: "august", es: "Agosto" },
+    { en: "september", es: "Septiembre" },
+    { en: "october", es: "Octubre" },
+    { en: "november", es: "Noviembre" },
+    { en: "december", es: "Diciembre" },
+  ];
 
-  console.log("BarChart statsData", statsData);
-  console.log("BarChart labels", labels);
-  console.log("BarChart values", values);
+  // Gepeteado por darme datos cirujas
+  const labels = mesesOrdenados.map((m) => m.es);
+  const values = mesesOrdenados.map((m) => statsData[m.en] ?? 0);
 
   const options = {
     responsive: true,
