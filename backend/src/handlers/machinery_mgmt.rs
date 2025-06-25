@@ -2519,8 +2519,7 @@ pub async fn new_in_person_rental(
         return (
             StatusCode::BAD_REQUEST,
             Json(json!({
-                "message": "El período indicado no es válido.
-                    Debe ser al menos 7 días y la fecha de fin no puede ser anterior a la de inicio.",
+                "message": "El período indicado no es válido. Debe ser al menos 7 días y la fecha de fin no puede ser anterior a la de inicio.",
             })),
         );
     }
@@ -2529,8 +2528,7 @@ pub async fn new_in_person_rental(
         return (
             StatusCode::CONFLICT,
             Json(json!({
-                "message": "Las fechas de inicio y fin se superponen con un alquiler existente,
-                    considerando el período de mantenimiento planificado",
+                "message": "Las fechas de inicio y fin se superponen con un alquiler existente, considerando el período de mantenimiento planificado",
             })),
         );
     }
@@ -2566,13 +2564,13 @@ pub async fn new_in_person_rental(
         );
     }
 
-    let user_query = "SELECT * FROM users WHERE id = $1;";
+    let user_query = "SELECT * FROM users WHERE id = $1 AND role = 2;";
 
     if let Err(_) = client.query_one(user_query, &[&user_id]).await {
         return (
             StatusCode::NOT_FOUND,
             Json(json!({
-                "message": "No se ha encontrado al usuario. Verifique su acceso.",
+                "message": "No se ha encontrado al usuario o no es un cliente",
             })),
         );
     };
