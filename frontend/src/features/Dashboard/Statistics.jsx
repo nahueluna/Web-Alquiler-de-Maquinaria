@@ -20,6 +20,7 @@ import Box from "@mui/joy/Box";
 import Link from "@mui/joy/Link";
 import { Link as RouterLink } from "react-router-dom";
 import Typography from "@mui/joy/Typography";
+import CircularProgress from "@mui/joy/CircularProgress";
 
 const Statistics = () => {
   const { post } = useAuth();
@@ -90,6 +91,7 @@ const Statistics = () => {
       if (optionalSettings.order) {
         parameters.order = optionalSettings.order.value;
       }
+      console.log("getStats parameters", parameters.period);
       const { data } = await post("/stats", parameters);
       console.log("getStats data", data.stats);
       setStatsData(data.stats);
@@ -212,7 +214,7 @@ const Statistics = () => {
         {groupBy.value != "month" && (
           <Stack
             sx={{
-              width: 520,
+              width: "fit-content",
               backgroundColor: "#f5f5f5",
               padding: 1,
               borderRadius: "8px",
@@ -299,7 +301,7 @@ const Statistics = () => {
               </Dropdown>
             </Stack>
             <FormHelperText>{formError ? formError : ""}</FormHelperText>
-            {optionalSettings.period.length > 0 && (
+            {(fechaInicio || fechaFin) && (
               <Typography>
                 <Link
                   onClick={() => {
@@ -321,13 +323,25 @@ const Statistics = () => {
           </Stack>
         )}
         {loading ? (
-          <p>Cargando...</p>
+          <CircularProgress
+            color="danger"
+            size="md"
+            variant="plain"
+            sx={{
+              alignSelf: "center",
+              marginTop: 2,
+            }}
+          />
         ) : statsData ? (
           groupBy.value === "month" ? (
             <LineChart typeName={type.label} statsData={statsData} />
           ) : (
             Array.isArray(statsData) && (
-              <HorizontalBarChart typeName={type.label} statsData={statsData} />
+              <HorizontalBarChart
+                typeName={type.label}
+                statsData={statsData}
+                period={optionalSettings.period}
+              />
             )
           )
         ) : null}

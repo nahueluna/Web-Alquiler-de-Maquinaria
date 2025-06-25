@@ -30,7 +30,13 @@ ChartJS.register(
   return color;
 }*/
 
-const HorizontalBarChart = ({ statsData, typeName }) => {
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const [year, month, day] = dateStr.split("-");
+  return `${day}/${month}/${year}`;
+}
+
+const HorizontalBarChart = ({ statsData, typeName, period }) => {
   console.log(statsData);
 
   const labels = statsData.map((item) => item.name);
@@ -58,6 +64,14 @@ const HorizontalBarChart = ({ statsData, typeName }) => {
       legend: {
         display: true,
       },
+      ...(period && period.length > 0
+        ? {
+            title: {
+              display: true,
+              text: `${formatDate(period[0])} a ${formatDate(period[1])}`,
+            },
+          }
+        : {}),
     },
   };
 
