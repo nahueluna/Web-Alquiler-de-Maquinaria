@@ -199,6 +199,8 @@ pub struct MyRentalInfo {
     pub model_image: String,
     pub days_late: Option<i64>,
     pub percentage_per_late_day: Option<String>,
+    pub has_service_review: bool,
+    pub has_machine_review: bool,
 }
 
 impl MachineModel {

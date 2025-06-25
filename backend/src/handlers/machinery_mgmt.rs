@@ -17,7 +17,7 @@ use chrono::Duration;
 use chrono::{Local, NaiveDate, NaiveDateTime};
 use image::ImageFormat;
 use serde_json::json;
-use std::{env, fs::File, io::BufWriter, path::PathBuf};
+use std::{env, fs::File, io::BufWriter, path::PathBuf, collections::HashSet};
 use tokio_postgres::{error::SqlState, types::ToSql};
 use validator::Validate;
 
@@ -1256,6 +1256,23 @@ pub async fn get_my_rentals(
         }
     };
 
+    // Get rental_ids that have reviews
+    let service_review_ids: HashSet<i32> = match client
+        .query("SELECT rental_id FROM service_reviews WHERE user_id = $1", &[&claims.user_id])
+        .await
+    {
+        Ok(rows) => rows.iter().map(|row| row.get(0)).collect(),
+        Err(_) => HashSet::new(),
+    };
+
+    let machine_review_ids: HashSet<i32> = match client
+        .query("SELECT rental_id FROM machine_reviews WHERE user_id = $1", &[&claims.user_id])
+        .await
+    {
+        Ok(rows) => rows.iter().map(|row| row.get(0)).collect(),
+        Err(_) => HashSet::new(),
+    };
+
     match client
         .query(
             "SELECT
@@ -1289,32 +1306,38 @@ pub async fn get_my_rentals(
         Ok(rows) => {
             let employees: Vec<MyRentalInfo> = rows
                 .iter()
-                .map(|row| MyRentalInfo {
-                    rental_id: row.get("rental_id"),
-                    return_date: row.get("return_date"),
-                    retirement_date: row.get("retirement_date"),
-                    start_date: row.get("start_date"),
-                    end_date: row.get("end_date"),
-                    total_price: row.get("total_price"),
-                    status: row.get("status"),
-                    created_at: row.get("created_at"),
-                    updated_at: row.get("updated_at"),
-                    unit_id: row.get("unit_id"),
-                    unit_serial_number: row.get("unit_serial_number"),
-                    model_id: row.get("model_id"),
-                    model_name: row.get("model_name"),
-                    model_brand: row.get("model_brand"),
-                    model_model: row.get("model_model"),
-                    model_year: row.get("model_year"),
-                    model_policy: row.get("model_policy"),
-                    model_description: row.get("model_description"),
-                    model_image: format!(
-                        "{}/media/machines/{}.webp",
-                        nginx_url,
-                        row.get::<_, String>("model_image")
-                    ),
-                    days_late: None,
-                    percentage_per_late_day: None,
+                .map(|row| {
+                    let rental_id: i32 = row.get("rental_id");
+
+                    MyRentalInfo {
+                        rental_id,
+                        return_date: row.get("return_date"),
+                        retirement_date: row.get("retirement_date"),
+                        start_date: row.get("start_date"),
+                        end_date: row.get("end_date"),
+                        total_price: row.get("total_price"),
+                        status: row.get("status"),
+                        created_at: row.get("created_at"),
+                        updated_at: row.get("updated_at"),
+                        unit_id: row.get("unit_id"),
+                        unit_serial_number: row.get("unit_serial_number"),
+                        model_id: row.get("model_id"),
+                        model_name: row.get("model_name"),
+                        model_brand: row.get("model_brand"),
+                        model_model: row.get("model_model"),
+                        model_year: row.get("model_year"),
+                        model_policy: row.get("model_policy"),
+                        model_description: row.get("model_description"),
+                        model_image: format!(
+                            "{}/media/machines/{}.webp",
+                            nginx_url,
+                            row.get::<_, String>("model_image")
+                        ),
+                        days_late: None,
+                        percentage_per_late_day: None,
+                        has_service_review: service_review_ids.contains(&rental_id),
+                        has_machine_review: machine_review_ids.contains(&rental_id),
+                    }
                 })
                 .collect();
             return (StatusCode::OK, Json(json!({"rentals": employees}))).into_response();
@@ -2055,6 +2078,9 @@ pub async fn get_staff_rentals(
                             None
                         }
                     },
+                    has_service_review: false,
+                    has_machine_review: false,
+
                 })
                 .collect();
 
@@ -2643,7 +2669,7 @@ pub async fn new_in_person_rental(
                                 city: rental_row.get("city"),
                                 street: rental_row.get("street"),
                                 number: rental_row.get("number"),
-                                payment_id: payment_id,
+                                payment_id,
                             };
 
                             let formatted_start = rent.start_date.format("%d/%m/%Y").to_string();
