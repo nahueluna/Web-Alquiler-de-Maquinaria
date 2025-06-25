@@ -2415,6 +2415,9 @@ async fn test_validate_rental_dates() {
         overlapping_dates_body["message"].as_str().unwrap(),
         "Las fechas de inicio y fin se superponen con un alquiler existente, considerando el período de mantenimiento planificado",
     );
+    assert!(overlapping_dates_body["overlaped_date"]
+        .as_object()
+        .is_some());
 
     // ---------- Employee tries to validate rental dates where end date overlaps with an existing rental
 
