@@ -311,3 +311,11 @@ INSERT INTO service_reviews (rental_id, user_id, rating, content, created_at) VA
 (3, 3, 3, 'r3', NOW() - INTERVAL '3 seconds'),
 (4, 4, 4, 'r4', NOW() - INTERVAL '4 seconds'),
 (5, 5, 5, 'r5', NOW() - INTERVAL '5 seconds');
+
+-- Test get_machine_reviews
+INSERT INTO machine_reviews (model_id, rental_id, user_id, rating, content, created_at) VALUES
+(1, 1, 1, 1, 'r1', NOW() - INTERVAL '1 seconds'),
+(1, 2, 2, 2, 'r2', NOW() - INTERVAL '2 seconds'),
+(1, 3, 3, 3, 'r3', NOW() - INTERVAL '3 seconds'),
+(1, 4, 4, 4, 'r4', NOW() - INTERVAL '4 seconds'),
+(1, 5, 5, 5, 'r5', NOW() - INTERVAL '5 seconds');

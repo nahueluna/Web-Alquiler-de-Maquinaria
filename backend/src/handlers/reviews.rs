@@ -374,3 +374,87 @@ pub async fn get_service_reviews(
 
     (StatusCode::OK, Json(json!({ "reviews": reviews }))).into_response()
 }
+pub async fn get_machine_reviews(
+    State(state): State<AppState>,
+    Json(payload): Json<GetMachineReviews>,
+) -> Response {
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            )
+                .into_response();
+        }
+    };
+
+    // ORDER BY clause
+    let order_clause = match payload.order {
+        Some(ReviewOrder::MoreRating) => "ORDER BY mr.rating DESC, mr.created_at DESC",
+        Some(ReviewOrder::LessRating) => "ORDER BY mr.rating ASC, mr.created_at DESC",
+        Some(ReviewOrder::Recent) | None => "ORDER BY mr.created_at DESC",
+    };
+
+    // WHERE clause for reviews
+    let rating;
+    let (where_clause, params): (&str, Vec<&(dyn tokio_postgres::types::ToSql + Sync)>) =
+        if let Some(r) = payload.rating {
+            rating = r;
+            ("WHERE mr.model_id = $1 AND mr.rating = $2", vec![&payload.model_id, &rating])
+        } else {
+            ("WHERE mr.model_id = $1", vec![&payload.model_id])
+        };
+
+    let query = format!(
+        "
+        SELECT
+            CONCAT(u.name, ' ', u.surname) AS user_name,
+            mr.rating,
+            mr.content,
+            mr.created_at,
+            mr.rental_id
+        FROM machine_reviews mr
+        JOIN users u ON mr.user_id = u.id
+        {where_clause}
+        {order_clause};
+        "
+    );
+
+    let rows = match client.query(&query, &params).await {
+        Ok(rows) => rows,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to retrieve machine reviews"})),
+            )
+                .into_response();
+        }
+    };
+
+    let reviews: Vec<MachineReview> = rows
+        .into_iter()
+        .map(|row| MachineReview {
+            user_name: row.get("user_name"),
+            rating: row.get("rating"),
+            content: row.get("content"),
+            created_at: row.get("created_at"),
+            rental_id: row.get("rental_id"),
+        })
+        .collect();
+
+    // Always calculate average rating over all reviews of the model_id
+    let avg_rating: Option<f64> = match client
+        .query_one("SELECT AVG(rating)::FLOAT FROM machine_reviews WHERE model_id = $1", &[&payload.model_id])
+        .await
+    {
+        Ok(row) => row.get(0),
+        Err(_) => None,
+    };
+
+    (StatusCode::OK, Json(json!({
+        "average_rating": avg_rating,
+        "reviews": reviews
+    })))
+    .into_response()
+}

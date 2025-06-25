@@ -592,3 +592,19 @@ pub struct ServiceReview {
     pub model_model: String,
     pub serial_number: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetMachineReviews {
+    pub model_id: i32,
+    pub order: Option<ReviewOrder>,
+    pub rating: Option<i16>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MachineReview {
+    pub user_name: String,
+    pub rating: i16,
+    pub content: Option<String>,
+    pub created_at: NaiveDateTime,
+    pub rental_id: i32,
+}

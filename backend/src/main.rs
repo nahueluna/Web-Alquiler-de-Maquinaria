@@ -101,6 +101,7 @@ async fn main() {
         .route("/reviews/machines/new", post(new_machine_review))
         .route("/reviews/service/new", post(new_service_review))
         .route("/reviews/service/get", post(get_service_reviews))
+        .route("/reviews/machines/get", post(get_machine_reviews))
         .route("/stats", post(get_stats))
         .layer(
             CorsLayer::new()
