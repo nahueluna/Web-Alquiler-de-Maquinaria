@@ -21,7 +21,8 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES
 ('newanswer@example.com', 'user20', 'u20', 'nopasswordforyoueither', '123', 0, 'active'),
 ('user@example.com', 'user21', 'u21', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 2, 'active'),
 ('employee1@example.com', 'user22', 'u22', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 1, 'active'),
-('employee2@example.com', 'user23', 'u23', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 1, 'active');
+('employee2@example.com', 'user23', 'u23', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 1, 'active'),
+('employeenewrental@example.com', 'user24', 'u24', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 1, 'active');
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),
