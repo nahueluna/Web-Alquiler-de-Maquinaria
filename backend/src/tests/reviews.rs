@@ -1,5 +1,5 @@
 use crate::custom_types::enums::RunningEnv;
-use crate::custom_types::structs::ServiceReview;
+use crate::custom_types::structs::{ServiceReview, MachineReview};
 use crate::helpers::auth::create_pool;
 use crate::tests::helpers::*;
 use reqwest::Client;
@@ -602,4 +602,117 @@ async fn test_get_service_reviews() {
         .unwrap();
     assert_eq!(res.status(), 401);
     assert_eq!(res.json::<serde_json::Value>().await.unwrap()["message"], "Invalid access token");
+}
+
+#[tokio::test]
+async fn test_get_machine_reviews() {
+    setup().await;
+    let client = Client::new();
+
+    //Get the reviews - ordered by recent by default
+    let res = client
+        .post(backend_url("/reviews/machines/get"))
+        .json(&serde_json::json!({
+            "model_id" : 1
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap();
+    let reviews: Vec<MachineReview> = serde_json::from_value(value["reviews"].clone()).unwrap();
+    let avg: f32 = serde_json::from_value(value["average_rating"].clone()).unwrap();
+    assert_eq!(avg, 3.0);
+    assert!(reviews.len() >= 5);
+    let mut previous = NaiveDateTime::MAX;
+    for r in reviews {
+        assert!(r.created_at < previous);
+        previous = r.created_at;
+    }
+
+    //Get the reviews - ordered by recent
+    let res = client
+        .post(backend_url("/reviews/machines/get"))
+        .json(&serde_json::json!({
+            "order":"recent",
+            "model_id" : 1
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap();
+    let reviews: Vec<MachineReview> = serde_json::from_value(value["reviews"].clone()).unwrap();
+    let avg: f32 = serde_json::from_value(value["average_rating"].clone()).unwrap();
+    assert_eq!(avg, 3.0);
+    assert!(reviews.len() >= 5);
+    let mut previous = NaiveDateTime::MAX;
+    for r in reviews {
+        assert!(r.created_at < previous);
+        previous = r.created_at;
+    }
+
+    //Get the reviews - ordered by more rating
+    let res = client
+        .post(backend_url("/reviews/machines/get"))
+        .json(&serde_json::json!({
+            "order":"more_rating",
+            "model_id":1
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap();
+    let reviews: Vec<MachineReview> = serde_json::from_value(value["reviews"].clone()).unwrap();
+    let avg: f32 = serde_json::from_value(value["average_rating"].clone()).unwrap();
+    assert_eq!(avg, 3.0);
+    assert!(reviews.len() >= 5);
+    let mut previous = i16::MAX;
+    for r in reviews {
+        assert!(r.rating < previous);
+        previous = r.rating;
+    }
+
+    //Get the reviews - ordered by less rating
+    let res = client
+        .post(backend_url("/reviews/machines/get"))
+        .json(&serde_json::json!({
+            "order":"less_rating",
+            "model_id":1
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap();
+    let reviews: Vec<MachineReview> = serde_json::from_value(value["reviews"].clone()).unwrap();
+    let avg: f32 = serde_json::from_value(value["average_rating"].clone()).unwrap();
+    assert_eq!(avg, 3.0);
+    assert!(reviews.len() >= 5);
+    let mut previous = i16::MIN;
+    for r in reviews {
+        assert!(r.rating > previous);
+        previous = r.rating;
+    }
+
+    //Get the reviews - filter by rating
+    let res = client
+        .post(backend_url("/reviews/machines/get"))
+        .json(&serde_json::json!({
+            "rating":3,
+            "model_id":1
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+    let value = res.json::<serde_json::Value>().await.unwrap();
+    let reviews: Vec<MachineReview> = serde_json::from_value(value["reviews"].clone()).unwrap();
+    let avg: f32 = serde_json::from_value(value["average_rating"].clone()).unwrap();
+    assert_eq!(avg, 3.0);
+    assert!(reviews.len() >= 1);
+    for r in reviews {
+        assert_eq!(r.rating, 3);
+    }
 }

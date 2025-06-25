@@ -1,3 +1,4 @@
+use crate::constants::INTERNAL_PAYMENT_ID_PREFIX;
 use crate::constants::LATE_RETURN_FINE;
 use crate::custom_types::enums::*;
 use crate::custom_types::structs::*;
@@ -2393,6 +2394,116 @@ pub async fn validate_rental_dates(
 
     let end_date_with_maintenance_period = end_date + Duration::days(7);
 
+    let overlaped_date = unavailable_dates.iter().find(|period| {
+        date_is_overlap(
+            start_date,
+            end_date_with_maintenance_period,
+            period.start_date,
+            period.end_date,
+        )
+    });
+
+    let duration_days = (end_date - start_date).num_days();
+
+    if end_date < start_date || duration_days < 7 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "message": "El período indicado no es válido. Debe ser al menos 7 días y la fecha de fin no puede ser anterior a la de inicio.",
+            })),
+        );
+    }
+
+    if let Some(date) = overlaped_date {
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({
+                "message": "Las fechas de inicio y fin se superponen con un alquiler existente, considerando el período de mantenimiento planificado",
+                "overlaped_date": date,
+            })),
+        );
+    }
+
+    return (
+        StatusCode::OK,
+        Json(json!({"message": "Las fechas de alquiler son válidas"})),
+    );
+}
+
+pub async fn new_in_person_rental(
+    State(state): State<AppState>,
+    Json(payload): Json<NewInPersonRental>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let claims = match validate_jwt(&payload.access) {
+        Some(data) => data,
+        None => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"message": "Invalid access token"})),
+            );
+        }
+    }
+    .claims;
+
+    if claims.role != 1 {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"message": "Solo empleados pueden acceder a esta funcionalidad"})),
+        );
+    }
+
+    if let Err(_) = payload.validate() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "message": "Ingreso de información inválida",
+            })),
+        );
+    }
+
+    let client = match state.pool.get().await {
+        Ok(c) => c,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"message": "Failed to connect to the DB"})),
+            );
+        }
+    };
+
+    let machine_id = payload.machine_id;
+    let user_id = payload.user_id;
+    let start_date = payload.start_date;
+    let end_date = payload.end_date;
+    let total_price = payload.total_price;
+    let rental_employee_id = claims.user_id;
+
+    let unavailable_dates_query = "
+            SELECT start_date, (end_date + INTERVAL '7 days')::date AS end_date
+            FROM rentals r 
+            WHERE r.status IN ('active', 'pending_payment') AND (machine_id = $1);
+        ";
+
+    let unavailable_dates = match client.query(unavailable_dates_query, &[&machine_id]).await {
+        Ok(rows) => rows
+            .iter()
+            .map(|row| DateRange {
+                start_date: row.get("start_date"),
+                end_date: row.get("end_date"),
+            })
+            .collect::<Vec<DateRange>>(),
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "Se ha producido un error interno en el servidor",
+                })),
+            );
+        }
+    };
+
+    let end_date_with_maintenance_period = end_date + Duration::days(7);
+
     let is_overlap = unavailable_dates.iter().any(|period| {
         date_is_overlap(
             start_date,
@@ -2422,8 +2533,201 @@ pub async fn validate_rental_dates(
         );
     }
 
-    return (
-        StatusCode::OK,
-        Json(json!({"message": "Las fechas de alquiler son válidas"})),
-    );
+    let price_query = "
+            SELECT price FROM machinery_models mm 
+            INNER JOIN machinery_units mu 
+            ON mm.id = mu.model_id
+            WHERE mu.id = $1;
+        ";
+
+    let price_row = match client.query_one(price_query, &[&machine_id]).await {
+        Ok(row) => row,
+        Err(_) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "message": "No se ha encontrado la máquina solicitada",
+                })),
+            );
+        }
+    };
+
+    let machine_price: f32 = price_row.get("price");
+    let number_of_days = (end_date - start_date).num_days() as f32;
+
+    if total_price != number_of_days * machine_price {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "message": "El precio total no es correcto",
+            })),
+        );
+    }
+
+    let user_query = "SELECT * FROM users WHERE id = $1 AND role = 2;";
+
+    if let Err(_) = client.query_one(user_query, &[&user_id]).await {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(json!({
+                "message": "No se ha encontrado al usuario o no es un cliente",
+            })),
+        );
+    };
+
+    let insert_query = "
+            INSERT INTO rentals (user_id, rental_employee_id, machine_id, start_date, end_date, total_price, status)
+            VALUES ($1, $2, $3, $4, $5, $6, 'active')
+            RETURNING id;
+        ";
+
+    match client
+        .query_one(
+            insert_query,
+            &[
+                &user_id,
+                &rental_employee_id,
+                &machine_id,
+                &start_date,
+                &end_date,
+                &total_price,
+            ],
+        )
+        .await
+    {
+        Ok(rent_row) => {
+            let rental_id: i32 = rent_row.get(0);
+            let payment_id = format!("{}", INTERNAL_PAYMENT_ID_PREFIX + (rental_id as u32));
+
+            let update_payment_id_query = "
+                UPDATE rentals 
+                SET payment_id = $1 
+                WHERE id = $2;
+                ";
+
+            if let Err(_) = client
+                .execute(update_payment_id_query, &[&payment_id, &rental_id])
+                .await
+            {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({
+                        "message": "Se produjo un error al intentar actualizar el ID de pago del alquiler",
+                    })),
+                );
+            }
+
+            match client
+                .query_one("SELECT * FROM users WHERE id = $1;", &[&user_id])
+                .await
+            {
+                Ok(user_row) => {
+                    let get_rental_query = "
+                            SELECT r.*, l.street, l.number, l.city, mm.brand, mm.name, mm.model 
+                            FROM rentals r
+                            INNER JOIN machinery_units mu ON r.machine_id = mu.id
+                            INNER JOIN machinery_models mm ON mu.model_id = mm.id
+                            INNER JOIN locations l ON mu.location_id = l.id
+                            WHERE r.id = $1;
+                        ";
+
+                    match client.query_one(get_rental_query, &[&rental_id]).await {
+                        Ok(rental_row) => {
+                            let rent = RentalInfo {
+                                id: rental_id,
+                                machine_brand: rental_row.get("brand"),
+                                machine_name: rental_row.get("name"),
+                                machine_model: rental_row.get("model"),
+                                start_date: rental_row.get("start_date"),
+                                end_date: rental_row.get("end_date"),
+                                city: rental_row.get("city"),
+                                street: rental_row.get("street"),
+                                number: rental_row.get("number"),
+                                payment_id: payment_id,
+                            };
+
+                            let formatted_start = rent.start_date.format("%d/%m/%Y").to_string();
+                            let formatted_end = rent.end_date.format("%d/%m/%Y").to_string();
+
+                            let user_email: String = user_row.get("email");
+                            let user_name: String = user_row.get("name");
+
+                            let subject =
+                                format!("Alquiler n° {} aprobado - Bob el Alquilador", rental_id);
+                            let body = format!(
+                                "Hola {},\n\n\
+                                Tu alquiler ha sido aprobado.\n\n\
+                                \n\
+                                Detalles del Alquiler:\n\
+                                \n\n\
+                                Número de alquiler: {}\n\
+                                Período: {} - {}\n\
+                                Máquina: {} {} {}\n\
+                                Ubicación: {}, {}, {}\n\
+                                Identificador del pago: {}\n\n\
+                                \n\n\
+                                Gracias por confiar en nosotros.\n\n\
+                                Saludos cordiales,\n\
+                                El equipo de Bob el Alquilador\n",
+                                user_name,
+                                rental_id,
+                                formatted_start,
+                                formatted_end,
+                                rent.machine_name,
+                                rent.machine_brand,
+                                rent.machine_model,
+                                rent.city,
+                                rent.street,
+                                rent.number,
+                                rent.payment_id,
+                            );
+
+                            match send_mail(&user_email, &subject, &body) {
+                                Ok(_) => {
+                                    return (
+                                        StatusCode::CREATED,
+                                        Json(json!({
+                                            "message": "El alquiler ha sido registrado exitosamente y se le ha notificado al cliente",
+                                        })),
+                                    );
+                                }
+                                Err(_) => {
+                                    return (
+                                        StatusCode::INTERNAL_SERVER_ERROR,
+                                        Json(json!({
+                                            "message": "Se ha producido un error al enviar la notificación al usuario",
+                                        })),
+                                    );
+                                }
+                            }
+                        }
+                        Err(_) => {
+                            return (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(json!({
+                                    "message": "Se produjo un error al consultar los datos del alquiler",
+                                })),
+                            );
+                        }
+                    }
+                }
+                Err(_) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(json!({
+                            "message": "Se produjo un error al consultar datos del cliente",
+                        })),
+                    );
+                }
+            }
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "Se produjo un error interno al intentar registrar el alquiler",
+                })),
+            );
+        }
+    }
 }

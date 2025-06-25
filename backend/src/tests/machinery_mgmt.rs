@@ -2415,6 +2415,9 @@ async fn test_validate_rental_dates() {
         overlapping_dates_body["message"].as_str().unwrap(),
         "Las fechas de inicio y fin se superponen con un alquiler existente, considerando el período de mantenimiento planificado",
     );
+    assert!(overlapping_dates_body["overlaped_date"]
+        .as_object()
+        .is_some());
 
     // ---------- Employee tries to validate rental dates where end date overlaps with an existing rental
 
@@ -2464,4 +2467,365 @@ async fn test_validate_rental_dates() {
         .unwrap();
 
     assert_eq!(invalid_unit_dates_response.status(), 200);
+}
+
+#[tokio::test]
+async fn test_new_in_person_rental() {
+    setup().await;
+    let client = Client::new();
+
+    let pool = create_pool(RunningEnv::Testing);
+    let db_client = match pool.await.get().await {
+        Ok(c) => c,
+        Err(e) => panic!("Failed to connect to the database: {}", e),
+    };
+
+    let jwt = get_test_jwt("frank@example.com", true).await;
+
+    // ----------- Employee creates a new in-person rental with valid data
+
+    let valid_machine_id = 4;
+    let valid_user_id = 4;
+
+    let valid_start_date = Utc::now()
+        .checked_add_signed(chrono::Duration::days(40))
+        .unwrap()
+        .date_naive();
+    let valid_end_date = valid_start_date
+        .checked_add_signed(chrono::Duration::days(7))
+        .unwrap();
+
+    let new_rental_response = client
+        .post(backend_url("/staff/rental/new"))
+        .json(&serde_json::json!({
+            "machine_id": valid_machine_id,
+            "user_id": valid_user_id,
+            "start_date": valid_start_date,
+            "end_date": valid_end_date,
+            "total_price": 665_000,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(new_rental_response.status(), 201);
+
+    let new_rental_body = new_rental_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        new_rental_body["message"].as_str().unwrap(),
+        "El alquiler ha sido registrado exitosamente y se le ha notificado al cliente"
+    );
+
+    let new_rental_query = "
+    SELECT * 
+    FROM rentals 
+    WHERE user_id = $1 AND machine_id = $2 
+        AND start_date = $3 AND status = 'active';
+    ";
+
+    match db_client
+        .query_one(
+            new_rental_query,
+            &[&valid_user_id, &valid_machine_id, &valid_start_date],
+        )
+        .await
+    {
+        Ok(row) => {
+            assert_eq!(row.get::<_, i32>("machine_id"), valid_machine_id);
+            assert_eq!(row.get::<_, i32>("user_id"), valid_user_id);
+            assert_eq!(row.get::<_, f32>("total_price"), 665_000.0);
+            assert_eq!(
+                row.get::<_, chrono::NaiveDate>("start_date"),
+                valid_start_date
+            );
+            assert_eq!(row.get::<_, chrono::NaiveDate>("end_date"), valid_end_date);
+        }
+        Err(e) => {
+            panic!("Failed to query the database: {}", e);
+        }
+    }
+
+    // ---------- Not employee tries to create a new in-person rental
+
+    let user_jwt = get_test_jwt("dave@example.com", false).await;
+
+    let another_valid_machine_id = 5;
+
+    let user_rental_response = client
+        .post(backend_url("/staff/rental/new"))
+        .json(&serde_json::json!({
+            "machine_id": another_valid_machine_id,
+            "user_id": valid_user_id,
+            "start_date": valid_start_date,
+            "end_date": valid_end_date,
+            "total_price": 665_000,
+            "access": user_jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(user_rental_response.status(), 403);
+
+    let user_rental_body = user_rental_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        user_rental_body["message"].as_str().unwrap(),
+        "Solo empleados pueden acceder a esta funcionalidad"
+    );
+
+    // ---------- Total price below zero
+
+    let invalid_price_response = client
+        .post(backend_url("/staff/rental/new"))
+        .json(&serde_json::json!({
+            "machine_id": another_valid_machine_id,
+            "user_id": valid_user_id,
+            "start_date": valid_start_date,
+            "end_date": valid_end_date,
+            "total_price": -1000,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_price_response.status(), 400);
+
+    let invalid_price_body = invalid_price_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        invalid_price_body["message"].as_str().unwrap(),
+        "Ingreso de información inválida"
+    );
+
+    // ---------- End date before start date
+
+    let invalid_end_date = valid_start_date
+        .checked_sub_signed(chrono::Duration::days(1))
+        .unwrap();
+
+    let invalid_dates_response = client
+        .post(backend_url("/staff/rental/new"))
+        .json(&serde_json::json!({
+            "machine_id": another_valid_machine_id,
+            "user_id": valid_user_id,
+            "start_date": valid_start_date,
+            "end_date": invalid_end_date,
+            "total_price": 665_000,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_dates_response.status(), 400);
+
+    let invalid_dates_body = invalid_dates_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        invalid_dates_body["message"].as_str().unwrap(),
+        "El período indicado no es válido. Debe ser al menos 7 días y la fecha de fin no puede ser anterior a la de inicio."
+    );
+
+    // ---------- Rental period is less than 7 days
+
+    let short_end_date = valid_start_date
+        .checked_add_signed(chrono::Duration::days(6))
+        .unwrap();
+
+    let short_period_response = client
+        .post(backend_url("/staff/rental/new"))
+        .json(&serde_json::json!({
+            "machine_id": another_valid_machine_id,
+            "user_id": valid_user_id,
+            "start_date": valid_start_date,
+            "end_date": short_end_date,
+            "total_price": 665_000,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(short_period_response.status(), 400);
+
+    let short_period_body = short_period_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        short_period_body["message"].as_str().unwrap(),
+        "El período indicado no es válido. Debe ser al menos 7 días y la fecha de fin no puede ser anterior a la de inicio."
+    );
+
+    // ---------- Rental overlaps with an existing rental
+
+    let overlapping_start_date = Utc::now()
+        .checked_add_signed(chrono::Duration::days(53))
+        .unwrap()
+        .date_naive();
+
+    let overlapping_end_date = overlapping_start_date
+        .checked_add_signed(chrono::Duration::days(7))
+        .unwrap();
+
+    let overlapping_rental_response = client
+        .post(backend_url("/staff/rental/new"))
+        .json(&serde_json::json!({
+            "machine_id": valid_machine_id,
+            "user_id": valid_user_id,
+            "start_date": overlapping_start_date,
+            "end_date": overlapping_end_date,
+            "total_price": 665_000,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(overlapping_rental_response.status(), 409);
+
+    let overlapping_rental_body = overlapping_rental_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        overlapping_rental_body["message"].as_str().unwrap(),
+        "Las fechas de inicio y fin se superponen con un alquiler existente, considerando el período de mantenimiento planificado"
+    );
+
+    // ---------- Rental with an invalid machine ID
+
+    let invalid_machine_id = 9999;
+
+    let invalid_machine_response = client
+        .post(backend_url("/staff/rental/new"))
+        .json(&serde_json::json!({
+            "machine_id": invalid_machine_id,
+            "user_id": valid_user_id,
+            "start_date": valid_start_date,
+            "end_date": valid_end_date,
+            "total_price": 665_000,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(invalid_machine_response.status(), 404);
+
+    let invalid_machine_body = invalid_machine_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        invalid_machine_body["message"].as_str().unwrap(),
+        "No se ha encontrado la máquina solicitada"
+    );
+
+    // ---------- Rental total price does not match the expected price
+
+    let mismatched_price_response = client
+        .post(backend_url("/staff/rental/new"))
+        .json(&serde_json::json!({
+            "machine_id": another_valid_machine_id,
+            "user_id": valid_user_id,
+            "start_date": valid_start_date,
+            "end_date": valid_end_date,
+            "total_price": 100_000, // Mismatched price
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(mismatched_price_response.status(), 400);
+
+    let mismatched_price_body = mismatched_price_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        mismatched_price_body["message"].as_str().unwrap(),
+        "El precio total no es correcto"
+    );
+
+    // ---------- Rental with a user that is not a client
+
+    let non_client_user_id = 1;
+
+    let non_client_rental_response = client
+        .post(backend_url("/staff/rental/new"))
+        .json(&serde_json::json!({
+            "machine_id": another_valid_machine_id,
+            "user_id": non_client_user_id,
+            "start_date": valid_start_date,
+            "end_date": valid_end_date,
+            "total_price": 665_000,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(non_client_rental_response.status(), 404);
+
+    let non_client_rental_body = non_client_rental_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        non_client_rental_body["message"].as_str().unwrap(),
+        "No se ha encontrado al usuario o no es un cliente"
+    );
+
+    // ---------- Rental with a user that does not exist
+
+    let non_existent_user_id = 9999;
+
+    let non_existent_user_rental_response = client
+        .post(backend_url("/staff/rental/new"))
+        .json(&serde_json::json!({
+            "machine_id": another_valid_machine_id,
+            "user_id": non_existent_user_id,
+            "start_date": valid_start_date,
+            "end_date": valid_end_date,
+            "total_price": 665_000,
+            "access": jwt
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(non_existent_user_rental_response.status(), 404);
+
+    let non_existent_user_rental_body = non_existent_user_rental_response
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+
+    assert_eq!(
+        non_existent_user_rental_body["message"].as_str().unwrap(),
+        "No se ha encontrado al usuario o no es un cliente"
+    );
 }

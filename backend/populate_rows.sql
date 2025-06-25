@@ -21,7 +21,8 @@ INSERT INTO users (email, name, surname, psw_hash, salt, role, status) VALUES
 ('newanswer@example.com', 'user20', 'u20', 'nopasswordforyoueither', '123', 0, 'active'),
 ('user@example.com', 'user21', 'u21', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 2, 'active'),
 ('employee1@example.com', 'user22', 'u22', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 1, 'active'),
-('employee2@example.com', 'user23', 'u23', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 1, 'active');
+('employee2@example.com', 'user23', 'u23', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 1, 'active'),
+('employeenewrental@example.com', 'user24', 'u24', '4e8822dcafcb5611e1554f6054969e25e81228751211a28c94f82dd79f77f5fe', '1234123412341234', 1, 'active');
 
 INSERT INTO user_info (id, birthdate, id_card, phone) VALUES
 (2, '1985-05-22', 'ID234567', '555-2345'),
@@ -311,3 +312,11 @@ INSERT INTO service_reviews (rental_id, user_id, rating, content, created_at) VA
 (3, 3, 3, 'r3', NOW() - INTERVAL '3 seconds'),
 (4, 4, 4, 'r4', NOW() - INTERVAL '4 seconds'),
 (5, 5, 5, 'r5', NOW() - INTERVAL '5 seconds');
+
+-- Test get_machine_reviews
+INSERT INTO machine_reviews (model_id, rental_id, user_id, rating, content, created_at) VALUES
+(1, 1, 1, 1, 'r1', NOW() - INTERVAL '1 seconds'),
+(1, 2, 2, 2, 'r2', NOW() - INTERVAL '2 seconds'),
+(1, 3, 3, 3, 'r3', NOW() - INTERVAL '3 seconds'),
+(1, 4, 4, 4, 'r4', NOW() - INTERVAL '4 seconds'),
+(1, 5, 5, 5, 'r5', NOW() - INTERVAL '5 seconds');
