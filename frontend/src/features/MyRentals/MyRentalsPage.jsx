@@ -137,7 +137,7 @@ const handleSubmit = async () => {
     if (error.response) {
       switch (error.response.status) {
         case 400:
-          message = error.response.data?.message || "Datos inválidos";
+          message = "Ya se ha realizado una valoración para esta máquina.";;
           break;
         case 401:
           message = "Token inválido.";
@@ -221,7 +221,7 @@ const handleSubmit = async () => {
     if (error.response) {
       switch (error.response.status) {
         case 400:
-          message = error.response.data?.message || "Datos inválidos";
+          message = "Ya se ha realizado una valoración del servicio para este alquiler.";
           break;
         case 401:
           message = "Token inválido.";
@@ -333,13 +333,26 @@ const handleSubmit = async () => {
   <Modal
   open={modalOpen}
   onClose={closeModal}
-  sx={{ backdropFilter: "blur(5px)", display: "flex", justifyContent: "center", alignItems: "center", p: 2 }}
+  sx={{
+    backdropFilter: "blur(5px)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    p: 2,
+  }}
 >
   <Sheet
     variant="outlined"
-    sx={{ maxWidth: 400, width: "100%", p: 3, borderRadius: 2, boxShadow: "lg", bgcolor: "background.body" }}
+    sx={{
+      maxWidth: 440,
+      width: "100%",
+      p: 4,
+      borderRadius: "lg",
+      boxShadow: "xl",
+      bgcolor: "background.surface",
+    }}
   >
-    <Typography level="h4" mb={2}>
+    <Typography level="h4" fontWeight="xl" textAlign="center" mb={2}>
       Valorar máquina
     </Typography>
 
@@ -348,49 +361,74 @@ const handleSubmit = async () => {
       value={rating.toString()}
       onChange={(e, newValue) => setRating(Number(newValue))}
       size="md"
-      sx={{ mb: 2 }}
+      sx={{ mb: 3 }}
     >
       {["1", "2", "3", "4", "5"].map((num) => (
         <Option key={num} value={num}>
-          {"★ " + num}
+          {"⭐ " + num}
         </Option>
       ))}
     </Select>
 
-    {(rating < 5 || rating === 5) && (
-      <Textarea
-        placeholder="Escribe tu reseña (1 a 256 caracteres) (opcional para 5 estrellas)"
-        maxLength={256}
-        minRows={3}
-        value={reviewText}
-        onChange={(e) => setReviewText(e.target.value)}
-        required={rating < 5} // obligatorio si rating < 5, opcional si es 5
-        sx={{ mb: 2 }}
-      />
-    )}
+    <Typography level="body-sm" sx={{ mb: 1, color: "text.secondary" }}>
+      Dejá tu reseña (opcional si calificás con 5 estrellas)
+    </Typography>
 
+    <Textarea
+      placeholder="Escribí tu opinión (máx. 256 caracteres)"
+      maxLength={256}
+      minRows={4}
+      value={reviewText}
+      onChange={(e) => setReviewText(e.target.value)}
+      required={rating < 5}
+      sx={{ mb: 3 }}
+    />
 
     <Stack direction="row" spacing={2} justifyContent="flex-end">
-      <Button variant="plain" color="neutral" onClick={closeModal} disabled={submitting}>
+      <Button
+        variant="plain"
+        color="neutral"
+        onClick={closeModal}
+        disabled={submitting}
+      >
         Cancelar
       </Button>
-      <Button variant="solid" onClick={handleSubmit} disabled={submitting} color="danger">
+      <Button
+        variant="solid"
+        onClick={handleSubmit}
+        disabled={submitting}
+        color="danger"
+      >
         {submitting ? "Enviando..." : "Valorar máquina"}
       </Button>
     </Stack>
   </Sheet>
 </Modal>
 
+
 <Modal
   open={serviceModalOpen}
   onClose={closeServiceModal}
-  sx={{ backdropFilter: "blur(5px)", display: "flex", justifyContent: "center", alignItems: "center", p: 2 }}
+  sx={{
+    backdropFilter: "blur(5px)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    p: 2,
+  }}
 >
   <Sheet
     variant="outlined"
-    sx={{ maxWidth: 400, width: "100%", p: 3, borderRadius: 2, boxShadow: "lg", bgcolor: "background.body" }}
+    sx={{
+      maxWidth: 440,
+      width: "100%",
+      p: 4,
+      borderRadius: "lg",
+      boxShadow: "xl",
+      bgcolor: "background.surface",
+    }}
   >
-    <Typography level="h4" mb={2}>
+    <Typography level="h4" fontWeight="xl" textAlign="center" mb={2}>
       Valorar servicio
     </Typography>
 
@@ -399,37 +437,50 @@ const handleSubmit = async () => {
       value={serviceRating.toString()}
       onChange={(e, newValue) => setServiceRating(Number(newValue))}
       size="md"
-      sx={{ mb: 2 }}
+      sx={{ mb: 3 }}
     >
       {["1", "2", "3", "4", "5"].map((num) => (
         <Option key={num} value={num}>
-          {"★ " + num}
+          {"⭐ " + num}
         </Option>
       ))}
     </Select>
 
-    {(serviceRating < 5 || serviceRating === 5) && (
-      <Textarea
-        placeholder="Escribe tu reseña (1 a 256 caracteres) (opcional para 5 estrellas)"
-        maxLength={256}
-        minRows={3}
-        value={serviceReviewText}
-        onChange={(e) => setServiceReviewText(e.target.value)}
-        required={serviceRating < 5}
-        sx={{ mb: 2 }}
-      />
-    )}
+    <Typography level="body-sm" sx={{ mb: 1, color: "text.secondary" }}>
+      Dejá tu reseña (opcional si calificás con 5 estrellas)
+    </Typography>
+
+    <Textarea
+      placeholder="Escribí tu opinión (máx. 256 caracteres)"
+      maxLength={256}
+      minRows={4}
+      value={serviceReviewText}
+      onChange={(e) => setServiceReviewText(e.target.value)}
+      required={serviceRating < 5}
+      sx={{ mb: 3 }}
+    />
 
     <Stack direction="row" spacing={2} justifyContent="flex-end">
-      <Button variant="plain" color="neutral" onClick={closeServiceModal} disabled={submittingService}>
+      <Button
+        variant="plain"
+        color="neutral"
+        onClick={closeServiceModal}
+        disabled={submittingService}
+      >
         Cancelar
       </Button>
-      <Button variant="solid" onClick={handleSubmitServiceReview} disabled={submittingService} color="primary">
+      <Button
+        variant="solid"
+        color="danger"
+        onClick={handleSubmitServiceReview}
+        disabled={submittingService}
+      >
         {submittingService ? "Enviando..." : "Valorar servicio"}
       </Button>
     </Stack>
   </Sheet>
 </Modal>
+
     </>
   );
 };
