@@ -15,12 +15,18 @@ const MyRentalsPage = () => {
   const [openSnack, setOpenSnack] = useState(false);
   const [status, setStatus] = useState({ isError: false, message: "" });
   const { get, post } = useAuth();
-  //Modal
+  //Valorar maquina
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRental, setSelectedRental] = useState(null);
   const [rating, setRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  //Valorar servicio
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  const [selectedServiceRental, setSelectedServiceRental] = useState(null);
+  const [serviceRating, setServiceRating] = useState(5);
+  const [serviceReviewText, setServiceReviewText] = useState("");
+  const [submittingService, setSubmittingService] = useState(false);
 
 
   useEffect(() => {
@@ -119,7 +125,7 @@ const handleSubmit = async () => {
       setRentalsData((prev) =>
         prev.map((r) =>
           r.rental_id === selectedRental.rental_id
-            ? { ...r, has_reviewed: true }
+            ? { ...r, has_machine_review: true }
             : r
         )
       );
@@ -150,6 +156,90 @@ const handleSubmit = async () => {
     setSubmitting(false);
   }
 };
+
+  const openServiceRatingModal = (rental) => {
+    setSelectedServiceRental(rental);
+    setServiceRating(5);
+    setServiceReviewText("");
+    setServiceModalOpen(true);
+  };
+
+  const closeServiceModal = () => {
+    if (!submittingService) {
+      setServiceModalOpen(false);
+      setSelectedServiceRental(null);
+    }
+  };
+
+  const handleSubmitServiceReview = async () => {
+  if (!selectedServiceRental) return;
+
+  // Validaciones locales
+  if (serviceRating < 1 || serviceRating > 5) {
+    setStatus({ isError: true, message: "Rating inválido" });
+    setOpenSnack(true);
+    return;
+  }
+
+  if (serviceRating < 5 && (serviceReviewText.length < 1 || serviceReviewText.length > 256)) {
+    setStatus({
+      isError: true,
+      message: "El texto debe tener entre 1 y 256 caracteres.",
+    });
+    setOpenSnack(true);
+    return;
+  }
+
+  setSubmittingService(true);
+
+  try {
+    const payload = {
+      access: user.access,
+      rental_id: selectedServiceRental.rental_id,
+      rating: serviceRating,
+      content: serviceRating === 5 ? "" : serviceReviewText,
+    };
+
+    const response = await post("/reviews/service/new", payload);
+
+    if (response.status === 201) {
+      setStatus({ isError: false, message: "Valoración de servicio registrada con éxito." });
+      setOpenSnack(true);
+
+      setRentalsData((prev) =>
+        prev.map((r) =>
+          r.rental_id === selectedServiceRental.rental_id
+            ? { ...r, has_service_review: true }
+            : r
+        )
+      );
+
+      closeServiceModal();
+    }
+  } catch (error) {
+    let message = "Error inesperado";
+    if (error.response) {
+      switch (error.response.status) {
+        case 400:
+          message = error.response.data?.message || "Datos inválidos";
+          break;
+        case 401:
+          message = "Token inválido.";
+          break;
+        case 403:
+          message = "No sos cliente.";
+          break;
+        case 500:
+          message = "Error interno del servidor.";
+          break;
+      }
+    }
+    setStatus({ isError: true, message });
+    setOpenSnack(true);
+  } finally {
+    setSubmittingService(false);
+  }
+  };
 
 
   return (
@@ -201,7 +291,7 @@ const handleSubmit = async () => {
                   }
                   status={rental.status}
                 />
-                {rental.status === "completed" && !rental.has_reviewed && (
+                {rental.status === "completed" && !rental.has_machine_review && (
                   <Button
                     variant="outlined"
                     size="sm"
@@ -212,6 +302,17 @@ const handleSubmit = async () => {
                     Valorar máquina
                   </Button>
                 )}
+                {rental.status === "completed" && !rental.has_service_review && (
+                <Button
+                  variant="outlined"
+                  size="sm"
+                  color="danger"
+                  onClick={() => openServiceRatingModal(rental)} // aún hay que definir esta función
+                  sx={{ whiteSpace: "nowrap" }}
+                >
+                  Valorar servicio
+                </Button>
+              )}
               </Stack>
             ))}
           </Stack>
@@ -275,6 +376,56 @@ const handleSubmit = async () => {
       </Button>
       <Button variant="solid" onClick={handleSubmit} disabled={submitting} color="danger">
         {submitting ? "Enviando..." : "Valorar máquina"}
+      </Button>
+    </Stack>
+  </Sheet>
+</Modal>
+
+<Modal
+  open={serviceModalOpen}
+  onClose={closeServiceModal}
+  sx={{ backdropFilter: "blur(5px)", display: "flex", justifyContent: "center", alignItems: "center", p: 2 }}
+>
+  <Sheet
+    variant="outlined"
+    sx={{ maxWidth: 400, width: "100%", p: 3, borderRadius: 2, boxShadow: "lg", bgcolor: "background.body" }}
+  >
+    <Typography level="h4" mb={2}>
+      Valorar servicio
+    </Typography>
+
+    <Select
+      label="Estrellas"
+      value={serviceRating.toString()}
+      onChange={(e, newValue) => setServiceRating(Number(newValue))}
+      size="md"
+      sx={{ mb: 2 }}
+    >
+      {["1", "2", "3", "4", "5"].map((num) => (
+        <Option key={num} value={num}>
+          {"★ " + num}
+        </Option>
+      ))}
+    </Select>
+
+    {(serviceRating < 5 || serviceRating === 5) && (
+      <Textarea
+        placeholder="Escribe tu reseña (1 a 256 caracteres) (opcional para 5 estrellas)"
+        maxLength={256}
+        minRows={3}
+        value={serviceReviewText}
+        onChange={(e) => setServiceReviewText(e.target.value)}
+        required={serviceRating < 5}
+        sx={{ mb: 2 }}
+      />
+    )}
+
+    <Stack direction="row" spacing={2} justifyContent="flex-end">
+      <Button variant="plain" color="neutral" onClick={closeServiceModal} disabled={submittingService}>
+        Cancelar
+      </Button>
+      <Button variant="solid" onClick={handleSubmitServiceReview} disabled={submittingService} color="primary">
+        {submittingService ? "Enviando..." : "Valorar servicio"}
       </Button>
     </Stack>
   </Sheet>
