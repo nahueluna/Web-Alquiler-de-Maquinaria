@@ -51,6 +51,8 @@ const MachineCopies = () => {
   const estados = {
     available: "Disponible",
     maintenance: "En mantenimiento",
+    reserved: "Reservado",
+    rented: "Alquilado"
   };
 
 const handleSearch = async () => {
