@@ -120,14 +120,14 @@ function TwoFactor() {
         case 400:
           setStatus({
             isError: true,
-            message: "Ocurrió un error al verificar el código. Inténtalo de nuevo.",
+            message: "El código de verificación es inválido.",
           });
           break;
         default:
           setStatus({
             isError: true,
             message:
-              "Ocurrió un error al verificar el código. Inténtalo de nuevo.",
+              "El código de verificación es inválido.",
           });
       }
       setOpenSnack(true);
