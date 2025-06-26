@@ -41,7 +41,7 @@ export default function LoginPage() {
       .required("El email es obligatorio"),
     password: yup
       .string("Escribe tu contraseña")
-      .min(8, "La contraseña posee un mínimo de 8 caracteres")
+      .min(8, "La contraseña debe poseer un mínimo de 8 caracteres")
       .required("La contraseña es obligatoria"),
   });
 
