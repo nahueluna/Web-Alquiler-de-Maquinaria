@@ -617,7 +617,17 @@ pub async fn new_model(
         .await
     {
         Ok(r) => r,
-        Err(_) => {
+        Err(e) => {
+            if let Some(db_err) = e.as_db_error() {
+                if db_err.code() == &SqlState::UNIQUE_VIOLATION && db_err.message().contains("brand_model_year")
+                {
+                    return (
+                        StatusCode::BAD_REQUEST,
+                        Json(json!({"message": "A model with brand, model and year already exists"})),
+                    )
+                        .into_response();
+                }
+            }
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!({"message": "Failed to execute transaction"})),

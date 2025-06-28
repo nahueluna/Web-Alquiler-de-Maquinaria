@@ -655,6 +655,34 @@ async fn test_new_model() {
         .unwrap();
     assert_eq!(imgs.len(), 2);
 
+    //Try to create a model with the same brand, model and year
+    let res = client
+        .post(backend_url("/newmodel"))
+        .json(&serde_json::json!({
+            "access": jwt,
+            "name": "New name",
+            "brand": "Caterpillar",
+            "model": "X1 2024",
+            "year": 2024,
+            "policy": "New Policy",
+            "description": "No",
+            "price": 123123,
+            "categories": ["Construction"],
+            "extra_images": [img1, img2],
+            "image": img1
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(res.status(), 400);
+    assert_eq!(
+        res.json::<serde_json::Value>().await.unwrap()["message"]
+            .as_str()
+            .unwrap(),
+        "A model with brand, model and year already exists"
+    );
+
     //Try to send 12 images
     let res = client
         .post(backend_url("/newmodel"))
