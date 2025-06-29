@@ -21,6 +21,7 @@ const Results = ({ results, loading }) => {
             <MachineCard
               imageUrl={machine.main_image}
               model={machine.model}
+              model_id={machine.id}
               categories={machine.categories}
               price={machine.price}
               name={machine.name}
