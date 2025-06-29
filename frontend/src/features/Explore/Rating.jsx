@@ -32,6 +32,11 @@ const getRatingTractors = (rating) => {
 };
 
 const Rating = ({ reviews }) => {
+  if (!reviews || reviews.rating == null) {
+    // Podés mostrar algo por defecto, o nada
+    return 
+  }
+
   const roundedRating =
     reviews.rating % 1 === 0
       ? reviews.rating.toFixed(0)
@@ -52,7 +57,7 @@ const Rating = ({ reviews }) => {
 
         {/* Total entre paréntesis */}
         <Typography fontSize="0.875rem" color="text.secondary">
-          ({reviews.totalReviews})
+          ({reviews.totalReviews || 0})
         </Typography>
       </Stack>
     </Box>
