@@ -124,33 +124,54 @@ function Product() {
               <Typography my={5} level="h3">
                 ${machine?.price} x dia
               </Typography>
-              <Button
-                sx={{ width: "100%" }}
-                size="lg"
-                color="danger"
-                onClick={async () => {
-                  setLoadingButton(true);
-                  const {
-                    data: { locations },
-                  } = await post(`/explore/${machine.id}/locations`);
-                  console.log(locations);
-                  setLoadingButton(false);
-                  setLocations(locations);
-                  setOpen(true);
-                }}
-                disabled={!user || user?.pub_user.role !== 2}
-                loading={loadingButton}
-              >
-                Alquilar
-              </Button>
-              {!user ? (
-                <Typography textAlign="center" level="body-sm" mt={1}>
-                  <Link component={RouterLink} to={"/login"}>
-                    Inicia sesion
-                  </Link>{" "}
-                  para empezar a alquilar
-                </Typography>
-              ) : null}
+              {user ? (
+                user.pub_user.role === 1 ? (
+                  <Button
+                    sx={{ width: "100%" }}
+                    size="lg"
+                    color="danger"
+                    loading={loadingButton}
+                  >
+                    Registrar alquiler presencial
+                  </Button>
+                ) : (
+                  <Button
+                    sx={{ width: "100%" }}
+                    size="lg"
+                    color="danger"
+                    onClick={async () => {
+                      setLoadingButton(true);
+                      const {
+                        data: { locations },
+                      } = await post(`/explore/${machine.id}/locations`);
+                      setLoadingButton(false);
+                      setLocations(locations);
+                      setOpen(true);
+                    }}
+                    disabled={user.pub_user.role === 0}
+                    loading={loadingButton}
+                  >
+                    Alquilar
+                  </Button>
+                )
+              ) : (
+                <>
+                  <Button
+                    sx={{ width: "100%" }}
+                    size="lg"
+                    color="danger"
+                    disabled
+                  >
+                    Alquilar
+                  </Button>
+                  <Typography textAlign="center" level="body-sm" mt={1}>
+                    <Link component={RouterLink} to={"/login"}>
+                      Inicia sesión
+                    </Link>{" "}
+                    para empezar a alquilar
+                  </Typography>
+                </>
+              )}
               {/* Modal */}
               <RentalModal
                 open={open}
