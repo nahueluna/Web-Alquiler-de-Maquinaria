@@ -16,7 +16,7 @@ import {
   MenuItem,
   IconButton,
 } from "@mui/joy";
-import axios from "axios";
+import useAuth from "../utils/useAuth";
 import { useEffect } from "react";
 import { useContext } from "react";
 import UserContext from "../../context/UserContext";
@@ -24,15 +24,11 @@ import { useState } from "react";
 import Question from "./Question";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import PlaylistAddCheckCircleRoundedIcon from "@mui/icons-material/PlaylistAddCheckCircleRounded";
-import useAuth from "../utils/useAuth";
 import ArrowDropDown from "@mui/icons-material/ArrowDropDown";
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const QASection = ({ id: id }) => {
   const { user } = useContext(UserContext);
   const { post } = useAuth();
-  const access = user?.access || null;
   const [loading, setLoading] = React.useState(true);
   const [QAData, setQAData] = React.useState([]);
   const [openSnack, setOpenSnack] = useState(false);
@@ -50,13 +46,7 @@ const QASection = ({ id: id }) => {
         order_by_recent: orderByRecent,
       };
 
-      if (access) {
-        parameters.access = access;
-      }
-      const { data } = await axios.post(
-        `${BACKEND_URL}/getquestions`,
-        parameters
-      );
+      const { data } = await post(`/getquestions`, parameters);
       console.log(data);
       setQAData(data.questions);
       console.log(QAData);
