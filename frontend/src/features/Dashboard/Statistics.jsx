@@ -142,6 +142,9 @@ const Statistics = () => {
     const getNewStats = async () => {
       setLoading(true);
       setStatsData([]);
+      setFechaFin("");
+      setFechaInicio("");
+      setFormError("");
       await getStats(type.value, groupBy.value);
       setLoading(false);
     };
@@ -309,9 +312,13 @@ const Statistics = () => {
                   alignSelf: "flex-end",
                 }}
               >
-                <IconButton>
-                  <ChevronRightIcon onClick={handleDateSubmit} />
-                </IconButton>
+                <Button
+                  onClick={handleDateSubmit}
+                  variant="plain"
+                  color="danger"
+                >
+                  Aplicar
+                </Button>
               </Box>
               <Dropdown>
                 <MenuButton
