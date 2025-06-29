@@ -18,12 +18,26 @@ import { FormControl, FormHelperText, FormLabel } from "@mui/joy";
 import IconButton from "@mui/joy/IconButton";
 import Box from "@mui/joy/Box";
 import Link from "@mui/joy/Link";
-import { Link as RouterLink } from "react-router-dom";
+import Select, { selectClasses } from "@mui/joy/Select";
+import Option from "@mui/joy/Option";
 import Typography from "@mui/joy/Typography";
 import CircularProgress from "@mui/joy/CircularProgress";
+import KeyboardArrowDown from "@mui/icons-material/KeyboardArrowDown";
 
 const Statistics = () => {
   const { post } = useAuth();
+
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = React.useState(currentYear.toString());
+  const years = [];
+  for (let y = currentYear; y >= 1900; y--) {
+    years.push(y.toString());
+  }
+
+  const handleSelect = (event, value) => {
+    setYear(value);
+    console.log("Selected year:", value);
+  };
 
   const [fechaInicio, setFechaInicio] = React.useState("");
   const [fechaFin, setFechaFin] = React.useState("");
@@ -44,6 +58,18 @@ const Statistics = () => {
     label: "Por mes",
     value: "month",
   });
+
+  function isStatsDataEmpty(statsData) {
+    // Para estadisticas por empleado o categoria, que son array
+    if (Array.isArray(statsData)) {
+      return statsData.length === 0;
+    }
+    if (statsData && typeof statsData === "object") {
+      // Para estadisticas por mes, que retorna "mes" : 0
+      return Object.values(statsData).every((val) => !val || val === 0);
+    }
+    return true;
+  }
 
   const [loading, setLoading] = React.useState(false);
 
@@ -84,6 +110,7 @@ const Statistics = () => {
       const parameters = {
         stat_type: type,
         group_by: groupBy,
+        year: Number(year),
       };
       if (optionalSettings.period.length > 0) {
         parameters.period = optionalSettings.period;
@@ -120,7 +147,7 @@ const Statistics = () => {
     };
 
     getNewStats();
-  }, [type, groupBy, optionalSettings]);
+  }, [year, type, groupBy, optionalSettings]);
   return (
     <>
       <Stack
@@ -210,6 +237,30 @@ const Statistics = () => {
               </MenuItem>
             </Menu>
           </Dropdown>
+          {groupBy.value === "month" && (
+            <Stack spacing={2} sx={{ maxWidth: "100px" }}>
+              <Select
+                placeholder="Año"
+                indicator={<ArrowDropDown />}
+                defaultValue={year}
+                onChange={handleSelect}
+                sx={{
+                  [`& .${selectClasses.indicator}`]: {
+                    transition: "0.2s",
+                    [`&.${selectClasses.expanded}`]: {
+                      transform: "rotate(-180deg)",
+                    },
+                  },
+                }}
+              >
+                {years.map((year) => (
+                  <Option key={year} value={year}>
+                    {year}
+                  </Option>
+                ))}
+              </Select>
+            </Stack>
+          )}
         </Stack>
         {groupBy.value != "month" && (
           <Stack
@@ -332,19 +383,26 @@ const Statistics = () => {
               marginTop: 2,
             }}
           />
-        ) : statsData ? (
-          groupBy.value === "month" ? (
-            <LineChart typeName={type.label} statsData={statsData} />
-          ) : (
-            Array.isArray(statsData) && (
-              <HorizontalBarChart
-                typeName={type.label}
-                statsData={statsData}
-                period={optionalSettings.period}
-              />
-            )
-          )
-        ) : null}
+        ) : (
+          <>
+            {isStatsDataEmpty(statsData) && (
+              <Typography level="title-md" sx={{ mb: 2 }}>
+                Oops. No se encontraron resultados para esta consulta.
+              </Typography>
+            )}
+            {groupBy.value === "month" ? (
+              <LineChart typeName={type.label} statsData={statsData} />
+            ) : (
+              Array.isArray(statsData) && (
+                <HorizontalBarChart
+                  typeName={type.label}
+                  statsData={statsData}
+                  period={optionalSettings.period}
+                />
+              )
+            )}
+          </>
+        )}
       </Stack>
       <Snackbar
         variant="soft"
