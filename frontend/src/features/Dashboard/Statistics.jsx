@@ -142,9 +142,6 @@ const Statistics = () => {
     const getNewStats = async () => {
       setLoading(true);
       setStatsData([]);
-      setFechaFin("");
-      setFechaInicio("");
-      setFormError("");
       await getStats(type.value, groupBy.value);
       setLoading(false);
     };
@@ -359,7 +356,9 @@ const Statistics = () => {
               </Dropdown>
             </Stack>
             <FormHelperText>{formError ? formError : ""}</FormHelperText>
-            {(fechaInicio || fechaFin) && (
+            {(fechaInicio ||
+              fechaFin ||
+              (optionalSettings && optionalSettings.period.length > 0)) && (
               <Typography>
                 <Link
                   onClick={() => {

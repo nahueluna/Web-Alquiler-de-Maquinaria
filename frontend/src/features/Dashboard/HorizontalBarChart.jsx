@@ -58,6 +58,8 @@ const HorizontalBarChart = ({ statsData, typeName, period }) => {
     scales: {
       x: {
         beginAtZero: true,
+        min: 0,
+        max: Math.max(10, ...values), // Establezco un maximo entero para que no muestre float
       },
     },
     plugins: {
