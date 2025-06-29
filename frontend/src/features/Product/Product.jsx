@@ -8,6 +8,7 @@ import {
   Skeleton,
   Table,
   Typography,
+  Box,
 } from "@mui/joy";
 import { useContext, useEffect, useState } from "react";
 import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
@@ -17,6 +18,7 @@ import RentalModal from "./Modal/RentalModal";
 import ProductSkeleton from "./ProductSkeleton";
 import useAuth from "../utils/useAuth";
 import QASection from "./QASection";
+import Rating from "../Explore/Rating"
 
 function Product() {
   const [open, setOpen] = useState(false);
@@ -31,6 +33,9 @@ function Product() {
   const { get, post } = useAuth();
 
   const { id } = useParams();
+  const [reviewData, setReviewData] = useState(null);
+  const [allReviews, setAllReviews] = useState([]);
+  const [showReviews, setShowReviews] = useState(false);
 
   useEffect(() => {
     window.scrollTo({
@@ -68,7 +73,36 @@ function Product() {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    async function fetchSummary() {
+      if (!machine?.id) return;
+      try {
+        const res = await post("reviews/machines/get", { model_id: machine.id, order: "recent" });
+        const { average_rating, reviews } = res.data;
+        setReviewData({
+          rating: average_rating,
+          totalReviews: reviews.length,
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    fetchSummary();
+  }, [machine]);
+
+  const handleShowReviews = async () => {
+    if (!machine?.id) return;
+    try {
+      const res = await post("reviews/machines/get", { model_id: machine.id });
+      setAllReviews(res.data.reviews);
+      setShowReviews(true);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
+    <>
     <Sheet
       sx={{
         display: "flex",
@@ -122,8 +156,94 @@ function Product() {
                 <Skeleton loading={loading}>{machine?.description}</Skeleton>
               </Typography>
               <Typography my={5} level="h3">
+
+              {reviewData && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2, // espacio entre Rating y el botón
+                    paddingBottom: '8px',
+                    fontSize: '1.25rem',
+                    width: '100%',
+                    maxWidth: 500,
+                  }}
+                >
+                  <Rating reviews={reviewData} />
+
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="danger"
+                    onClick={handleShowReviews}
+                  >
+                    Ver valoraciones
+                  </Button>
+                </Box>
+              )}
                 ${machine?.price} x dia
               </Typography>
+
+      {/* Modal de reviews */}
+      {showReviews && (
+        <Sheet
+          component="div"
+          sx={{
+            position: "fixed",
+            inset: 0,
+            bgcolor: "rgba(0,0,0,0.4)",
+            backdropFilter: "blur(5px)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1300,
+            p: 2,
+          }}
+          onClick={() => setShowReviews(false)} // Cerrar modal al click fuera
+        >
+          <Sheet
+            onClick={e => e.stopPropagation()} // Evita cerrar modal al click dentro
+            sx={{
+              bgcolor: "background.surface",
+              borderRadius: 2,
+              maxWidth: 600,
+              width: "100%",
+              maxHeight: "80vh",
+              overflowY: "auto",
+              p: 3,
+              boxShadow: "lg",
+            }}
+          >
+            <Typography level="h4" mb={2}>
+              Valoraciones
+            </Typography>
+
+            {allReviews.length === 0 ? (
+              <Typography>No hay valoraciones.</Typography>
+            ) : (
+              allReviews.map((review, index) => (
+                <Box key={index} sx={{ mb: 3, borderBottom: "1px solid #eee", pb: 2 }}>
+                  <Typography fontWeight="bold">{review.user_name}</Typography>
+                  <Typography>{review.content}</Typography>
+                  <Typography fontSize="xs" color="text.secondary">
+                    ⭐ {review.rating} - {new Date(review.created_at).toLocaleDateString()}
+                  </Typography>
+                </Box>
+              ))
+            )}
+
+            <Button
+              variant="outlined"
+              color="danger"
+              sx={{ mt: 2 }}
+              onClick={() => setShowReviews(false)}
+            >
+              Cerrar
+            </Button>
+          </Sheet>
+        </Sheet>
+      )}
+              
               {user ? (
                 user.pub_user.role === 1 ? (
                   <Button
@@ -183,7 +303,7 @@ function Product() {
           </Sheet>
 
           <Divider sx={{ mt: 20, mb: 5 }} />
-
+              
           <Sheet
             sx={{
               alignSelf: "center",
@@ -233,6 +353,8 @@ function Product() {
         </Sheet>
       )}
     </Sheet>
+
+    </>
   );
 }
 
