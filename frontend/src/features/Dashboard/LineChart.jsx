@@ -49,7 +49,7 @@ const LineChart = ({ statsData, typeName }) => {
       y: {
         beginAtZero: true,
         min: 0,
-        max: Math.max(10, ...values), // Establezco un maximo entero para que no muestre float
+        suggestedMax: Math.max(10, ...values),
       },
     },
     plugins: {
