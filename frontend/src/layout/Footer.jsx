@@ -10,6 +10,7 @@ const Footer = () => {
         backgroundColor: "#dfe1e3",
         display: "flex",
         justifyContent: "space-between",
+        boxShadow: "0 -1px 20px rgba(0, 0, 0, 0.1)",
       }}
     >
       <div>
