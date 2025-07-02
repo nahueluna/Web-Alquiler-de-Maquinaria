@@ -143,7 +143,13 @@ const UnansweredQuestion = ({
                     }}
                   >
                     <FormControl sx={{ ml: "auto" }}>
-                      <Button color="danger" type="submit" disabled={loading}>
+                      <Button
+                        color="danger"
+                        type="submit"
+                        disabled={
+                          loading || answer.length < 1 || answer.length > 256
+                        }
+                      >
                         Responder
                       </Button>
                     </FormControl>
