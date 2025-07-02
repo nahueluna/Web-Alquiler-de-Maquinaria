@@ -101,8 +101,14 @@ const handleSubmit = async () => {
   if (rating < 5 && (reviewText.length < 1 || reviewText.length > 256)) {
     setStatus({
       isError: true,
-      message: "El texto debe tener entre 1 y 256 caracteres.",
+      message: "La reseña no puede estar vacía y debe contener como máximo 256 caracteres.",
     });
+    setOpenSnack(true);
+    return;
+  }
+
+  if (reviewText.length > 256) {
+    setStatus({ isError: true, message: "La reseña no puede superar los 256 caracteres." });
     setOpenSnack(true);
     return;
   }
@@ -113,7 +119,7 @@ const handleSubmit = async () => {
       access: user.access,
       rental_id: selectedRental.rental_id,
       rating,
-      content: rating === 5 ? "" : reviewText,
+      content: reviewText,
     };
 
     const response = await post("/reviews/machines/new", payload);
@@ -184,8 +190,14 @@ const handleSubmit = async () => {
   if (serviceRating < 5 && (serviceReviewText.length < 1 || serviceReviewText.length > 256)) {
     setStatus({
       isError: true,
-      message: "El texto debe tener entre 1 y 256 caracteres.",
+      message: "La reseña no puede estar vacía y debe contener como máximo 256 caracteres.",
     });
+    setOpenSnack(true);
+    return;
+  }
+
+  if (reviewText.length > 256) {
+    setStatus({ isError: true, message: "La reseña no puede superar los 256 caracteres." });
     setOpenSnack(true);
     return;
   }
@@ -269,8 +281,8 @@ const handleSubmit = async () => {
             {rentalsData.map((rental) => (
               <Stack
                 key={rental.rental_id}
-                direction="row"
-                alignItems="center"
+                direction="column"
+                alignItems="flex-start"
                 spacing={2}
               >
                 <MyRentalCard
@@ -291,28 +303,30 @@ const handleSubmit = async () => {
                   }
                   status={rental.status}
                 />
-                {rental.status === "completed" && !rental.has_machine_review && (
+                <Stack direction="row" spacing={2}>
+                  {rental.status === "completed" && !rental.has_machine_review && (
+                    <Button
+                      variant="outlined"
+                      size="sm"
+                      color="danger"
+                      onClick={() => openRatingModal(rental)}
+                      sx={{ whiteSpace: "nowrap" }}
+                    >
+                      Valorar máquina
+                    </Button>
+                  )}
+                  {rental.status === "completed" && !rental.has_service_review && (
                   <Button
                     variant="outlined"
                     size="sm"
                     color="danger"
-                    onClick={() => openRatingModal(rental)}
+                    onClick={() => openServiceRatingModal(rental)} // aún hay que definir esta función
                     sx={{ whiteSpace: "nowrap" }}
                   >
-                    Valorar máquina
+                    Valorar servicio
                   </Button>
                 )}
-                {rental.status === "completed" && !rental.has_service_review && (
-                <Button
-                  variant="outlined"
-                  size="sm"
-                  color="danger"
-                  onClick={() => openServiceRatingModal(rental)} // aún hay que definir esta función
-                  sx={{ whiteSpace: "nowrap" }}
-                >
-                  Valorar servicio
-                </Button>
-              )}
+                </Stack>
               </Stack>
             ))}
           </Stack>

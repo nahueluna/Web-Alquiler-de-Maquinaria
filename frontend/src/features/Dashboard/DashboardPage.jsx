@@ -12,6 +12,7 @@ import {
   Stack,
 } from "@mui/joy";
 import ListItemDecorator from "@mui/joy/ListItemDecorator";
+import RateReviewIcon from "@mui/icons-material/RateReview";
 import { useState } from "react";
 import Employees from "./Employees";
 import Machines from "./Machines";
@@ -24,6 +25,7 @@ import { useContext } from "react";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import QAPanel from "./QAPanel";
 import Statistics from "./Statistics";
+import ServiceReviews from "./ServiceReviews";
 
 function Dashboard() {
   const [selected, setSelected] = useState(-1);
@@ -59,6 +61,8 @@ function Dashboard() {
         return <MachineCopies />;
       case 4:
         return <QAPanel />;
+      case 5:
+          return <ServiceReviews />;
       default:
         return null;
     }
@@ -71,17 +75,6 @@ function Dashboard() {
           <List>
             {user.pub_user.role === 0 && (
               <>
-                <ListItem>
-                  <ListItemButton
-                    selected={selected === -1}
-                    onClick={() => setSelected(-1)}
-                  >
-                    <ListItemDecorator>
-                      <WorkIcon />
-                    </ListItemDecorator>
-                    Ver alquileres
-                  </ListItemButton>
-                </ListItem>
                 <ListItem>
                   <ListItemButton
                     selected={selected === 0}
@@ -119,11 +112,33 @@ function Dashboard() {
                     Administrar empleados
                   </ListItemButton>
                 </ListItem>
+                <ListItem>
+                  <ListItemButton
+                    selected={selected === 5}
+                    onClick={() => setSelected(5)}
+                  >
+                    <ListItemDecorator>
+                      <RateReviewIcon />
+                    </ListItemDecorator>
+                    Ver valoraciones de servicio
+                  </ListItemButton>
+                </ListItem>
               </>
             )}
 
             {(user.pub_user.role === 0 || user.pub_user.role === 1) && (
               <>
+                <ListItem>
+                  <ListItemButton
+                    selected={selected === -1}
+                    onClick={() => setSelected(-1)}
+                  >
+                    <ListItemDecorator>
+                      <WorkIcon />
+                    </ListItemDecorator>
+                    Ver alquileres
+                  </ListItemButton>
+                </ListItem>
                 <ListItem>
                   <ListItemButton
                     selected={selected === 3}
