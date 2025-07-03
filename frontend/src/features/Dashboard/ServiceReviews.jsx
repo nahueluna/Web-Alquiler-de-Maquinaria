@@ -115,29 +115,39 @@ export default function ServiceReviews() {
       ) : allReviews.length === 0 ? (
         <Typography>No hay valoraciones.</Typography>
       ) : (
-        allReviews.map((review, index) => (
-          <Box
-            key={index}
-            sx={{ mb: 3, borderBottom: "1px solid #eee", pb: 2 }}
-          >
-            <Typography fontWeight="bold">{review.user_name}</Typography>
-            <Typography>{review.content}</Typography>
-            <Typography fontSize="xs" color="text.secondary">
-              ⭐ {review.rating} -{" "}
-              {new Date(review.created_at).toLocaleDateString()}
-            </Typography>
+allReviews.map((review, index) => (
+  <Box
+    key={index}
+    sx={{ mb: 3, borderBottom: "1px solid #eee", pb: 2 }}
+  >
+          <Typography fontSize="sm" color="neutral" sx={{ mb: 1 }}>
+            ID Alquiler: {review.rental_id}
+          </Typography>
 
-            <Typography fontSize="xs" color="text.secondary">
-              Modelo: {review.model_brand} {review.model_model} - {review.model_name}
-            </Typography>
-            <Typography fontSize="xs" color="text.secondary">
+          <Typography fontWeight="bold">{review.user_name}</Typography>
+          <Typography>{review.content}</Typography>
+          <Typography fontSize="xs" color="text.secondary">
+            ⭐ {review.rating} -{" "}
+            {new Date(review.created_at).toLocaleDateString()}
+          </Typography>
+
+          <Typography fontSize="xs" color="text.secondary">
+            Modelo: {review.model_brand} {review.model_model} - {review.model_name}
+          </Typography>
+
+          <Typography fontSize="xs" color="text.secondary">
+            Empleado carga: {review.rental_employee_name?.trim() ? review.rental_employee_name : "-"}
+          </Typography>
+
+          <Typography fontSize="xs" color="text.secondary">
             Empleado retiro: {review.retirement_employee_name?.trim() ? review.retirement_employee_name : "-"}
-            </Typography>
-            <Typography fontSize="xs" color="text.secondary">
+          </Typography>
+
+          <Typography fontSize="xs" color="text.secondary">
             Empleado devolución: {review.return_employee_name?.trim() ? review.return_employee_name : "-"}
-            </Typography>
-          </Box>
-        ))
+          </Typography>
+        </Box>
+      ))
       )}
     </Sheet>
   );
