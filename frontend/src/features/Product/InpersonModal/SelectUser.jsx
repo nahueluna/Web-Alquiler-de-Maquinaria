@@ -108,10 +108,9 @@ const SelectUser = ({ setUserId, setDisable }) => {
           )}
         </FormControl>
         {email && validEmail && (
-          <Typography sx={{ mt: 2, width: "90%" }}>
+          <Typography sx={{ mt: 2, width: 400 }}>
             Vas a continuar con el registro de alquiler para el cliente de
-            correo
-            <strong> {email}</strong>.
+            correo <strong> {email}</strong>.
           </Typography>
         )}
       </Box>

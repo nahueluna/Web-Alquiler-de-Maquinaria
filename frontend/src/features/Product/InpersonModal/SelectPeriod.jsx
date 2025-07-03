@@ -72,6 +72,11 @@ const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
               end_date: error.response.data.overlaped_date.end_date,
             });
           }
+
+          break;
+        default:
+          setError("Hubo un error al validar las fechas. Intentalo mas tarde.");
+          break;
       }
     }
 
@@ -117,62 +122,85 @@ const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
       <Box>
         <Box
           sx={{
+            width: "100%",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
           }}
         >
-          <Box>
-            <FormLabel size="lg">Periodo de alquiler</FormLabel>
+          <Box sx={{ width: 420, maxWidth: "100%" }}>
             <Stack direction="row" spacing={1}>
-              <FormControl error={!!error && (fechaInicio || fechaFin)}>
-                <Input
-                  type="date"
-                  value={fechaInicio}
-                  disabled={loading}
-                  size="lg"
-                  slotProps={{
-                    input: {
-                      max: "9999-12-31",
-                    },
-                  }}
-                  onChange={(e) => setFechaInicio(e.target.value)}
-                />
-              </FormControl>
-              <FormControl error={!!error && (fechaInicio || fechaFin)}>
-                <Input
-                  type="date"
-                  value={fechaFin}
-                  disabled={loading}
-                  size="lg"
-                  slotProps={{
-                    input: {
-                      max: "9999-12-31",
-                    },
-                  }}
-                  onChange={(e) => setFechaFin(e.target.value)}
-                />
-              </FormControl>
+              <Box>
+                <FormLabel>Fecha de inicio</FormLabel>
+                <FormControl
+                  error={!!error && (fechaInicio || fechaFin)}
+                  sx={{ flex: 1 }}
+                >
+                  <Input
+                    type="date"
+                    value={fechaInicio}
+                    disabled={loading}
+                    size="lg"
+                    slotProps={{
+                      input: {
+                        max: "9999-12-31",
+                      },
+                    }}
+                    onChange={(e) => setFechaInicio(e.target.value)}
+                  />
+                </FormControl>
+              </Box>
+              <Box>
+                <FormLabel>Fecha de finalizacion</FormLabel>
+
+                <FormControl
+                  error={!!error && (fechaInicio || fechaFin)}
+                  sx={{ flex: 1 }}
+                >
+                  <Input
+                    type="date"
+                    value={fechaFin}
+                    disabled={loading}
+                    size="lg"
+                    slotProps={{
+                      input: {
+                        max: "9999-12-31",
+                      },
+                    }}
+                    onChange={(e) => setFechaFin(e.target.value)}
+                  />
+                </FormControl>
+              </Box>
               <Button
                 size="lg"
                 color="danger"
                 onClick={handleSubmit}
-                disabled={!fechaFin || !fechaInicio || error}
+                disabled={
+                  !fechaFin ||
+                  !fechaInicio ||
+                  (error &&
+                    error !=
+                      "Hubo un error al validar las fechas. Intentalo mas tarde.")
+                }
+                sx={{
+                  height: "100%",
+                  alignSelf: "flex-end",
+                }}
               >
                 Validar
               </Button>
             </Stack>
+            {error && (fechaFin || fechaInicio) && (
+              <FormHelperText
+                sx={{
+                  color: "var(--joy-palette-danger-plainColor)",
+                  width: "110%",
+                }}
+              >
+                {error}
+              </FormHelperText>
+            )}
           </Box>
-          {error && (fechaFin || fechaInicio) && (
-            <FormHelperText
-              sx={{
-                color: "var(--joy-palette-danger-plainColor)",
-                width: "80%",
-              }}
-            >
-              {error}
-            </FormHelperText>
-          )}
         </Box>
       </Box>
       {overlapedDates.start_date && overlapedDates.end_date ? (

@@ -5,13 +5,18 @@ import { Stack, FormControl, Select, Box, FormLabel } from "@mui/joy";
 import Option from "@mui/joy/Option";
 import { set } from "date-fns";
 
-const SelectMachine = ({ machineId, setDisable, setLocationId, setUnitId }) => {
+const SelectMachine = ({
+  machineId,
+  setDisable,
+  setSelectedCity,
+  setUnitId,
+}) => {
   const { post } = useAuth();
 
   const [locations, setLocations] = React.useState([]);
-  const [selectedLocation, setSelectedLocation] = React.useState("");
+  const [selectedLocation, setSelectedLocation] = React.useState(locations[0]);
   const [units, setUnits] = React.useState([]);
-  const [selectedUnit, setSelectedUnit] = React.useState("");
+  const [selectedUnit, setSelectedUnit] = React.useState(units[0]);
 
   useEffect(() => {
     setDisable(true);
@@ -24,6 +29,28 @@ const SelectMachine = ({ machineId, setDisable, setLocationId, setUnitId }) => {
       getUnits();
     }
   }, [selectedLocation]);
+
+  useEffect(() => {
+    if (locations.length > 0) {
+      setSelectedLocation(locations[0]);
+    }
+  }, [locations]);
+
+  useEffect(() => {
+    if (units.length > 0) {
+      setSelectedUnit(units[0]);
+    }
+  }, [units]);
+
+  useEffect(() => {
+    if (selectedUnit && selectedLocation) {
+      console.log("Selected Unit:", selectedUnit);
+      console.log("Selected Location:", selectedLocation);
+      setUnitId(selectedUnit);
+      setSelectedCity(selectedLocation.city);
+      setDisable(false);
+    }
+  }, [selectedUnit, selectedLocation]);
 
   async function getLocations() {
     try {
@@ -38,6 +65,7 @@ const SelectMachine = ({ machineId, setDisable, setLocationId, setUnitId }) => {
   const handleLocationSelect = (event, newValue) => {
     const loc = locations.find((x) => x.id === newValue);
     setSelectedLocation(loc);
+    setSelectedCity(loc.city);
   };
 
   async function getUnits() {
@@ -55,7 +83,6 @@ const SelectMachine = ({ machineId, setDisable, setLocationId, setUnitId }) => {
 
   const handleUnitSelect = (event, newValue) => {
     setSelectedUnit(newValue);
-    setLocationId(selectedLocation.id);
     setUnitId(newValue);
     setDisable(false);
   };
@@ -68,7 +95,11 @@ const SelectMachine = ({ machineId, setDisable, setLocationId, setUnitId }) => {
       >
         <FormControl sx={{ width: "70%" }}>
           <FormLabel>Selecciona una ubicacion</FormLabel>
-          <Select placeholder="Ubicacion" onChange={handleLocationSelect}>
+          <Select
+            placeholder="Ubicacion"
+            onChange={handleLocationSelect}
+            value={selectedLocation?.id || ""}
+          >
             {locations &&
               locations.map((location) => (
                 <Option key={location.id} value={location.id}>
@@ -80,7 +111,11 @@ const SelectMachine = ({ machineId, setDisable, setLocationId, setUnitId }) => {
         {selectedLocation && (
           <FormControl sx={{ width: "70%" }}>
             <FormLabel>Selecciona un ejemplar (ID de ejemplar)</FormLabel>
-            <Select placeholder="Ejemplar" onChange={handleUnitSelect}>
+            <Select
+              placeholder="Ejemplar"
+              onChange={handleUnitSelect}
+              value={selectedUnit || ""}
+            >
               {units &&
                 units.map((unit) => (
                   <Option key={unit} value={unit}>

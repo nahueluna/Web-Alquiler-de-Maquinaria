@@ -70,15 +70,16 @@ const InpersonModal = ({
   setOpen,
   setOpenSnack,
   setStatus,
-  price,
+  machine,
 }) => {
+  console.log("InpersonModal machine:", machine);
   const { post } = useAuth();
 
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setloading] = useState(false);
   const [disable, setDisable] = useState(true);
   const [userId, setUserId] = useState(null);
-  const [locationId, setLocationId] = useState(null);
+  const [selectedCity, setSelectedCity] = useState("");
   const [unitId, setUnitId] = useState(null);
   const [validPeriod, setValidPeriod] = useState({
     start_date: "",
@@ -97,7 +98,7 @@ const InpersonModal = ({
         <SelectMachine
           machineId={id}
           setDisable={setDisable}
-          setLocationId={setLocationId}
+          setSelectedCity={setSelectedCity}
           setUnitId={setUnitId}
         />
       ),
@@ -117,9 +118,11 @@ const InpersonModal = ({
       component: (
         <InpersonSummary
           userId={userId}
-          machineId={unitId}
+          selectedCity={selectedCity}
+          unitId={unitId}
           validPeriod={validPeriod}
-          price={price}
+          days={getDaysBetween(validPeriod)}
+          machine={machine}
         />
       ),
     },
@@ -148,7 +151,7 @@ const InpersonModal = ({
         user_id: userId,
         start_date: validPeriod.start_date,
         end_date: validPeriod.end_date,
-        total_price: getDaysBetween(validPeriod) * price,
+        total_price: getDaysBetween(validPeriod) * machine.price,
       });
       setStatus({
         isError: false,
@@ -158,12 +161,13 @@ const InpersonModal = ({
       setOpen(false);
       setActiveStep(0);
       setUserId(null);
-      setLocationId(null);
+      setSelectedCity(null);
       setUnitId(null);
       setValidPeriod({ start_date: "", end_date: "" });
       setError("");
       setDisable(true);
     } catch (error) {
+      console.error("Error al registrar el alquiler:", error);
       let errorMessage =
         "Hubo un error al registrar el alquiler. Intentalo mas tarde.";
       switch (error.response?.status) {
@@ -257,7 +261,7 @@ const InpersonModal = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            minHeight: "150px",
+            minHeight: "250px",
           }}
         >
           {steps[activeStep].component}
