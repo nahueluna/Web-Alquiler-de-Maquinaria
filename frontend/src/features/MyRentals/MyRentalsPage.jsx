@@ -93,7 +93,7 @@ const handleSubmit = async () => {
 
   // Validaciones
   if (rating < 1 || rating > 5) {
-    setStatus({ isError: true, message: "Rating inválido" });
+    setStatus({ isError: true, message: "Rating inválido." });
     setOpenSnack(true);
     return;
   }
@@ -101,7 +101,7 @@ const handleSubmit = async () => {
   if (rating < 5 && (reviewText.length < 1 || reviewText.length > 256)) {
     setStatus({
       isError: true,
-      message: "La reseña no puede estar vacía y debe contener como máximo 256 caracteres.",
+      message: "La reseña no puede estar vacía.",
     });
     setOpenSnack(true);
     return;
@@ -177,27 +177,30 @@ const handleSubmit = async () => {
     }
   };
 
-  const handleSubmitServiceReview = async () => {
+const handleSubmitServiceReview = async () => {
   if (!selectedServiceRental) return;
 
   // Validaciones locales
   if (serviceRating < 1 || serviceRating > 5) {
-    setStatus({ isError: true, message: "Rating inválido" });
+    setStatus({ isError: true, message: "Rating inválido." });
     setOpenSnack(true);
     return;
   }
 
-  if (serviceRating < 5 && (serviceReviewText.length < 1 || serviceReviewText.length > 256)) {
+  if (serviceReviewText.length > 256) {
     setStatus({
       isError: true,
-      message: "La reseña no puede estar vacía y debe contener como máximo 256 caracteres.",
+      message: "La reseña no puede superar los 256 caracteres.",
     });
     setOpenSnack(true);
     return;
   }
 
-  if (reviewText.length > 256) {
-    setStatus({ isError: true, message: "La reseña no puede superar los 256 caracteres." });
+  if (serviceRating < 5 && serviceReviewText.trim().length === 0) {
+    setStatus({
+      isError: true,
+      message: "La reseña no puede estar vacía.",
+    });
     setOpenSnack(true);
     return;
   }
@@ -209,13 +212,16 @@ const handleSubmit = async () => {
       access: user.access,
       rental_id: selectedServiceRental.rental_id,
       rating: serviceRating,
-      content: serviceRating === 5 ? "" : serviceReviewText,
+      content: serviceReviewText.trim(),
     };
 
     const response = await post("/reviews/service/new", payload);
 
     if (response.status === 201) {
-      setStatus({ isError: false, message: "Valoración de servicio registrada con éxito." });
+      setStatus({
+        isError: false,
+        message: "Valoración de servicio registrada con éxito.",
+      });
       setOpenSnack(true);
 
       setRentalsData((prev) =>
@@ -233,7 +239,8 @@ const handleSubmit = async () => {
     if (error.response) {
       switch (error.response.status) {
         case 400:
-          message = "Ya se ha realizado una valoración del servicio para este alquiler.";
+          message =
+            "Ya se ha realizado una valoración del servicio para este alquiler.";
           break;
         case 401:
           message = "Token inválido.";
@@ -251,7 +258,8 @@ const handleSubmit = async () => {
   } finally {
     setSubmittingService(false);
   }
-  };
+};
+
 
 
   return (
