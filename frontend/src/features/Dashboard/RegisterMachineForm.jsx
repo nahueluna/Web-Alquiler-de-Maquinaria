@@ -115,7 +115,8 @@ const RegisterMachineForm = ({
           msg = "No tienes permisos para realizar esta acción.";
           break;
         case 400:
-          msg = "Error en las imágenes o demasiadas imágenes (máx 10).";
+          msg =
+            "Hubo un error al procesar las imagenes, las imagenes son mas de 10 o ya existe un modelo con la misma marca, modelo y año.";
           break;
         case 413:
           msg = "Las imágenes son demasiado pesadas.";
