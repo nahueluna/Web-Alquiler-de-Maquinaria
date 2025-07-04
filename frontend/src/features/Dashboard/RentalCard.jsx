@@ -55,12 +55,9 @@ const parseFullDate = (dateString) => {
 };
 
 const parseDate = (dateString) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("es-AR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+  if (!dateString) return "";
+  const [year, month, day] = dateString.split("-");
+  return `${day}/${month}/${year}`;
 };
 
 export default function RentalCard({
