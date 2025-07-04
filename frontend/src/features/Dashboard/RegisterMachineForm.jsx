@@ -115,8 +115,7 @@ const RegisterMachineForm = ({
           msg = "No tienes permisos para realizar esta acción.";
           break;
         case 400:
-          msg =
-            "Hubo un error al procesar las imagenes, las imagenes son mas de 10 o ya existe un modelo con la misma marca, modelo y año.";
+          msg = "El modelo ya se encuentra registrado";
           break;
         case 413:
           msg = "Las imágenes son demasiado pesadas.";
