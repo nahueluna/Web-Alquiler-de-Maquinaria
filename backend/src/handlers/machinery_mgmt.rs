@@ -623,7 +623,7 @@ pub async fn new_model(
                 {
                     return (
                         StatusCode::BAD_REQUEST,
-                        Json(json!({"message": "A model with brand, model and year already exists"})),
+                        Json(json!({"message": "A model with this same name, brand, model and year already exists"})),
                     )
                         .into_response();
                 }

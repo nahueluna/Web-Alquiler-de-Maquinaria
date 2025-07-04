@@ -45,7 +45,7 @@ CREATE TABLE machinery_models (
     description TEXT NOT NULL,
     price REAL NOT NULL,
     image varchar(64) NOT NULL,
-    UNIQUE (brand, model, year)
+    UNIQUE (name, brand, model, year)
 );
 
 CREATE TABLE locations (
