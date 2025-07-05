@@ -132,7 +132,7 @@ allReviews.map((review, index) => (
           </Typography>
 
           <Typography fontSize="xs" color="text.secondary">
-            Modelo: {review.model_brand} {review.model_model} - {review.model_name}
+            Modelo: {review.model_brand} {review.model_model} {review.model_name}
           </Typography>
 
           <Typography fontSize="xs" color="text.secondary">
