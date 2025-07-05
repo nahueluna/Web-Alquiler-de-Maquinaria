@@ -16,6 +16,14 @@ import useAuth from "../../utils/useAuth";
 const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
   const { post } = useAuth();
 
+  function isBeforeToday(dateStr) {
+    if (!dateStr) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const date = new Date(dateStr);
+    return date < today;
+  }
+
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
   const [error, setError] = useState("");
@@ -89,23 +97,44 @@ const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
 
   useEffect(() => {
     setDisable(true);
-    return () => setDisable(false);
-  }, []);
 
-  useEffect(() => {
+    if (
+      isBeforeToday(fechaInicio) &&
+      isBeforeToday(fechaFin) &&
+      fechaInicio &&
+      fechaFin
+    ) {
+      setError(
+        "La fecha de inicio y la fecha de finalización no pueden ser menores a la fecha actual."
+      );
+      return;
+    }
+
+    if (isBeforeToday(fechaInicio) && fechaInicio) {
+      setError("La fecha de inicio no puede ser menor a la fecha actual.");
+      return;
+    }
+    if (isBeforeToday(fechaFin) && fechaFin) {
+      setError(
+        "La fecha de finalización no puede ser menor a la fecha actual."
+      );
+      return;
+    }
+
     if (fechaFin && fechaFin < fechaInicio) {
       setError("La fecha de fin no puede ser anterior a la de inicio.");
-      setDisable(true);
       return;
     }
+
     const diffDays =
       (new Date(fechaFin) - new Date(fechaInicio)) / (1000 * 60 * 60 * 24);
-    if (diffDays < 7) {
+    if (fechaInicio && fechaFin && diffDays < 7) {
       setError("El periodo debe ser de al menos 7 días.");
-      setDisable(true);
       return;
     }
+
     setError("");
+    setDisable(false);
   }, [fechaInicio, fechaFin]);
 
   return (
