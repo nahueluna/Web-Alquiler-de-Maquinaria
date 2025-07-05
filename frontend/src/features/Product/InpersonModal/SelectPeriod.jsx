@@ -99,30 +99,12 @@ const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
     setDisable(true);
 
     if (
-      isBeforeToday(fechaInicio) &&
-      isBeforeToday(fechaFin) &&
-      fechaInicio &&
-      fechaFin
+      (isBeforeToday(fechaInicio) && fechaInicio) ||
+      (isBeforeToday(fechaFin) && fechaFin)
     ) {
       setError(
-        "La fecha de inicio y la fecha de finalización no pueden ser menores a la fecha actual."
+        "El período de alquiler no puede ser anterior a la fecha actual"
       );
-      return;
-    }
-
-    if (isBeforeToday(fechaInicio) && fechaInicio) {
-      setError("La fecha de inicio no puede ser menor a la fecha actual.");
-      return;
-    }
-    if (isBeforeToday(fechaFin) && fechaFin) {
-      setError(
-        "La fecha de finalización no puede ser menor a la fecha actual."
-      );
-      return;
-    }
-
-    if (fechaFin && fechaFin < fechaInicio) {
-      setError("La fecha de fin no puede ser anterior a la de inicio.");
       return;
     }
 
