@@ -660,7 +660,7 @@ async fn test_new_model() {
         .post(backend_url("/newmodel"))
         .json(&serde_json::json!({
             "access": jwt,
-            "name": "New name",
+            "name": "Bulldozer X1",
             "brand": "Caterpillar",
             "model": "X1 2024",
             "year": 2024,
@@ -680,7 +680,7 @@ async fn test_new_model() {
         res.json::<serde_json::Value>().await.unwrap()["message"]
             .as_str()
             .unwrap(),
-        "A model with brand, model and year already exists"
+        "A model with this same name, brand, model and year already exists"
     );
 
     //Try to send 12 images
