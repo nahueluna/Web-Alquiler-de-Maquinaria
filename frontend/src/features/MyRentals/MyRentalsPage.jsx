@@ -98,7 +98,7 @@ const handleSubmit = async () => {
     return;
   }
 
-  if (rating < 5 && (reviewText.length < 1 || reviewText.length > 256)) {
+  if (rating < 5 && reviewText.trim().length === 0) {
     setStatus({
       isError: true,
       message: "La reseña no puede estar vacía.",
