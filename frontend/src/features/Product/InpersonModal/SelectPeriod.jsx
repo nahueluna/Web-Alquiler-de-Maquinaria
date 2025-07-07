@@ -20,7 +20,11 @@ const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
     if (!dateStr) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const date = new Date(dateStr);
+
+    const [year, month, day] = dateStr.split("-");
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    console.log("Comparing date:", date, "with today:", today);
+    console.log("Is date before today?", date < today);
     return date < today;
   }
 
@@ -98,6 +102,13 @@ const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
   useEffect(() => {
     setDisable(true);
 
+    if (fechaInicio > fechaFin) {
+      setError(
+        "La fecha de finalizacion no puede ser menor a la fecha de inicio."
+      );
+      return;
+    }
+
     if (
       (isBeforeToday(fechaInicio) && fechaInicio) ||
       (isBeforeToday(fechaFin) && fechaFin)
@@ -110,7 +121,7 @@ const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
 
     const diffDays =
       (new Date(fechaFin) - new Date(fechaInicio)) / (1000 * 60 * 60 * 24);
-    if (fechaInicio && fechaFin && diffDays < 7) {
+    if (fechaInicio && fechaFin && fechaFin >= fechaFin && diffDays < 7) {
       setError("El periodo debe ser de al menos 7 días.");
       return;
     }
