@@ -102,6 +102,11 @@ const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
   useEffect(() => {
     setDisable(true);
 
+    if (!fechaInicio || !fechaFin) {
+      setError("");
+      return;
+    }
+
     if (fechaInicio > fechaFin) {
       setError(
         "La fecha de finalizacion no puede ser menor a la fecha de inicio."
@@ -109,10 +114,7 @@ const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
       return;
     }
 
-    if (
-      (isBeforeToday(fechaInicio) && fechaInicio) ||
-      (isBeforeToday(fechaFin) && fechaFin)
-    ) {
+    if (isBeforeToday(fechaInicio) || isBeforeToday(fechaFin)) {
       setError(
         "El período de alquiler no puede ser anterior a la fecha actual"
       );
@@ -121,7 +123,8 @@ const SelectPeriod = ({ unitId, setDisable, setValidPeriod }) => {
 
     const diffDays =
       (new Date(fechaFin) - new Date(fechaInicio)) / (1000 * 60 * 60 * 24);
-    if (fechaInicio && fechaFin && fechaFin >= fechaFin && diffDays < 7) {
+
+    if (diffDays < 7) {
       setError("El periodo debe ser de al menos 7 días.");
       return;
     }
