@@ -32,13 +32,7 @@ function formatDays(amount) {
   })}`;
 }
 
-const InpersonSummary = ({
-  userId,
-  selectedCity,
-  unitId,
-  validPeriod,
-  machine,
-}) => {
+const InpersonSummary = ({ selectedCity, unitId, validPeriod, machine }) => {
   const days = getDaysBetween(validPeriod);
   return (
     <Box>
@@ -50,9 +44,6 @@ const InpersonSummary = ({
         borderAxis="none"
       >
         <tbody>
-          <tr>
-            <td>ID de usuario que alquila</td> <td>{userId}</td>
-          </tr>
           <tr>
             <td>Maquina</td>
             <td>

@@ -117,7 +117,6 @@ const InpersonModal = ({
       name: "Resumen",
       component: (
         <InpersonSummary
-          userId={userId}
           selectedCity={selectedCity}
           unitId={unitId}
           validPeriod={validPeriod}
