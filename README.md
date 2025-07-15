@@ -28,7 +28,10 @@ CREATE DATABASE saga;
 \c saga
 ```
 
-De esta forma, se ingresa con permisos de root user y se crea la base de datos. Si ya tenés un usuario de PostgreSQL configurado con acceso, podes usar:
+De esta forma, se ingresa con permisos de root user y se crea la base de datos. 
+Se debe indicar en `backend/.env` las URL de las bases de datos creadas (Producción y Testing), según corresponda.
+
+Si ya se tiene un usuario de PostgreSQL configurado con acceso, podes usar:
 
 ```bash
 psql -U tu_usuario -d postgres
